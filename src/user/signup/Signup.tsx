@@ -1,7 +1,14 @@
 import React, { useState, useEffect, useRef } from "react";
 import { MapPin, Search, ChevronDown, ArrowLeft } from "lucide-react";
 import logo from "../../assets/Logo SVG 1.png";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import {
+  authService,
+  APIError,
+  type GetOTPResponse,
+} from "../../services/authService";
+import { ToastContainer, useToast } from "../../component/Toast";
+
 // Google Maps types
 interface GoogleMapOptions {
   center: { lat: number; lng: number };
@@ -65,21 +72,61 @@ interface UserData {
   firstName?: string;
   lastName?: string;
   email?: string;
+  password?: string;
 }
 
-// Phone Input Screen
 const PhoneInputScreen = ({
   onContinue,
+  toast,
 }: {
   onContinue: (phone: string) => void;
+  toast: ReturnType<typeof useToast>;
 }) => {
   const [phone, setPhone] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleContinue = async () => {
+    if (!phone || phone.length < 10) {
+      toast.error("Please enter a valid phone number");
+      return;
+    }
+
+    const fullPhone = `+234${phone}`;
+    setIsLoading(true);
+
+    try {
+      const response = await authService.getOTP(fullPhone);
+      toast.success(response.message || "OTP sent successfully!");
+      // If the API returns an OTP code, show it in a secondary toast so user sees the digits
+      const maybeOtp = (() => {
+        if (typeof (response as GetOTPResponse).otp === "string")
+          return (response as GetOTPResponse).otp;
+        const altKeys = ["OTP", "otpCode"] as const;
+        for (const k of altKeys) {
+          const val = (response as unknown as Record<string, unknown>)[k];
+          if (typeof val === "string") return val;
+        }
+        return undefined;
+      })();
+      if (maybeOtp) {
+        toast.info(`Your OTP: ${maybeOtp}`);
+      }
+      onContinue(fullPhone);
+    } catch (error) {
+      if (error instanceof APIError) {
+        toast.error(error.message);
+      } else {
+        toast.error("Failed to send OTP. Please try again.");
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-white flex flex-col">
       <div className="flex-1 flex flex-col items-center px-6 pt-12">
         <img src={logo} alt="" />
-
         <h1 className="text-2xl font-bold text-green-700 mb-32">
           PickEAT PickIT
         </h1>
@@ -96,17 +143,20 @@ const PhoneInputScreen = ({
               type="tel"
               placeholder="Phone number"
               value={phone}
-              onChange={(e) => setPhone(e.target.value)}
+              onChange={(e) => setPhone(e.target.value.replace(/\D/g, ""))}
               className="flex-1 px-4 py-3 bg-[#F5F5F5] rounded-lg border text-[#000000] border-gray-200 text-sm placeholder-[#000000] outline-none"
+              maxLength={10}
             />
           </div>
         </div>
+
         <p className="text-sm text-gray-500 mb-6 font-family-inter">
           Already have an account?{" "}
           <Link to="/login" className="text-black font-family-inter font-bold">
             Log in
           </Link>
         </p>
+
         <div className="w-full max-w-md pb-8">
           <p className="text-xs text-gray-500 text-center mb-4">
             By continuing you agree to our{" "}
@@ -114,38 +164,42 @@ const PhoneInputScreen = ({
             <span className="text-green-700">privacy Policy</span>
           </p>
           <button
-            onClick={() => onContinue(phone)}
-            className="w-full py-4 bg-green-700 text-white font-semibold rounded-xl hover:bg-green-800 transition-colors"
+            onClick={handleContinue}
+            disabled={isLoading}
+            className="w-full py-4 bg-green-700 text-white font-semibold rounded-xl hover:bg-green-800 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
           >
-            Continue
+            {isLoading ? "Sending OTP..." : "Continue"}
           </button>
         </div>
       </div>
     </div>
   );
 };
-
 // OTP Screen
 const OTPScreen = ({
   phone,
   onContinue,
   onBack,
+  toast,
 }: {
   phone: string;
   onContinue: () => void;
   onBack: () => void;
+  toast: ReturnType<typeof useToast>;
 }) => {
-  const [otp, setOtp] = useState(["", "", "", ""]);
+  const [otp, setOtp] = useState(["", "", "", "", "", ""]);
+  const [isLoading, setIsLoading] = useState(false);
   const inputRefs = useRef<HTMLInputElement[]>([]);
 
   const handleChange = (index: number, value: string) => {
     if (value.length > 1) return;
+    if (!/^\d*$/.test(value)) return;
 
     const newOtp = [...otp];
     newOtp[index] = value;
     setOtp(newOtp);
 
-    if (value && index < 3) {
+    if (value && index < 5) {
       inputRefs.current[index + 1]?.focus();
     }
   };
@@ -153,6 +207,46 @@ const OTPScreen = ({
   const handleKeyDown = (index: number, e: React.KeyboardEvent) => {
     if (e.key === "Backspace" && !otp[index] && index > 0) {
       inputRefs.current[index - 1]?.focus();
+    }
+  };
+
+  const handleVerify = async () => {
+    const otpCode = otp.join("");
+
+    if (otpCode.length !== 6) {
+      toast.error("Please enter the complete OTP");
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const response = await authService.verifyOTP(phone, otpCode);
+      toast.success(response.message || "OTP verified successfully!");
+      onContinue();
+    } catch (error) {
+      if (error instanceof APIError) {
+        toast.error(error.message);
+      } else {
+        toast.error("Failed to verify OTP. Please try again.");
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleResendOTP = async () => {
+    try {
+      await authService.getOTP(phone);
+      toast.success("OTP resent successfully!");
+      setOtp(["", "", "", "", "", ""]);
+      inputRefs.current[0]?.focus();
+    } catch (error) {
+      if (error instanceof APIError) {
+        toast.error(error.message);
+      } else {
+        toast.error("Failed to resend OTP. Please try again.");
+      }
     }
   };
 
@@ -182,22 +276,31 @@ const OTPScreen = ({
               value={digit}
               onChange={(e) => handleChange(index, e.target.value)}
               onKeyDown={(e) => handleKeyDown(index, e)}
-              className="w-14 h-14 text-center text-xl font-semibold border-2 border-gray-200 rounded-lg focus:border-green-700 focus:outline-none bg-[#FFFFFF]"
+              className="w-12 h-12 text-center text-xl font-semibold border-2 border-gray-200 rounded-lg focus:border-green-700 focus:outline-none bg-[#FFFFFF]"
             />
           ))}
         </div>
 
-        <p className="text-sm text-[#7A7A7A] font-family-inter text-center mb-auto">
-          Enter the four digit code sent to
-          <br />+{phone}
+        <p className="text-sm text-[#7A7A7A] font-family-inter text-center mb-4">
+          Enter the six digit code sent to
+          <br />
+          {phone}
         </p>
+
+        <button
+          onClick={handleResendOTP}
+          className="text-sm text-green-700 font-semibold mb-auto"
+        >
+          Resend OTP
+        </button>
 
         <div className="w-full max-w-md pb-8">
           <button
-            onClick={onContinue}
-            className="w-full py-4 bg-green-700 text-white font-semibold rounded-xl hover:bg-green-800 transition-colors"
+            onClick={handleVerify}
+            disabled={isLoading}
+            className="w-full py-4 bg-green-700 text-white font-semibold rounded-xl hover:bg-green-800 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
           >
-            Continue
+            {isLoading ? "Verifying..." : "Continue"}
           </button>
         </div>
       </div>
@@ -209,13 +312,35 @@ const OTPScreen = ({
 const CompleteProfileScreen = ({
   onContinue,
   onBack,
+  toast,
 }: {
   onContinue: (data: UserData) => void;
   onBack: () => void;
+  toast: ReturnType<typeof useToast>;
 }) => {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+
+  const handleContinue = () => {
+    if (!firstName || !lastName || !email || !password) {
+      toast.error("Please fill in all fields");
+      return;
+    }
+
+    if (password.length < 8) {
+      toast.error("Password must be at least 8 characters");
+      return;
+    }
+
+    if (!/\S+@\S+\.\S+/.test(email)) {
+      toast.error("Please enter a valid email address");
+      return;
+    }
+
+    onContinue({ firstName, lastName, email, password });
+  };
 
   return (
     <div className="min-h-screen bg-white flex flex-col">
@@ -240,10 +365,11 @@ const CompleteProfileScreen = ({
               type="text"
               value={firstName}
               onChange={(e) => setFirstName(e.target.value)}
-              placeholder="Omotayo"
-              className="w-full px-4 py-3 border-2 border-green-700 rounded-xl text-sm focus:outline-none"
+              placeholder="Enter first name"
+              className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-green-700"
             />
           </div>
+
           <div>
             <label className="block text-xs text-gray-500 mb-2 px-1">
               Last name
@@ -256,6 +382,7 @@ const CompleteProfileScreen = ({
               className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm placeholder-gray-400 focus:outline-none focus:border-green-700"
             />
           </div>
+
           <div>
             <label className="block text-xs text-gray-500 mb-2 px-1">
               Email
@@ -268,11 +395,24 @@ const CompleteProfileScreen = ({
               className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm placeholder-gray-400 focus:outline-none focus:border-green-700"
             />
           </div>
+
+          <div>
+            <label className="block text-xs text-gray-500 mb-2 px-1">
+              Password
+            </label>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Enter password (min 8 characters)"
+              className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm placeholder-gray-400 focus:outline-none focus:border-green-700"
+            />
+          </div>
         </div>
 
         <div className="pb-8">
           <button
-            onClick={() => onContinue({ firstName, lastName, email })}
+            onClick={handleContinue}
             className="w-full py-4 bg-green-700 text-white font-semibold rounded-xl hover:bg-green-800 transition-colors"
           >
             Continue
@@ -348,7 +488,7 @@ const SetDeliveryAddressScreen = ({
   onComplete,
   onBack,
 }: {
-  onComplete: () => void;
+  onComplete: (deliveryAddress: string) => Promise<void> | void;
   onBack: () => void;
 }) => {
   const [buildingType, setBuildingType] = useState("");
@@ -399,8 +539,8 @@ const SetDeliveryAddressScreen = ({
           },
         });
 
-  // Cast to the local GoogleMarker interface so TS recognizes addListener/getPosition/setPosition
-  const typedMarkerInstance = markerInstance as unknown as GoogleMarker;
+        // Cast to the local GoogleMarker interface so TS recognizes addListener/getPosition/setPosition
+        const typedMarkerInstance = markerInstance as unknown as GoogleMarker;
 
         typedMarkerInstance.addListener("dragend", () => {
           const pos = typedMarkerInstance.getPosition();
@@ -577,7 +717,7 @@ const SetDeliveryAddressScreen = ({
         </div>
         <Link to="/login">
           <button
-            onClick={onComplete}
+            onClick={() => onComplete(`${location.lat},${location.lng}`)}
             className="w-full mt-6 py-4 bg-green-700 text-white font-semibold rounded-xl hover:bg-green-800 transition-colors"
           >
             Set address
@@ -593,6 +733,12 @@ const Signup: React.FC = () => {
   const [step, setStep] = useState(1);
   const [phone, setPhone] = useState("");
   const [userData, setUserData] = useState<UserData>({});
+  const [_address, _setAddress] = useState("");
+  // referenced intentionally to avoid eslint/ts unused-var until address handling is wired
+  void _address;
+  void _setAddress;
+  const toast = useToast();
+  const navigate = useNavigate();
 
   const handlePhoneContinue = (phoneNumber: string) => {
     setPhone(phoneNumber);
@@ -612,42 +758,74 @@ const Signup: React.FC = () => {
     setStep(5);
   };
 
-  const handleComplete = () => {
-    console.log("Onboarding complete", { phone, userData });
-    alert("Onboarding complete!");
+  const handleComplete = async (deliveryAddress: string) => {
+    try {
+      const response = await authService.register({
+        phone,
+        firstname: userData.firstName!,
+        lastname: userData.lastName!,
+        email: userData.email!,
+        password: userData.password!,
+        address: deliveryAddress,
+      });
+
+      toast.success("Registration successful!");
+
+      // Store token if provided
+      if (response.token) {
+        localStorage.setItem("authToken", response.token);
+      }
+
+      // Navigate to home or dashboard after 1.5 seconds
+      setTimeout(() => {
+        navigate("/");
+      }, 1500);
+    } catch (error) {
+      if (error instanceof APIError) {
+        toast.error(error.message);
+      } else {
+        toast.error("Registration failed. Please try again.");
+      }
+    }
   };
 
   return (
-    <div
-      className="max-w-md mx-auto bg-white shadow-xl"
-      style={{ height: "100vh" }}
-    >
-      {step === 1 && <PhoneInputScreen onContinue={handlePhoneContinue} />}
-      {step === 2 && (
-        <OTPScreen
-          phone={phone}
-          onContinue={handleOTPContinue}
-          onBack={() => setStep(1)}
-        />
-      )}
-      {step === 3 && (
-        <CompleteProfileScreen
-          onContinue={handleProfileContinue}
-          onBack={() => setStep(2)}
-        />
-      )}
-      {step === 4 && (
-        <AddressSelectionScreen
-          onContinue={handleAddressSelection}
-          onBack={() => setStep(3)}
-        />
-      )}
-      {step === 5 && (
-        <SetDeliveryAddressScreen
-          onComplete={handleComplete}
-          onBack={() => setStep(4)}
-        />
-      )}
+    <div className="w-full min-h-screen bg-gray-50 flex items-center justify-center p-4">
+      <ToastContainer toasts={toast.toasts} onClose={toast.closeToast} />
+      <div className="w-full bg-white shadow-xl md:rounded-3xl overflow-hidden md:max-w-3xl lg:max-w-4xl h-screen flex flex-col">
+        <div className="flex-1 overflow-auto">
+          {step === 1 && (
+            <PhoneInputScreen onContinue={handlePhoneContinue} toast={toast} />
+          )}
+          {step === 2 && (
+            <OTPScreen
+              phone={phone}
+              onContinue={handleOTPContinue}
+              onBack={() => setStep(1)}
+              toast={toast}
+            />
+          )}
+          {step === 3 && (
+            <CompleteProfileScreen
+              onContinue={handleProfileContinue}
+              onBack={() => setStep(2)}
+              toast={toast}
+            />
+          )}
+          {step === 4 && (
+            <AddressSelectionScreen
+              onContinue={handleAddressSelection}
+              onBack={() => setStep(3)}
+            />
+          )}
+          {step === 5 && (
+            <SetDeliveryAddressScreen
+              onComplete={handleComplete}
+              onBack={() => setStep(4)}
+            />
+          )}
+        </div>
+      </div>
     </div>
   );
 };

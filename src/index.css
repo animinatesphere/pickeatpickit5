@@ -5,6 +5,20 @@
   --font-family-sans: "Open Sans", sans-serif;
   --font-family-inter: "Inter", sans-serif;
 }
+@keyframes slide-in {
+  from {
+    transform: translateX(400px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.animate-slide-in {
+  animation: slide-in 0.3s ease-out;
+}
 
 body {
   font-family: "Open Sans", sans-serif;
