@@ -3,7 +3,12 @@ import { MapPin, Search, ChevronDown, ArrowLeft } from "lucide-react";
 import logo from "../../assets/Logo SVG 1.png";
 import { Link, useNavigate } from "react-router-dom";
 // Using local mocks for auth to allow working without backend.
-type GetOTPResponse = { message?: string; otp?: string; OTP?: string; otpCode?: string };
+type GetOTPResponse = {
+  message?: string;
+  otp?: string;
+  OTP?: string;
+  otpCode?: string;
+};
 type VerifyOTPResponse = { message?: string };
 interface MockRegisterData {
   phone: string;
@@ -30,7 +35,10 @@ const mockAuthService = {
   },
   async register(data: MockRegisterData): Promise<RegisterResponse> {
     await new Promise((r) => setTimeout(r, 400));
-    return { message: `Registered ${data.firstname ?? ""}`.trim(), token: "mock-token" };
+    return {
+      message: `Registered ${data.firstname ?? ""}`.trim(),
+      token: "mock-token",
+    };
   },
 };
 import { ToastContainer, useToast } from "../../component/Toast";
@@ -148,10 +156,10 @@ const PhoneInputScreen = ({
   };
 
   return (
-    <div className="min-h-screen bg-white flex flex-col">
+    <div className="flex-1 flex flex-col bg-white">
       <div className="flex-1 flex flex-col items-center px-6 pt-12">
         <img src={logo} alt="" />
-        <h1 className="text-2xl font-bold text-green-700 mb-32">
+        <h1 className="text-2xl md:text-3xl font-bold text-green-700 mb-20 md:mb-32">
           PickEAT PickIT
         </h1>
 
@@ -190,7 +198,7 @@ const PhoneInputScreen = ({
           <button
             onClick={handleContinue}
             disabled={isLoading}
-            className="w-full py-4 bg-green-700 text-white font-semibold rounded-xl hover:bg-green-800 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+            className="w-full py-3 md:py-4 text-sm md:text-base bg-green-700 text-white font-semibold rounded-xl hover:bg-green-800 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
           >
             {isLoading ? "Sending OTP..." : "Continue"}
           </button>
@@ -275,7 +283,7 @@ const OTPScreen = ({
   };
 
   return (
-    <div className="min-h-screen bg-white flex flex-col">
+    <div className="flex-1 flex flex-col bg-white">
       <div className="px-6 py-4">
         <button onClick={onBack} className="p-2 -ml-2">
           <ArrowLeft className="w-6 h-6" />
@@ -322,7 +330,7 @@ const OTPScreen = ({
           <button
             onClick={handleVerify}
             disabled={isLoading}
-            className="w-full py-4 bg-green-700 text-white font-semibold rounded-xl hover:bg-green-800 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+            className="w-full py-3 md:py-4 text-sm md:text-base bg-green-700 text-white font-semibold rounded-xl hover:bg-green-800 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
           >
             {isLoading ? "Verifying..." : "Continue"}
           </button>
@@ -367,7 +375,7 @@ const CompleteProfileScreen = ({
   };
 
   return (
-    <div className="min-h-screen bg-white flex flex-col">
+    <div className="flex-1 flex flex-col bg-white">
       <div className="px-6 py-4">
         <button onClick={onBack} className="p-2 -ml-2">
           <ArrowLeft className="w-6 h-6" />
@@ -458,7 +466,7 @@ const AddressSelectionScreen = ({
   const [searchQuery, setSearchQuery] = useState("");
 
   return (
-    <div className="min-h-screen bg-white flex flex-col">
+    <div className="flex-1 flex flex-col bg-white">
       <div className="px-6 py-4">
         <button onClick={onBack} className="p-2 -ml-2">
           <ArrowLeft className="w-6 h-6" />
@@ -606,7 +614,7 @@ const SetDeliveryAddressScreen = ({
   }, []);
 
   return (
-    <div className="min-h-screen bg-white flex flex-col">
+    <div className="flex-1 flex flex-col bg-white">
       <div className="px-6 py-4 flex items-center gap-3 bg-white z-10">
         <button onClick={onBack} className="p-2 -ml-2">
           <ArrowLeft className="w-6 h-6" />
@@ -616,7 +624,7 @@ const SetDeliveryAddressScreen = ({
 
       <div
         ref={mapRef}
-        className="w-full h-64 bg-gray-200"
+        className="w-full h-64 md:h-96 bg-gray-200"
         style={{ minHeight: "250px" }}
       />
 
@@ -742,7 +750,7 @@ const SetDeliveryAddressScreen = ({
         <Link to="/login">
           <button
             onClick={() => onComplete(`${location.lat},${location.lng}`)}
-            className="w-full mt-6 py-4 bg-green-700 text-white font-semibold rounded-xl hover:bg-green-800 transition-colors"
+            className="w-full mt-6 py-3 md:py-4 text-sm md:text-base bg-green-700 text-white font-semibold rounded-xl hover:bg-green-800 transition-colors"
           >
             Set address
           </button>
@@ -816,7 +824,7 @@ const Signup: React.FC = () => {
   return (
     <div className="w-full min-h-screen bg-gray-50 flex items-center justify-center p-4">
       <ToastContainer toasts={toast.toasts} onClose={toast.closeToast} />
-      <div className="w-full bg-white shadow-xl md:rounded-3xl overflow-hidden md:max-w-3xl lg:max-w-4xl h-screen flex flex-col">
+      <div className="w-full bg-white shadow-xl md:rounded-3xl overflow-hidden md:max-w-3xl lg:max-w-4xl min-h-screen md:h-screen max-h-screen flex flex-col">
         <div className="flex-1 overflow-auto">
           {step === 1 && (
             <PhoneInputScreen onContinue={handlePhoneContinue} toast={toast} />
