@@ -2,19 +2,25 @@
 
 export interface RegisterRequest {
   email: string;
-  fullname: string;
   password: string;
-  phone: string;
+  phone?: string;
+  firstname?: string;
+  lastname?: string;
+  address?: string;
+  fullname?: string;
 }
 
 export interface RegisterResponse {
   success: boolean;
   message: string;
+  token?: string;
   data?: {
     id: string;
     email: string;
-    fullname: string;
-    phone: string;
+    fullname?: string;
+    firstname?: string;
+    lastname?: string;
+    phone?: string;
   };
 }
 
@@ -38,4 +44,12 @@ export interface LoginResponse {
 export interface ApiError {
   message: string;
   status: number;
+}
+
+export interface GetOTPResponse {
+  success?: boolean;
+  message?: string;
+  otp?: string;
+  OTP?: string;
+  otpCode?: string;
 }

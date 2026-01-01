@@ -4,11 +4,8 @@
 import type {
   RegisterRequest,
   RegisterResponse,
-
-  // LoginRequest,
   LoginResponse,
-
-  // ApiError,
+  GetOTPResponse,
 } from "../types/api.types";
 
 const API_BASE_URL = "https://pickit-biem.onrender.com";
@@ -89,6 +86,13 @@ class ApiService {
     });
   }
 
+  async getOTP(phone: string): Promise<GetOTPResponse> {
+    return this.request<GetOTPResponse>("/auth/get-otp", {
+      method: "POST",
+      body: JSON.stringify({ phone }),
+    });
+  }
+
   async resetPassword(
     email: string,
     otp: string,
@@ -110,6 +114,9 @@ export const authService = {
   register: (data: RegisterRequest) => apiService.register(data),
   forgotPassword: (email: string) => apiService.forgotPassword(email),
   verifyOTP: (email: string, otp: string) => apiService.verifyOTP(email, otp),
+  getOTP: (phone: string) => apiService.getOTP(phone),
   resetPassword: (email: string, otp: string, newPassword: string) =>
     apiService.resetPassword(email, otp, newPassword),
 };
+
+export type { GetOTPResponse } from "../types/api.types";
