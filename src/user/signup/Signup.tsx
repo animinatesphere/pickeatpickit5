@@ -2,11 +2,37 @@ import React, { useState, useEffect, useRef } from "react";
 import { MapPin, Search, ChevronDown, ArrowLeft } from "lucide-react";
 import logo from "../../assets/Logo SVG 1.png";
 import { Link, useNavigate } from "react-router-dom";
-import {
-  authService,
-  APIError,
-  type GetOTPResponse,
-} from "../../services/authService";
+// Using local mocks for auth to allow working without backend.
+type GetOTPResponse = { message?: string; otp?: string; OTP?: string; otpCode?: string };
+type VerifyOTPResponse = { message?: string };
+interface MockRegisterData {
+  phone: string;
+  firstname?: string;
+  lastname?: string;
+  email?: string;
+  password?: string;
+  address?: string;
+}
+type RegisterResponse = { message?: string; token?: string };
+
+const mockAuthService = {
+  async getOTP(_phone: string): Promise<GetOTPResponse> {
+    void _phone;
+    // Simulate network delay
+    await new Promise((r) => setTimeout(r, 300));
+    return { message: "OTP sent", otp: "123456" } as const;
+  },
+  async verifyOTP(_phone: string, otp: string): Promise<VerifyOTPResponse> {
+    void _phone;
+    await new Promise((r) => setTimeout(r, 300));
+    if (otp === "123456") return { message: "OTP verified" };
+    throw new Error("Invalid OTP");
+  },
+  async register(data: MockRegisterData): Promise<RegisterResponse> {
+    await new Promise((r) => setTimeout(r, 400));
+    return { message: `Registered ${data.firstname ?? ""}`.trim(), token: "mock-token" };
+  },
+};
 import { ToastContainer, useToast } from "../../component/Toast";
 
 // Google Maps types
@@ -82,28 +108,26 @@ const PhoneInputScreen = ({
   onContinue: (phone: string) => void;
   toast: ReturnType<typeof useToast>;
 }) => {
-  const [phone, setPhone] = useState("");
+  const [localPhone, setLocalPhone] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
   const handleContinue = async () => {
-    if (!phone || phone.length < 10) {
+    if (!localPhone || localPhone.length < 10) {
       toast.error("Please enter a valid phone number");
       return;
     }
 
-    const fullPhone = `+234${phone}`;
+    const fullPhone = `+234${localPhone}`;
     setIsLoading(true);
 
     try {
-      const response = await authService.getOTP(fullPhone);
-      toast.success(response.message || "OTP sent successfully!");
-      // If the API returns an OTP code, show it in a secondary toast so user sees the digits
+      const response = await mockAuthService.getOTP(fullPhone);
+      toast.success(response?.message || "OTP sent successfully!");
       const maybeOtp = (() => {
-        if (typeof (response as GetOTPResponse).otp === "string")
-          return (response as GetOTPResponse).otp;
+        if (typeof response?.otp === "string") return response.otp;
         const altKeys = ["OTP", "otpCode"] as const;
         for (const k of altKeys) {
-          const val = (response as unknown as Record<string, unknown>)[k];
+          const val = response?.[k];
           if (typeof val === "string") return val;
         }
         return undefined;
@@ -113,7 +137,7 @@ const PhoneInputScreen = ({
       }
       onContinue(fullPhone);
     } catch (error) {
-      if (error instanceof APIError) {
+      if (error instanceof Error) {
         toast.error(error.message);
       } else {
         toast.error("Failed to send OTP. Please try again.");
@@ -142,8 +166,8 @@ const PhoneInputScreen = ({
             <input
               type="tel"
               placeholder="Phone number"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value.replace(/\D/g, ""))}
+              value={localPhone}
+              onChange={(e) => setLocalPhone(e.target.value.replace(/\D/g, ""))}
               className="flex-1 px-4 py-3 bg-[#F5F5F5] rounded-lg border text-[#000000] border-gray-200 text-sm placeholder-[#000000] outline-none"
               maxLength={10}
             />
@@ -221,11 +245,11 @@ const OTPScreen = ({
     setIsLoading(true);
 
     try {
-      const response = await authService.verifyOTP(phone, otpCode);
-      toast.success(response.message || "OTP verified successfully!");
+      const response = await mockAuthService.verifyOTP(phone, otpCode);
+      toast.success(response?.message || "OTP verified successfully!");
       onContinue();
     } catch (error) {
-      if (error instanceof APIError) {
+      if (error instanceof Error) {
         toast.error(error.message);
       } else {
         toast.error("Failed to verify OTP. Please try again.");
@@ -237,12 +261,12 @@ const OTPScreen = ({
 
   const handleResendOTP = async () => {
     try {
-      await authService.getOTP(phone);
+      await mockAuthService.getOTP(phone);
       toast.success("OTP resent successfully!");
       setOtp(["", "", "", "", "", ""]);
       inputRefs.current[0]?.focus();
     } catch (error) {
-      if (error instanceof APIError) {
+      if (error instanceof Error) {
         toast.error(error.message);
       } else {
         toast.error("Failed to resend OTP. Please try again.");
@@ -760,7 +784,7 @@ const Signup: React.FC = () => {
 
   const handleComplete = async (deliveryAddress: string) => {
     try {
-      const response = await authService.register({
+      const response = await mockAuthService.register({
         phone,
         firstname: userData.firstName!,
         lastname: userData.lastName!,
@@ -771,8 +795,8 @@ const Signup: React.FC = () => {
 
       toast.success("Registration successful!");
 
-      // Store token if provided
-      if (response.token) {
+      // Store token if provided (mock returns a token)
+      if (response?.token) {
         localStorage.setItem("authToken", response.token);
       }
 
@@ -781,7 +805,7 @@ const Signup: React.FC = () => {
         navigate("/");
       }, 1500);
     } catch (error) {
-      if (error instanceof APIError) {
+      if (error instanceof Error) {
         toast.error(error.message);
       } else {
         toast.error("Registration failed. Please try again.");
