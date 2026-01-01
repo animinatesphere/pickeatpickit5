@@ -54,6 +54,7 @@ import RiderSupport from "./ride/pages/RiderSupport";
 import SettingsScreen from "./ride/pages/SettingsScreen";
 import AdminDashboard from "./admin/dashboard/AdminDashboard";
 import AdminLogin from "./admin/login/AdminLogin";
+import VendorChat from "./vendor/pages/VendorChat";
 
 const AppRoutes = () => {
   return (
@@ -79,6 +80,8 @@ const AppRoutes = () => {
       {/* vendor */}
 
       <Route path="/vendor-dashboard" element={<VendorDashboard />} />
+      <Route path="/vendor-chat" element={<VendorChat />} />
+
       <Route path="/welcome1" element={<Rider1 />} />
       <Route path="/welcome2" element={<Rider2 />} />
       <Route path="/welcome3" element={<Rider3 />} />

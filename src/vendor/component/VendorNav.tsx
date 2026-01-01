@@ -13,7 +13,7 @@ export const VendorNav = () => {
     { to: "/vendor-dashboard", label: "Home", icon: Home },
     { to: "/order", label: "Order", icon: Package },
     { to: "/vendor-profile", label: "Account", icon: User },
-    { to: "/inbox", label: "Message", icon: Mail },
+    { to: "/vendor-chat", label: "Message", icon: Mail },
   ];
 
   return (

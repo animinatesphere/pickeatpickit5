@@ -2,9 +2,10 @@ import { useState } from "react";
 import { Eye, EyeOff, ChefHat, Sparkles } from "lucide-react";
 import logo from "../../assets/Logo SVG 1.png";
 import { Link, useNavigate } from "react-router-dom";
-import { authService, APIError } from "../../services/authService";
-// import { useToast, ToastContainer } from "../../components/Toast";
+// import { authService, APIError } from "../../services/api.service"; // Import from api.service
 import { useToast, ToastContainer } from "../../component/Toast";
+import { authService, APIError } from "../../services/authService"; // Correct import
+
 const VendorLogin = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");

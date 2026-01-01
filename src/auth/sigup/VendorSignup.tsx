@@ -4,6 +4,11 @@ import { useState } from "react";
 import { Eye, EyeOff, ChevronDown, Camera, ArrowLeft } from "lucide-react";
 import { Link } from "react-router-dom";
 import Button from "../../component/button";
+import { useToast, ToastContainer } from "../../component/Toast";
+// import { apiService } from "../../services/api.service";
+import { useApi } from "../../hooks/useApi";
+import { apiService } from "../../services/authService";
+import type { RegisterResponse } from "../../types/api.types";
 // Add this type definition at the top of your file
 type NavigateFunction = (page: string) => void;
 
@@ -13,52 +18,271 @@ interface PageProps {
 const SignUpPage = ({ onNavigate }: PageProps) => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [formData, setFormData] = useState({
+    fullname: "",
+    email: "",
+    phone: "",
+    password: "",
+    confirmPassword: "",
+  });
+
+  // Add toast hook
+  const toast = useToast();
+  const { loading, error, execute } = useApi<RegisterResponse>();
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleSignUp = async () => {
+    // Validation with toast notifications
+    if (formData.password !== formData.confirmPassword) {
+      toast.error("Passwords don't match!");
+      return;
+    }
+
+    if (
+      !formData.fullname ||
+      !formData.email ||
+      !formData.phone ||
+      !formData.password
+    ) {
+      toast.error("Please fill all required fields");
+      return;
+    }
+
+    // Email validation
+    if (!/\S+@\S+\.\S+/.test(formData.email)) {
+      toast.error("Please enter a valid email address");
+      return;
+    }
+
+    // Phone validation
+    if (formData.phone.length < 10) {
+      toast.error("Please enter a valid phone number");
+      return;
+    }
+
+    try {
+      const response = await execute(() =>
+        apiService.register({
+          fullname: formData.fullname,
+          email: formData.email,
+          phone: formData.phone,
+          password: formData.password,
+        })
+      );
+
+      if (response.success) {
+        toast.success("Registration successful! 🎉");
+
+        // Wait a bit for user to see the success message
+        setTimeout(() => {
+          onNavigate("profile1");
+        }, 1500);
+      }
+    } catch (err) {
+      console.error("Registration error:", err);
+      // The error is already handled by useApi hook
+      // But you can add additional toast notification
+      toast.error(error || "Registration failed. Please try again.");
+    }
+  };
 
   return (
-    <div className="min-h-screen bg-white">
-      <div className="max-w-md mx-auto px-6 py-8">
-        <div className="flex flex-col items-center mb-8">
-          <img src={logo} alt="" />
-          <h1 className="text-green-600 font-bold text-xl">PickEAT PickIT</h1>
-        </div>
-
-        <div className="mb-6">
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">
-            Personal Info
-          </h2>
-          <p className="text-[#494949] font-normal text-sm">
-            To continue, kindly complete the following fields.
-          </p>
-        </div>
-
-        <div className="space-y-4 mb-6">
-          <div className="relative">
-            <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
-              <svg
-                className="w-5 h-5"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                />
-              </svg>
+    <>
+      <ToastContainer toasts={toast.toasts} onClose={toast.closeToast} />
+      <div className="min-h-screen bg-white">
+        <div className="max-w-md mx-auto px-6 py-8">
+          {/* {error && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
+              {error}
             </div>
-            <input
-              type="text"
-              placeholder="Full name"
-              className="w-full pl-12 pr-4 py-3.5 bg-gray-50 border border-gray-200 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent"
-            />
+          )} */}
+          <div className="flex flex-col items-center mb-8">
+            <img src={logo} alt="" />
+            <h1 className="text-green-600 font-bold text-xl">PickEAT PickIT</h1>
           </div>
 
-          <div className="relative">
-            <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
+          <div className="mb-6">
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">
+              Personal Info
+            </h2>
+            <p className="text-[#494949] font-normal text-sm">
+              To continue, kindly complete the following fields.
+            </p>
+          </div>
+
+          <div className="space-y-4 mb-6">
+            <div className="relative">
+              <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                  />
+                </svg>
+              </div>
+              <input
+                type="text"
+                name="fullname"
+                value={formData.fullname}
+                onChange={handleInputChange}
+                placeholder="Full name"
+                className="w-full pl-12 pr-4 py-3.5 bg-gray-50 border border-gray-200 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent"
+              />
+            </div>
+
+            <div className="relative">
+              <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+                  />
+                </svg>
+              </div>
+              <input
+                type="email"
+                name="email"
+                value={formData.email}
+                onChange={handleInputChange}
+                placeholder="E-mail address"
+                className="w-full pl-12 pr-4 py-3.5 bg-white border border-gray-300 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent"
+              />
+            </div>
+
+            <div className="relative">
+              <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"
+                  />
+                </svg>
+              </div>
+              <input
+                type="tel"
+                name="phone"
+                value={formData.phone}
+                onChange={handleInputChange}
+                placeholder="Phone number"
+                className="w-full pl-12 pr-4 py-3.5 bg-gray-50 border border-gray-200 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent"
+              />
+            </div>
+
+            <div className="relative">
+              <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                  />
+                </svg>
+              </div>
+              <input
+                type={showPassword ? "text" : "password"}
+                name="password"
+                value={formData.password}
+                onChange={handleInputChange}
+                placeholder="Password"
+                className="w-full pl-12 pr-12 py-3.5 bg-gray-50 border border-gray-200 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              >
+                {showPassword ? (
+                  <EyeOff className="w-5 h-5" />
+                ) : (
+                  <Eye className="w-5 h-5" />
+                )}
+              </button>
+            </div>
+
+            <div className="relative">
+              <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                  />
+                </svg>
+              </div>
+              <input
+                type={showConfirmPassword ? "text" : "password"}
+                name="confirmPassword"
+                value={formData.confirmPassword}
+                onChange={handleInputChange}
+                placeholder="Retype Password"
+                className="w-full pl-12 pr-12 py-3.5 bg-gray-50 border border-gray-200 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent"
+              />
+              <button
+                type="button"
+                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              >
+                {showConfirmPassword ? (
+                  <EyeOff className="w-5 h-5" />
+                ) : (
+                  <Eye className="w-5 h-5" />
+                )}
+              </button>
+            </div>
+          </div>
+
+          <div className="text-center mb-6">
+            <p className="text-[#494949] font-semibold text-sm">
+              Already have an account?{" "}
+              <Link to="/vendor-login">
+                <button className=" cursor-pointer text-[#494949] font-extrabold hover:text-green-600">
+                  Sign in
+                </button>
+              </Link>
+            </p>
+          </div>
+
+          <div className="flex justify-end mb-4">
+            <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center">
               <svg
-                className="w-5 h-5"
+                className="w-5 h-5 text-[#000000]"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -71,151 +295,49 @@ const SignUpPage = ({ onNavigate }: PageProps) => {
                 />
               </svg>
             </div>
-            <input
-              type="email"
-              placeholder="E-mail address"
-              className="w-full pl-12 pr-4 py-3.5 bg-white border border-gray-300 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent"
-            />
           </div>
 
-          <div className="relative">
-            <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
-              <svg
-                className="w-5 h-5"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"
-                />
-              </svg>
+          <button
+            className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-4 rounded-lg transition-colors cursor-pointer "
+            onClick={handleSignUp}
+            disabled={loading}
+            // onClick={() => onNavigate("profile1")}
+          >
+            {loading ? "Signing Up..." : "Sign Up"}
+          </button>
+
+          <Link to="/">
+            <div className="flex items-center justify-center mt-2 cursor-pointer">
+              <Button text="Select Role" />
             </div>
-            <input
-              type="tel"
-              placeholder="Phone number"
-              className="w-full pl-12 pr-4 py-3.5 bg-gray-50 border border-gray-200 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent"
-            />
-          </div>
-
-          <div className="relative">
-            <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
-              <svg
-                className="w-5 h-5"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
-                />
-              </svg>
-            </div>
-            <input
-              type={showPassword ? "text" : "password"}
-              placeholder="Password"
-              className="w-full pl-12 pr-12 py-3.5 bg-gray-50 border border-gray-200 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent"
-            />
-            <button
-              type="button"
-              onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-            >
-              {showPassword ? (
-                <EyeOff className="w-5 h-5" />
-              ) : (
-                <Eye className="w-5 h-5" />
-              )}
-            </button>
-          </div>
-
-          <div className="relative">
-            <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
-              <svg
-                className="w-5 h-5"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
-                />
-              </svg>
-            </div>
-            <input
-              type={showConfirmPassword ? "text" : "password"}
-              placeholder="Retype Password"
-              className="w-full pl-12 pr-12 py-3.5 bg-gray-50 border border-gray-200 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent"
-            />
-            <button
-              type="button"
-              onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-              className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-            >
-              {showConfirmPassword ? (
-                <EyeOff className="w-5 h-5" />
-              ) : (
-                <Eye className="w-5 h-5" />
-              )}
-            </button>
-          </div>
+          </Link>
         </div>
-
-        <div className="text-center mb-6">
-          <p className="text-[#494949] font-semibold text-sm">
-            Already have an account?{" "}
-            <Link to="/vendor-login">
-              <button className=" cursor-pointer text-[#494949] font-extrabold hover:text-green-600">
-                Sign in
-              </button>
-            </Link>
-          </p>
-        </div>
-
-        <div className="flex justify-end mb-4">
-          <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center">
-            <svg
-              className="w-5 h-5 text-[#000000]"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
-              />
-            </svg>
-          </div>
-        </div>
-
-        <button
-          className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-4 rounded-lg transition-colors cursor-pointer "
-          onClick={() => onNavigate("profile1")}
-        >
-          Sign Up
-        </button>
-        <Link to="/">
-          <div className="flex items-center justify-center mt-2 cursor-pointer">
-            <Button text="Select Role" />
-          </div>
-        </Link>
       </div>
-    </div>
+    </>
   );
 };
 
 const ForgotPasswordPage = ({ onNavigate }: PageProps) => {
+  const [email, setEmail] = useState("");
+  const { loading, error, execute } = useApi();
+
+  const handleSendOTP = async () => {
+    // Validation
+    if (!email || !email.includes("@")) {
+      alert("Please enter a valid email address");
+      return;
+    }
+
+    try {
+      await execute(() => apiService.forgotPassword(email));
+      alert("OTP sent to your email!");
+      onNavigate("pin");
+    } catch (err) {
+      console.error("Error:", err);
+      // Error is already displayed via the error state
+    }
+  };
+
   return (
     <div className="min-h-screen bg-white">
       <div className="max-w-md mx-auto px-6 py-8">
@@ -229,9 +351,16 @@ const ForgotPasswordPage = ({ onNavigate }: PageProps) => {
             Forgot Password
           </h2>
           <p className="text-gray-600 text-sm">
-            To continue, kindly enter your emmail address
+            To continue, kindly enter your email address
           </p>
         </div>
+
+        {/* Error display */}
+        {error && (
+          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
+            {error}
+          </div>
+        )}
 
         <div className="relative mb-8">
           <div className="absolute left-4 top-1/2 -translate-y-1/2">
@@ -253,16 +382,19 @@ const ForgotPasswordPage = ({ onNavigate }: PageProps) => {
           </div>
           <input
             type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
             placeholder="E-mail address"
             className="w-full pl-16 pr-4 py-3.5 border border-gray-300 rounded-lg text-green-600 placeholder-green-600 focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent"
           />
         </div>
 
         <button
-          className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-4 rounded-lg transition-colors mb-32"
-          onClick={() => onNavigate("pin")}
+          className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-4 rounded-lg transition-colors mb-32 disabled:opacity-50 disabled:cursor-not-allowed"
+          onClick={handleSendOTP}
+          disabled={loading}
         >
-          Send One Time Pass
+          {loading ? "Sending..." : "Send One Time Pass"}
         </button>
 
         <div className="text-center">
