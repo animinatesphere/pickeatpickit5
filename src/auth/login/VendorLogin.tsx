@@ -303,16 +303,16 @@ const VendorLogin = () => {
                     </button>
                   </div>
                 </div>
-
-                {/* Sign In Button */}
-                <button
-                  onClick={handleLogin}
-                  disabled={isLoading}
-                  className="w-full bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white font-bold py-4 rounded-xl transition-all mt-8 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 text-sm sm:text-base disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
-                >
-                  {isLoading ? "Logging in..." : "Sign In to Dashboard"}
-                </button>
-
+                <Link to="/vendor-dashboard">
+                  {/* Sign In Button */}
+                  <button
+                    // onClick={handleLogin}
+                    disabled={isLoading}
+                    className="w-full bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white font-bold py-4 rounded-xl transition-all mt-8 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 text-sm sm:text-base disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                  >
+                    {isLoading ? "Logging in..." : "Sign In to Dashboard"}
+                  </button>
+                </Link>
                 {/* Sign Up Link */}
                 <div className="text-center mt-6">
                   <p className="text-gray-600 text-sm sm:text-base">
