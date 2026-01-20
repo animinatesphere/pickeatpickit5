@@ -1,10 +1,10 @@
 ﻿import logo from "../../assets/Logo SVG 1.png";
-import { useState } from "react";
-import { Eye, EyeOff, ChevronDown, Camera } from "lucide-react";
+import { useState, useRef } from "react";
+import { Eye, EyeOff, ChevronDown, Camera, ArrowLeft } from "lucide-react";
 import { Link } from "react-router-dom";
 import Button from "../../component/button";
 import { useToast, ToastContainer } from "../../component/Toast";
-import { authService, APIError } from "../../services/authService";
+import { authService, APIError, supabase } from "../../services/authService";
 
 type NavigateFunction = (page: string) => void;
 
@@ -71,27 +71,34 @@ const SignUpPage = ({ onNavigate }: PageProps) => {
     setIsLoading(true);
 
     try {
-      const response = await authService.register({
-        firstname: formData.firstname,
-        lastname: formData.lastname,
+      // Use Supabase signUp which sends OTP
+      const { error } = await supabase.auth.signUp({
         email: formData.email,
-        phone: formData.phone,
         password: formData.password,
+        options: {
+          data: {
+            firstname: formData.firstname,
+            lastname: formData.lastname,
+            phone: formData.phone,
+          },
+          emailRedirectTo: undefined, // This ensures OTP mode
+        },
       });
 
-      if (response.success) {
-        toast.success("Registration successful! 🎉");
-        toast.info(
-          "Please check your email to verify your account before logging in.",
-        ); // ADD THIS
-
-        if (response.data?.id) {
-          localStorage.setItem("tempVendorId", response.data.id);
-        }
-        setTimeout(() => {
-          onNavigate("profile1");
-        }, 2000); // Increased delay to show both toasts
+      if (error) {
+        throw new APIError(error.message, 400);
       }
+
+      // Store form data temporarily for after OTP verification
+      localStorage.setItem("tempSignupData", JSON.stringify(formData));
+
+      toast.success("Verification code sent to your email!");
+      toast.info("Please check your email to verify your account.");
+
+      // Navigate to OTP screen
+      setTimeout(() => {
+        onNavigate("confirm-otp");
+      }, 1500);
     } catch (err) {
       console.error("Registration error:", err);
       if (err instanceof APIError) {
@@ -214,6 +221,205 @@ const SignUpPage = ({ onNavigate }: PageProps) => {
         <Link to="/">
           <Button text="Select Role" />
         </Link>
+      </div>
+    </div>
+  );
+};
+
+const EmailOTPScreen = ({ onNavigate }: PageProps) => {
+  const [otp, setOtp] = useState(["", "", "", "", "", ""]);
+  const [isLoading, setIsLoading] = useState(false);
+  const inputRefs = useRef<HTMLInputElement[]>([]);
+  const toast = useToast();
+
+  const storedData = localStorage.getItem("tempSignupData");
+  const signupData = storedData ? JSON.parse(storedData) : null;
+  const email = signupData?.email || "";
+  // Line 239 was here (const password = ...) - I have removed it.
+
+  const handleChange = (index: number, value: string) => {
+    if (value.length > 1) return;
+    if (!/^\d*$/.test(value)) return;
+
+    const newOtp = [...otp];
+    newOtp[index] = value;
+    setOtp(newOtp);
+
+    if (value && index < 5) {
+      inputRefs.current[index + 1]?.focus();
+    }
+  };
+
+  const handleKeyDown = (index: number, e: React.KeyboardEvent) => {
+    if (e.key === "Backspace" && !otp[index] && index > 0) {
+      inputRefs.current[index - 1]?.focus();
+    }
+  };
+
+  const handleVerify = async () => {
+    const otpCode = otp.join("");
+
+    if (otpCode.length !== 6) {
+      toast.error("Please enter the complete verification code");
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      // Verify the OTP token
+      const { data, error } = await supabase.auth.verifyOtp({
+        email: email,
+        token: otpCode,
+        type: "email",
+      });
+
+      if (error) {
+        throw new APIError(error.message, 400);
+      }
+
+      // After OTP verification, create vendor profile
+      if (data.user && signupData) {
+        // Insert vendor profile into vendors table
+        const { data: vendorDataArray, error: profileError } = await supabase
+          .from("vendors")
+          .insert([
+            {
+              user_id: data.user.id,
+              email: signupData.email,
+              firstname: signupData.firstname,
+              lastname: signupData.lastname,
+              phone: signupData.phone,
+            },
+          ])
+          .select();
+
+        if (profileError) {
+          if (profileError.code === "23505") {
+            throw new APIError(
+              "Account already exists. Please log in instead.",
+              409,
+            );
+          }
+          throw new APIError("Failed to create vendor profile", 400);
+        }
+
+        // Store vendor ID for profile completion
+        if (vendorDataArray && vendorDataArray.length > 0) {
+          localStorage.setItem("tempVendorId", vendorDataArray[0].id);
+        }
+
+        // Clear temporary signup data
+        localStorage.removeItem("tempSignupData");
+
+        toast.success("Email verified successfully!");
+
+        setTimeout(() => {
+          onNavigate("profile1");
+        }, 1000);
+      }
+    } catch (error) {
+      if (error instanceof APIError) {
+        toast.error(error.message);
+      } else if (error instanceof Error) {
+        toast.error(error.message);
+      } else {
+        toast.error("Failed to verify code. Please try again.");
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleResendOTP = async () => {
+    try {
+      const { error } = await supabase.auth.resend({
+        type: "signup",
+        email: email,
+        options: {
+          emailRedirectTo: undefined,
+        },
+      });
+
+      if (error) throw new APIError(error.message, 400);
+
+      toast.success("New verification code sent to your email!");
+      setOtp(["", "", "", "", "", ""]);
+      inputRefs.current[0]?.focus();
+    } catch (error) {
+      if (error instanceof APIError) {
+        toast.error(error.message);
+      } else {
+        toast.error("Failed to resend code. Please try again.");
+      }
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-white">
+      <ToastContainer toasts={toast.toasts} onClose={toast.closeToast} />
+      <div className="max-w-md mx-auto px-6 py-8">
+        <div className="mb-6">
+          <button onClick={() => onNavigate("main")} className="p-2 -ml-2">
+            <ArrowLeft className="w-6 h-6" />
+          </button>
+        </div>
+
+        <div className="flex flex-col items-center">
+          <h2 className="text-xl font-semibold mb-8 text-gray-900">
+            Verify your email
+          </h2>
+
+          <div className="w-full mb-8">
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+              <p className="text-sm text-blue-800">
+                <strong>Check your email inbox</strong>
+                <br />
+                We've sent a 6-digit verification code to{" "}
+                <strong>{email}</strong>
+                <br />
+                <br />
+                <span className="text-xs">
+                  Can't find it? Check your spam folder or click "Resend Code"
+                  below.
+                </span>
+              </p>
+            </div>
+
+            <div className="flex gap-2 mb-8 justify-center">
+              {otp.map((digit, index) => (
+                <input
+                  key={index}
+                  ref={(el) => {
+                    if (el) inputRefs.current[index] = el;
+                  }}
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={1}
+                  value={digit}
+                  onChange={(e) => handleChange(index, e.target.value)}
+                  onKeyDown={(e) => handleKeyDown(index, e)}
+                  className="w-12 h-12 text-center text-xl font-semibold border-2 border-gray-200 rounded-lg focus:border-green-700 focus:outline-none bg-white"
+                />
+              ))}
+            </div>
+
+            <button
+              onClick={handleResendOTP}
+              className="w-full text-sm text-green-700 font-semibold mb-6 py-2 hover:underline"
+            >
+              Resend Code
+            </button>
+
+            <button
+              onClick={handleVerify}
+              disabled={isLoading}
+              className="w-full py-4 bg-green-700 text-white font-semibold rounded-lg hover:bg-green-800 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+            >
+              {isLoading ? "Verifying..." : "Verify Email"}
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -922,6 +1128,8 @@ const VendorSignup = () => {
 
   const renderPage = () => {
     switch (currentPage) {
+      case "confirm-otp":
+        return <EmailOTPScreen onNavigate={setCurrentPage} />;
       case "profile1":
         return <CreateProfile1 onNavigate={setCurrentPage} />;
       case "profile2":
