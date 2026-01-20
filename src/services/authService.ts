@@ -1,6 +1,5 @@
-// src/services/api.service.ts
-
-// src/services/api.service.ts
+// src/services/authService.ts
+import { createClient } from "@supabase/supabase-js";
 import type {
   RegisterRequest,
   RegisterResponse,
@@ -8,115 +7,713 @@ import type {
   GetOTPResponse,
 } from "../types/api.types";
 
-const API_BASE_URL = "https://pickit-biem.onrender.com";
+// Initialize Supabase client
+const SUPABASE_URL = "https://acuqcetaduizgwchoosa.supabase.co";
+const SUPABASE_ANON_KEY =
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFjdXFjZXRhZHVpemd3Y2hvb3NhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg3OTUyMDksImV4cCI6MjA4NDM3MTIwOX0.RwkXc68xkA31UnMvGfdK9nTRQfjEqIVIutL9Z3y0xMg";
 
-// Export the ApiError class so it can be used in components
+export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// Export the APIError class so it can be used in components
 export class APIError extends Error {
   status: number;
 
-  constructor(message: string, status: number) {
+  constructor(message: string, status: number = 400) {
     super(message);
     this.name = "APIError";
     this.status = status;
   }
 }
 
-class ApiService {
-  private async request<T>(
-    endpoint: string,
-    options: RequestInit = {}
-  ): Promise<T> {
-    const url = `${API_BASE_URL}${endpoint}`;
-
-    const config: RequestInit = {
-      ...options,
-      headers: {
-        "Content-Type": "application/json",
-        Accept: "application/json",
-        ...options.headers,
-      },
-    };
-
+class AuthService {
+  async sendEmailOTP(email: string): Promise<{ message: string }> {
     try {
-      const response = await fetch(url, config);
+      // First, create a temporary user account that will send OTP
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new APIError(
-          errorData.message || "An error occurred",
-          response.status
-        );
+      const { error } = await supabase.auth.signUp({
+        email,
+        password: Math.random().toString(36).slice(-8) + "Temp123!", // Temporary password
+        options: {
+          emailRedirectTo: undefined, // Prevent redirect
+        },
+      });
+
+      if (error) {
+        throw new APIError(error.message, 400);
       }
 
-      return await response.json();
+      return { message: "OTP sent to your email!" };
     } catch (error) {
       if (error instanceof APIError) {
         throw error;
       }
-      throw new APIError("Network error. Please check your connection.", 0);
+      throw new APIError("Failed to send OTP. Please try again.", 400);
     }
   }
 
-  // Auth APIs
-  async register(data: RegisterRequest): Promise<RegisterResponse> {
-    return this.request<RegisterResponse>("/auth/register", {
-      method: "POST",
-      body: JSON.stringify(data),
-    });
-  }
-
-  async login(email: string, password: string): Promise<LoginResponse> {
-    return this.request<LoginResponse>("/auth/login", {
-      method: "POST",
-      body: JSON.stringify({ email, password }),
-    });
-  }
-
-  async forgotPassword(email: string): Promise<{ message: string }> {
-    return this.request("/auth/forgot-password", {
-      method: "POST",
-      body: JSON.stringify({ email }),
-    });
-  }
-
-  async verifyOTP(email: string, otp: string): Promise<{ message: string }> {
-    return this.request("/auth/verify-otp", {
-      method: "POST",
-      body: JSON.stringify({ email, otp }),
-    });
-  }
-
-  async getOTP(phone: string): Promise<GetOTPResponse> {
-    return this.request<GetOTPResponse>("/auth/get-otp", {
-      method: "POST",
-      body: JSON.stringify({ phone }),
-    });
-  }
-
-  async resetPassword(
+  // Verify Email OTP (update existing method)
+  async verifyEmailOTP(
     email: string,
     otp: string,
-    newPassword: string
   ): Promise<{ message: string }> {
-    return this.request("/auth/reset-password", {
-      method: "POST",
-      body: JSON.stringify({ email, otp, password: newPassword }),
-    });
+    try {
+      const { error } = await supabase.auth.verifyOtp({
+        email,
+        token: otp,
+        type: "email",
+      });
+
+      if (error) {
+        throw new APIError(error.message, 400);
+      }
+
+      return { message: "Email verified successfully!" };
+    } catch (error) {
+      if (error instanceof APIError) {
+        throw error;
+      }
+      throw new APIError("OTP verification failed. Please try again.", 400);
+    }
+  }
+  // Register new vendor
+  async register(data: RegisterRequest): Promise<RegisterResponse> {
+    try {
+      // Sign up with Supabase auth
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: data.email,
+        password: data.password,
+        options: {
+          data: {
+            firstname: data.firstname,
+            lastname: data.lastname,
+            phone: data.phone,
+          },
+        },
+      });
+
+      if (authError) {
+        throw new APIError(authError.message, 400);
+      }
+
+      if (!authData.user) {
+        throw new APIError("Registration failed", 400);
+      }
+
+      // Insert vendor profile into vendors table
+      const { error: profileError } = await supabase.from("vendors").insert([
+        {
+          user_id: authData.user.id,
+          email: data.email,
+          firstname: data.firstname,
+          lastname: data.lastname,
+          phone: data.phone,
+        },
+      ]);
+
+      if (profileError) {
+        // Handle duplicate key violation (account already exists)
+        if (profileError.code === "23505") {
+          throw new APIError(
+            "Account already exists. Please log in instead.",
+            409,
+          );
+        }
+        throw new APIError("Failed to create vendor profile", 400);
+      }
+
+      // Query for the vendor record to get its ID
+      const { data: vendorDataArray, error: vendorQueryError } = await supabase
+        .from("vendors")
+        .select("id")
+        .eq("user_id", authData.user.id);
+
+      if (
+        vendorQueryError ||
+        !vendorDataArray ||
+        vendorDataArray.length === 0
+      ) {
+        throw new APIError("Failed to retrieve vendor ID", 400);
+      }
+
+      const vendorData = vendorDataArray[0];
+
+      return {
+        success: true,
+        message: "Registration successful! Please verify your email.",
+        data: {
+          id: vendorData.id,
+          email: authData.user.email || data.email,
+        },
+      };
+    } catch (error) {
+      if (error instanceof APIError) {
+        throw error;
+      }
+      throw new APIError("Registration failed. Please try again.", 400);
+    }
+  }
+  // Register new USER (not vendor)
+  async registerUser(data: {
+    email: string;
+    password: string;
+    firstname: string;
+    lastname: string;
+    phone: string;
+    address?: string;
+  }): Promise<RegisterResponse> {
+    try {
+      // Sign up with Supabase auth
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: data.email,
+        password: data.password,
+        options: {
+          data: {
+            firstname: data.firstname,
+            lastname: data.lastname,
+            phone: data.phone,
+            user_type: "customer", // distinguish from vendors
+          },
+        },
+      });
+
+      if (authError) {
+        throw new APIError(authError.message, 400);
+      }
+
+      if (!authData.user) {
+        throw new APIError("Registration failed", 400);
+      }
+
+      // Insert user profile into users table
+      const { error: profileError } = await supabase.from("users").insert([
+        {
+          user_id: authData.user.id,
+          email: data.email,
+          firstname: data.firstname,
+          lastname: data.lastname,
+          phone: data.phone,
+          address: data.address || null,
+        },
+      ]);
+
+      if (profileError) {
+        // Handle duplicate key violation
+        if (profileError.code === "23505") {
+          throw new APIError(
+            "Account already exists. Please log in instead.",
+            409,
+          );
+        }
+        throw new APIError("Failed to create user profile", 400);
+      }
+
+      // Query for the user record to get its ID
+      const { data: userDataArray, error: userQueryError } = await supabase
+        .from("users")
+        .select("id")
+        .eq("user_id", authData.user.id)
+        .single();
+
+      if (userQueryError || !userDataArray) {
+        throw new APIError("Failed to retrieve user ID", 400);
+      }
+
+      return {
+        success: true,
+        message: "Registration successful!",
+        data: {
+          id: userDataArray.id,
+          email: authData.user.email || data.email,
+        },
+      };
+    } catch (error) {
+      if (error instanceof APIError) {
+        throw error;
+      }
+      throw new APIError("Registration failed. Please try again.", 400);
+    }
+  }
+  // Login vendor
+  async login(email: string, password: string): Promise<LoginResponse> {
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) {
+        throw new APIError(error.message, 401);
+      }
+
+      if (!data.user || !data.session) {
+        throw new APIError("Login failed", 401);
+      }
+
+      // Fetch vendor profile
+      const { data: vendorDataArray, error: vendorError } = await supabase
+        .from("vendors")
+        .select("*")
+        .eq("user_id", data.user.id);
+
+      if (vendorError || !vendorDataArray || vendorDataArray.length === 0) {
+        throw new APIError("Failed to fetch vendor profile", 400);
+      }
+
+      const vendorData = vendorDataArray[0];
+
+      return {
+        success: true,
+        message: "Login successful!",
+        user: {
+          id: data.user.id,
+          email: data.user.email,
+          ...vendorData,
+        },
+        token: data.session.access_token,
+      };
+    } catch (error) {
+      if (error instanceof APIError) {
+        throw error;
+      }
+      throw new APIError("Login failed. Please check your credentials.", 401);
+    }
+  }
+  // Login user (not vendor)
+  async loginUser(email: string, password: string): Promise<LoginResponse> {
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) {
+        throw new APIError(error.message, 401);
+      }
+
+      if (!data.user || !data.session) {
+        throw new APIError("Login failed", 401);
+      }
+
+      // Fetch user profile from users table
+      const { data: userDataArray, error: userError } = await supabase
+        .from("users")
+        .select("*")
+        .eq("user_id", data.user.id);
+
+      if (userError || !userDataArray || userDataArray.length === 0) {
+        throw new APIError("Failed to fetch user profile", 400);
+      }
+
+      const userData = userDataArray[0];
+
+      return {
+        success: true,
+        message: "Login successful!",
+        user: {
+          id: data.user.id,
+          email: data.user.email,
+          ...userData,
+        },
+        token: data.session.access_token,
+      };
+    } catch (error) {
+      if (error instanceof APIError) {
+        throw error;
+      }
+      throw new APIError("Login failed. Please check your credentials.", 401);
+    }
+  }
+  // Request password reset
+  async forgotPassword(email: string): Promise<{ message: string }> {
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+
+      if (error) {
+        throw new APIError(error.message, 400);
+      }
+
+      return { message: "Password reset email sent!" };
+    } catch (error) {
+      if (error instanceof APIError) {
+        throw error;
+      }
+      throw new APIError("Failed to send reset email. Please try again.", 400);
+    }
+  }
+
+  // Verify OTP (for email verification)
+  async verifyOTP(email: string, otp: string): Promise<{ message: string }> {
+    try {
+      const { error } = await supabase.auth.verifyOtp({
+        email,
+        token: otp,
+        type: "email",
+      });
+
+      if (error) {
+        throw new APIError(error.message, 400);
+      }
+
+      return { message: "Email verified successfully!" };
+    } catch (error) {
+      if (error instanceof APIError) {
+        throw error;
+      }
+      throw new APIError("OTP verification failed. Please try again.", 400);
+    }
+  }
+
+  // Get OTP for phone verification (if using Supabase phone auth)
+  async getOTP(phone: string): Promise<GetOTPResponse> {
+    try {
+      const { error } = await supabase.auth.signInWithOtp({
+        phone,
+      });
+
+      if (error) {
+        throw new APIError(error.message, 400);
+      }
+
+      return {
+        success: true,
+        message: "OTP sent to your phone!",
+      };
+    } catch (error) {
+      if (error instanceof APIError) {
+        throw error;
+      }
+      throw new APIError("Failed to send OTP. Please try again.", 400);
+    }
+  }
+
+  // Reset password with token
+  async resetPassword(
+    _email: string,
+    _token: string,
+    newPassword: string,
+  ): Promise<{ message: string }> {
+    try {
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword,
+      });
+
+      if (error) {
+        throw new APIError(error.message, 400);
+      }
+
+      return { message: "Password reset successfully!" };
+    } catch (error) {
+      if (error instanceof APIError) {
+        throw error;
+      }
+      throw new APIError("Password reset failed. Please try again.", 400);
+    }
+  }
+
+  // Logout
+  async logout(): Promise<void> {
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      throw new APIError(error.message, 400);
+    }
+  }
+
+  // Get current user
+  async getCurrentUser() {
+    const {
+      data: { user },
+      error,
+    } = await supabase.auth.getUser();
+    if (error) {
+      throw new APIError(error.message, 400);
+    }
+    return user;
+  }
+
+  // Verify vendor exists
+  private async verifyVendorExists(vendorId: string): Promise<boolean> {
+    try {
+      const { data, error } = await supabase
+        .from("vendors")
+        .select("id")
+        .eq("id", vendorId);
+
+      return !error && !!data && data.length > 0;
+    } catch {
+      return false;
+    }
+  }
+
+  // Save vendor profile details
+  async saveProfileDetails(
+    vendorId: string,
+    profileData: Record<string, string | number>,
+  ): Promise<Record<string, unknown>[] | null> {
+    try {
+      // Verify vendor exists before attempting to save profile
+      const vendorExists = await this.verifyVendorExists(vendorId);
+      if (!vendorExists) {
+        throw new APIError(
+          "Vendor account not found. Please register again.",
+          404,
+        );
+      }
+      const { data, error } = await supabase
+        .from("vendor_profiles")
+        .insert([
+          {
+            vendor_id: vendorId,
+            business_name: profileData.businessName,
+            how_to_address: profileData.howToAddress,
+            full_name: profileData.fullName,
+            business_email: profileData.businessEmail,
+            country_name: profileData.country,
+            business_phone: profileData.businessPhone,
+            business_address: profileData.businessAddress,
+            membership_id: profileData.membershipId,
+          },
+        ])
+        .select();
+
+      if (error) {
+        if (error.code === "23505") {
+          throw new APIError("Profile already exists for this account.", 409);
+        }
+        if (error.code === "23503") {
+          throw new APIError(
+            "Vendor account not found. Please register again.",
+            404,
+          );
+        }
+        throw new APIError(error.message, 400);
+      }
+      return data;
+    } catch (error) {
+      if (error instanceof APIError) throw error;
+      throw new APIError("Failed to save profile details", 400);
+    }
+  }
+
+  // Upload vendor photo
+  async uploadVendorPhoto(
+    vendorId: string,
+    file: File,
+    photoType: "store_logo" | "store_cover",
+  ): Promise<Record<string, unknown>[] | null> {
+    try {
+      const fileName = `${vendorId}/${photoType}/${Date.now()}_${file.name}`;
+
+      // Try to upload, but don't fail if bucket doesn't exist
+      let publicUrl = `https://acuqcetaduizgwchoosa.supabase.co/storage/v1/object/public/vendor-photos/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("vendor-photos")
+        .upload(fileName, file);
+
+      // If upload fails due to bucket not existing, use placeholder
+      if (uploadError) {
+        console.warn("Photo upload warning:", uploadError.message);
+        // Generate a placeholder URL
+        publicUrl = `placeholder:${photoType}:${Date.now()}`;
+      } else {
+        // Get actual public URL if upload succeeded
+        const { data: publicUrlData } = supabase.storage
+          .from("vendor-photos")
+          .getPublicUrl(fileName);
+        publicUrl = publicUrlData.publicUrl;
+      }
+
+      // Try to save photo record
+      const { data, error } = await supabase
+        .from("vendor_photos")
+        .insert([
+          {
+            vendor_id: vendorId,
+            photo_type: photoType,
+            photo_url: publicUrl,
+            file_size: file.size,
+            file_format: file.type,
+          },
+        ])
+        .select();
+
+      if (error) {
+        // If vendor_photos table doesn't exist or vendor not found, just return success
+        if (error.code === "23503" || error.code === "42P01") {
+          console.warn("Photo table warning:", error.message);
+          return [{ photo_type: photoType, photo_url: publicUrl }];
+        }
+        // For duplicate photos, still allow it
+        if (error.code === "23505") {
+          return [{ photo_type: photoType, photo_url: publicUrl }];
+        }
+        throw new APIError(error.message, 400);
+      }
+      return data;
+    } catch (error) {
+      if (error instanceof APIError) throw error;
+      // Allow upload to continue even if there's an error
+      console.warn("Photo upload error (non-critical):", error);
+      return [{ photo_type: photoType, success: true }];
+    }
+  }
+
+  // Save business details
+  async saveBusinessDetails(
+    vendorId: string,
+    details: { businessDescription: string; additionalInfo: string },
+  ): Promise<Record<string, unknown>[] | null> {
+    try {
+      const { data, error } = await supabase
+        .from("vendor_profiles")
+        .update({
+          business_description: details.businessDescription,
+        })
+        .eq("vendor_id", vendorId)
+        .select();
+
+      if (error) {
+        if (error.code === "23503") {
+          throw new APIError(
+            "Vendor account not found. Please register again.",
+            404,
+          );
+        }
+        throw new APIError(error.message, 400);
+      }
+      return data;
+    } catch (error) {
+      if (error instanceof APIError) throw error;
+      throw new APIError("Failed to save business details", 400);
+    }
+  }
+
+  // Save availability
+  async saveAvailability(
+    vendorId: string,
+    availability: Record<string, unknown>,
+  ): Promise<Record<string, unknown>[] | null> {
+    try {
+      const { data, error } = await supabase
+        .from("vendor_availability")
+        .insert([
+          {
+            vendor_id: vendorId,
+            day_from: availability.dayFrom,
+            day_to: availability.dayTo,
+            holidays_available: availability.holidaysAvailable === "yes",
+            opening_time: availability.timeStart,
+            closing_time: availability.timeEnd,
+            total_workers: parseInt(availability.workers as string),
+          },
+        ])
+        .select();
+
+      if (error) {
+        if (error.code === "23505") {
+          throw new APIError("Availability already set for this account.", 409);
+        }
+        if (error.code === "23503") {
+          throw new APIError(
+            "Vendor account not found. Please register again.",
+            404,
+          );
+        }
+        throw new APIError(error.message, 400);
+      }
+      return data;
+    } catch (error) {
+      if (error instanceof APIError) throw error;
+      throw new APIError("Failed to save availability", 400);
+    }
+  }
+
+  // Fetch vendor profile by vendor ID
+  async getVendorProfile(
+    vendorId: string,
+  ): Promise<Record<string, unknown> | null> {
+    try {
+      const { data: vendor, error: vendorError } = await supabase
+        .from("vendors")
+        .select("*")
+        .eq("id", vendorId);
+
+      if (vendorError || !vendor || vendor.length === 0) {
+        throw new APIError("Vendor not found", 404);
+      }
+
+      const vendorData = vendor[0];
+
+      // Fetch vendor profile details
+      const { data: profile, error: profileError } = await supabase
+        .from("vendor_profiles")
+        .select("*")
+        .eq("vendor_id", vendorId);
+
+      if (profileError) {
+        console.warn("Profile fetch warning:", profileError.message);
+      }
+
+      const profileData = profile && profile.length > 0 ? profile[0] : {};
+
+      // Combine vendor and profile data
+      return {
+        ...vendorData,
+        ...profileData,
+      };
+    } catch (error) {
+      if (error instanceof APIError) throw error;
+      throw new APIError("Failed to fetch vendor profile", 400);
+    }
   }
 }
 
 // Export a single instance
-export const apiService = new ApiService();
+export const apiService = new AuthService();
 
 // Also create an authService alias for backward compatibility
 export const authService = {
   login: (email: string, password: string) => apiService.login(email, password),
+  loginUser: (email: string, password: string) =>
+    apiService.loginUser(email, password), // ADD THIS LINE
   register: (data: RegisterRequest) => apiService.register(data),
+  registerUser: (data: {
+    email: string;
+    password: string;
+    firstname: string;
+    lastname: string;
+    phone: string;
+    address?: string;
+  }) => apiService.registerUser(data),
   forgotPassword: (email: string) => apiService.forgotPassword(email),
   verifyOTP: (email: string, otp: string) => apiService.verifyOTP(email, otp),
+  sendEmailOTP: (email: string) => apiService.sendEmailOTP(email),
+  verifyEmailOTP: (email: string, otp: string) =>
+    apiService.verifyEmailOTP(email, otp),
+
   getOTP: (phone: string) => apiService.getOTP(phone),
-  resetPassword: (email: string, otp: string, newPassword: string) =>
-    apiService.resetPassword(email, otp, newPassword),
+  resetPassword: (email: string, token: string, newPassword: string) =>
+    apiService.resetPassword(email, token, newPassword),
+  logout: () => apiService.logout(),
+  getCurrentUser: () => apiService.getCurrentUser(),
+  saveProfileDetails: (
+    vendorId: string,
+    profileData: Record<string, string | number>,
+  ) => apiService.saveProfileDetails(vendorId, profileData),
+  uploadVendorPhoto: (
+    vendorId: string,
+    file: File,
+    photoType: "store_logo" | "store_cover",
+  ) => apiService.uploadVendorPhoto(vendorId, file, photoType),
+  saveBusinessDetails: (
+    vendorId: string,
+    details: { businessDescription: string; additionalInfo: string },
+  ) => apiService.saveBusinessDetails(vendorId, details),
+  saveAvailability: (vendorId: string, availability: Record<string, unknown>) =>
+    apiService.saveAvailability(vendorId, availability),
+  getVendorProfile: (vendorId: string) => apiService.getVendorProfile(vendorId),
 };
 
 export type { GetOTPResponse } from "../types/api.types";

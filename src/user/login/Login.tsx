@@ -36,7 +36,7 @@ const Login = () => {
 
     try {
       console.log("Calling authService.login...");
-      const response = await authService.login(email, password);
+      const response = await authService.loginUser(email, password);
 
       console.log("Login response received:", response);
       toast.success(response.message || "Login successful!");

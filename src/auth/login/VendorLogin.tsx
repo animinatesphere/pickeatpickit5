@@ -2,9 +2,8 @@ import { useState } from "react";
 import { Eye, EyeOff, ChefHat, Sparkles } from "lucide-react";
 import logo from "../../assets/Logo SVG 1.png";
 import { Link, useNavigate } from "react-router-dom";
-// import { authService, APIError } from "../../services/api.service"; // Import from api.service
 import { useToast, ToastContainer } from "../../component/Toast";
-import { authService, APIError } from "../../services/authService"; // Correct import
+import { authService, APIError } from "../../services/authService";
 
 const VendorLogin = () => {
   const [showPassword, setShowPassword] = useState(false);
@@ -306,7 +305,7 @@ const VendorLogin = () => {
                 <Link to="/vendor-dashboard">
                   {/* Sign In Button */}
                   <button
-                    // onClick={handleLogin}
+                    onClick={handleLogin}
                     disabled={isLoading}
                     className="w-full bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white font-bold py-4 rounded-xl transition-all mt-8 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 text-sm sm:text-base disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
                   >

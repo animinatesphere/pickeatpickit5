@@ -1,26 +1,33 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ArrowLeft, Camera, MapPin, Edit2, Check, X } from "lucide-react";
 import { VendorNav } from "../component/VendorNav";
+// import { apiService } from "../services/authService";
+import { apiService, supabase } from "../../services/authService";
+// import { error } from "console";
 
 const ProfileSetting = () => {
   const [isOpen, setIsOpen] = useState(true);
   const [editingField, setEditingField] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [vendorId, setVendorId] = useState<string | null>(null);
 
+  // Initialize formData with empty values - will be populated by useEffect
   const [formData, setFormData] = useState({
-    restaurantName: "Mr. Moe's Kitchen",
+    restaurantName: "",
     category: "Restaurant",
-    email: "creativeomotayo@gmail.com",
-    phone: "+234 906 3287 855",
-    fullName: "James Sussy Milburn",
-    address: "Shop B4, 1234 Shopping Complex, Along Lorem Way",
-    zip: "900104",
-    city: "Gwagwalada",
-    state: "Abuja",
-    deliveryRange: "Abuja - Gwagwalada - Garki Town",
+    email: "",
+    phone: "",
+    fullName: "",
+    address: "",
+    zip: "",
+    city: "",
+    state: "",
+    deliveryRange: "",
   });
 
   const [tempValue, setTempValue] = useState("");
 
+  // ... rest of your code
   const handleEdit = (field: string, currentValue: string) => {
     setEditingField(field);
     setTempValue(currentValue);
@@ -35,6 +42,186 @@ const ProfileSetting = () => {
     setEditingField(null);
     setTempValue("");
   };
+  useEffect(() => {
+    const fetchVendorData = async () => {
+      try {
+        setIsLoading(true);
+
+        // Check session first
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+        console.log("Session:", session);
+
+        if (!session) {
+          console.log("No active session, redirecting to login");
+          window.location.href = "/vendor-login";
+          return;
+        }
+
+        // Check if email is confirmed
+        if (!session.user.email_confirmed_at) {
+          alert(
+            "Please verify your email before accessing your profile. Check your inbox for the verification link.",
+          );
+          window.location.href = "/vendor-login";
+          return;
+        }
+
+        // Get current user
+        const user = await apiService.getCurrentUser();
+        console.log("Current User:", user);
+
+        if (!user) {
+          console.error("No user found - redirecting to login");
+          window.location.href = "/vendor-login";
+          return;
+        }
+
+        // Get vendor record to find vendor_id
+        const { data: vendorData, error: vendorError } = await supabase
+          .from("vendors")
+          .select(
+            "id, email, firstname, lastname, phone, business_address, business_name, state, lga",
+          )
+          .eq("user_id", user.id)
+          .single();
+
+        console.log("Vendor Data:", vendorData);
+        console.log("Vendor Error:", vendorError);
+
+        if (vendorError) {
+          console.error("Error fetching vendor:", vendorError);
+          return;
+        }
+
+        setVendorId(vendorData.id);
+
+        // Fetch vendor profile
+        const { data: profileData, error: profileError } = await supabase
+          .from("vendor_profiles")
+          .select("*")
+          .eq("vendor_id", vendorData.id)
+          .single();
+
+        console.log("Profile Data:", profileData);
+        console.log("Profile Error:", profileError);
+
+        // Fetch vendor availability
+        const { data: availabilityData, error: availError } = await supabase
+          .from("vendor_availability")
+          .select("*")
+          .eq("vendor_id", vendorData.id)
+          .single();
+
+        console.log("Availability Data:", availabilityData);
+        console.log("Availability Error:", availError);
+
+        // Update formData with fetched data
+        setFormData({
+          restaurantName:
+            profileData?.business_name ||
+            vendorData.business_name ||
+            "Restaurant Name",
+          category: "Restaurant",
+          email: profileData?.business_email || vendorData.email || "",
+          phone: profileData?.business_phone || vendorData.phone || "",
+          fullName:
+            profileData?.full_name ||
+            `${vendorData.firstname || ""} ${vendorData.lastname || ""}`.trim(),
+          address:
+            profileData?.business_address || vendorData.business_address || "",
+          zip: "900104",
+          city: profileData?.lga || vendorData.lga || "City",
+          state: profileData?.state || vendorData.state || "State",
+          deliveryRange:
+            availabilityData?.day_from && availabilityData?.day_to
+              ? `${availabilityData.day_from} - ${availabilityData.day_to}`
+              : "Not Set",
+        });
+
+        // Set restaurant status based on availability
+        if (availabilityData?.is_open !== undefined) {
+          setIsOpen(availabilityData.is_open);
+        }
+      } catch (error) {
+        console.error("Error loading vendor data:", error);
+
+        // Check for email confirmation error
+        if (
+          error instanceof Error &&
+          error.message.includes("Email not confirmed")
+        ) {
+          alert(
+            "Please verify your email before accessing your profile. Check your inbox.",
+          );
+          window.location.href = "/vendor-login";
+          return;
+        }
+
+        if (
+          error instanceof Error &&
+          error.message.includes("Auth session missing")
+        ) {
+          window.location.href = "/vendor-login";
+        }
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchVendorData();
+  }, []);
+  const handleSaveChanges = async () => {
+    if (!vendorId) return;
+
+    try {
+      // Update vendor_profiles
+      await supabase
+        .from("vendor_profiles")
+        .update({
+          business_name: formData.restaurantName,
+          full_name: formData.fullName,
+          business_email: formData.email,
+          business_phone: formData.phone,
+          business_address: formData.address,
+          state: formData.state,
+          lga: formData.city,
+        })
+        .eq("vendor_id", vendorId);
+
+      alert("Profile updated successfully!");
+    } catch (error) {
+      console.error("Error saving:", error);
+      alert("Failed to save changes");
+    }
+  };
+  // / Add this before the main return
+  // if (error) {
+  //   return (
+  //     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
+  //       <div className="text-center bg-white p-8 rounded-2xl shadow-lg">
+  //         <p className="text-red-600 mb-4">{error}</p>
+  //         <button
+  //           onClick={() => (window.location.href = "/vendor-login")}
+  //           className="px-6 py-3 bg-green-600 text-white rounded-xl hover:bg-green-700"
+  //         >
+  //           Go to Login
+  //         </button>
+  //       </div>
+  //     </div>
+  //   );
+  // }
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-green-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading profile...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
@@ -353,7 +540,10 @@ const ProfileSetting = () => {
         </div>
 
         {/* Save Button */}
-        <button className="w-full py-4 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white rounded-2xl font-bold text-lg shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02]">
+        <button
+          onClick={handleSaveChanges}
+          className="w-full py-4 bg-gradient-to-r from-green-600 to-green-700..."
+        >
           Save Changes
         </button>
       </div>

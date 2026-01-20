@@ -1,34 +1,40 @@
-// import React from 'react'
-import logo from "../../assets/Logo SVG 1.png";
+﻿import logo from "../../assets/Logo SVG 1.png";
 import { useState } from "react";
-import { Eye, EyeOff, ChevronDown, Camera, ArrowLeft } from "lucide-react";
+import { Eye, EyeOff, ChevronDown, Camera } from "lucide-react";
 import { Link } from "react-router-dom";
 import Button from "../../component/button";
 import { useToast, ToastContainer } from "../../component/Toast";
-// import { apiService } from "../../services/api.service";
-import { useApi } from "../../hooks/useApi";
-import { apiService } from "../../services/authService";
-import type { RegisterResponse } from "../../types/api.types";
-// Add this type definition at the top of your file
+import { authService, APIError } from "../../services/authService";
+
 type NavigateFunction = (page: string) => void;
 
 interface PageProps {
   onNavigate: NavigateFunction;
 }
+
+interface AvailabilityState extends Record<string, unknown> {
+  dayFrom: string;
+  dayTo: string;
+  holidaysAvailable: string;
+  timeStart: string;
+  timeEnd: string;
+  workers: string;
+}
+
 const SignUpPage = ({ onNavigate }: PageProps) => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
-    fullname: "",
+    firstname: "",
+    lastname: "",
     email: "",
     phone: "",
     password: "",
     confirmPassword: "",
   });
 
-  // Add toast hook
   const toast = useToast();
-  const { loading, error, execute } = useApi<RegisterResponse>();
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -36,14 +42,14 @@ const SignUpPage = ({ onNavigate }: PageProps) => {
   };
 
   const handleSignUp = async () => {
-    // Validation with toast notifications
     if (formData.password !== formData.confirmPassword) {
       toast.error("Passwords don't match!");
       return;
     }
 
     if (
-      !formData.fullname ||
+      !formData.firstname ||
+      !formData.lastname ||
       !formData.email ||
       !formData.phone ||
       !formData.password
@@ -52,595 +58,416 @@ const SignUpPage = ({ onNavigate }: PageProps) => {
       return;
     }
 
-    // Email validation
     if (!/\S+@\S+\.\S+/.test(formData.email)) {
       toast.error("Please enter a valid email address");
       return;
     }
 
-    // Phone validation
     if (formData.phone.length < 10) {
       toast.error("Please enter a valid phone number");
       return;
     }
 
+    setIsLoading(true);
+
     try {
-      const response = await execute(() =>
-        apiService.register({
-          fullname: formData.fullname,
-          email: formData.email,
-          phone: formData.phone,
-          password: formData.password,
-        })
-      );
+      const response = await authService.register({
+        firstname: formData.firstname,
+        lastname: formData.lastname,
+        email: formData.email,
+        phone: formData.phone,
+        password: formData.password,
+      });
 
       if (response.success) {
         toast.success("Registration successful! 🎉");
+        toast.info(
+          "Please check your email to verify your account before logging in.",
+        ); // ADD THIS
 
-        // Wait a bit for user to see the success message
+        if (response.data?.id) {
+          localStorage.setItem("tempVendorId", response.data.id);
+        }
         setTimeout(() => {
           onNavigate("profile1");
-        }, 1500);
+        }, 2000); // Increased delay to show both toasts
       }
     } catch (err) {
       console.error("Registration error:", err);
-      // The error is already handled by useApi hook
-      // But you can add additional toast notification
-      toast.error(error || "Registration failed. Please try again.");
-    }
-  };
-
-  return (
-    <>
-      <ToastContainer toasts={toast.toasts} onClose={toast.closeToast} />
-      <div className="min-h-screen bg-white">
-        <div className="max-w-md mx-auto px-6 py-8">
-          {/* {error && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
-              {error}
-            </div>
-          )} */}
-          <div className="flex flex-col items-center mb-8">
-            <img src={logo} alt="" />
-            <h1 className="text-green-600 font-bold text-xl">PickEAT PickIT</h1>
-          </div>
-
-          <div className="mb-6">
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">
-              Personal Info
-            </h2>
-            <p className="text-[#494949] font-normal text-sm">
-              To continue, kindly complete the following fields.
-            </p>
-          </div>
-
-          <div className="space-y-4 mb-6">
-            <div className="relative">
-              <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
-                <svg
-                  className="w-5 h-5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                  />
-                </svg>
-              </div>
-              <input
-                type="text"
-                name="fullname"
-                value={formData.fullname}
-                onChange={handleInputChange}
-                placeholder="Full name"
-                className="w-full pl-12 pr-4 py-3.5 bg-gray-50 border border-gray-200 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent"
-              />
-            </div>
-
-            <div className="relative">
-              <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
-                <svg
-                  className="w-5 h-5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
-                  />
-                </svg>
-              </div>
-              <input
-                type="email"
-                name="email"
-                value={formData.email}
-                onChange={handleInputChange}
-                placeholder="E-mail address"
-                className="w-full pl-12 pr-4 py-3.5 bg-white border border-gray-300 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent"
-              />
-            </div>
-
-            <div className="relative">
-              <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
-                <svg
-                  className="w-5 h-5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"
-                  />
-                </svg>
-              </div>
-              <input
-                type="tel"
-                name="phone"
-                value={formData.phone}
-                onChange={handleInputChange}
-                placeholder="Phone number"
-                className="w-full pl-12 pr-4 py-3.5 bg-gray-50 border border-gray-200 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent"
-              />
-            </div>
-
-            <div className="relative">
-              <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
-                <svg
-                  className="w-5 h-5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
-                  />
-                </svg>
-              </div>
-              <input
-                type={showPassword ? "text" : "password"}
-                name="password"
-                value={formData.password}
-                onChange={handleInputChange}
-                placeholder="Password"
-                className="w-full pl-12 pr-12 py-3.5 bg-gray-50 border border-gray-200 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-              >
-                {showPassword ? (
-                  <EyeOff className="w-5 h-5" />
-                ) : (
-                  <Eye className="w-5 h-5" />
-                )}
-              </button>
-            </div>
-
-            <div className="relative">
-              <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
-                <svg
-                  className="w-5 h-5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
-                  />
-                </svg>
-              </div>
-              <input
-                type={showConfirmPassword ? "text" : "password"}
-                name="confirmPassword"
-                value={formData.confirmPassword}
-                onChange={handleInputChange}
-                placeholder="Retype Password"
-                className="w-full pl-12 pr-12 py-3.5 bg-gray-50 border border-gray-200 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent"
-              />
-              <button
-                type="button"
-                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-              >
-                {showConfirmPassword ? (
-                  <EyeOff className="w-5 h-5" />
-                ) : (
-                  <Eye className="w-5 h-5" />
-                )}
-              </button>
-            </div>
-          </div>
-
-          <div className="text-center mb-6">
-            <p className="text-[#494949] font-semibold text-sm">
-              Already have an account?{" "}
-              <Link to="/vendor-login">
-                <button className=" cursor-pointer text-[#494949] font-extrabold hover:text-green-600">
-                  Sign in
-                </button>
-              </Link>
-            </p>
-          </div>
-
-          <div className="flex justify-end mb-4">
-            <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center">
-              <svg
-                className="w-5 h-5 text-[#000000]"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
-                />
-              </svg>
-            </div>
-          </div>
-
-          <button
-            className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-4 rounded-lg transition-colors cursor-pointer "
-            onClick={handleSignUp}
-            disabled={loading}
-            // onClick={() => onNavigate("profile1")}
-          >
-            {loading ? "Signing Up..." : "Sign Up"}
-          </button>
-
-          <Link to="/">
-            <div className="flex items-center justify-center mt-2 cursor-pointer">
-              <Button text="Select Role" />
-            </div>
-          </Link>
-        </div>
-      </div>
-    </>
-  );
-};
-
-const ForgotPasswordPage = ({ onNavigate }: PageProps) => {
-  const [email, setEmail] = useState("");
-  const { loading, error, execute } = useApi();
-
-  const handleSendOTP = async () => {
-    // Validation
-    if (!email || !email.includes("@")) {
-      alert("Please enter a valid email address");
-      return;
-    }
-
-    try {
-      await execute(() => apiService.forgotPassword(email));
-      alert("OTP sent to your email!");
-      onNavigate("pin");
-    } catch (err) {
-      console.error("Error:", err);
-      // Error is already displayed via the error state
+      if (err instanceof APIError) {
+        toast.error(err.message);
+      } else {
+        toast.error("Registration failed. Please try again.");
+      }
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
     <div className="min-h-screen bg-white">
+      <ToastContainer toasts={toast.toasts} onClose={toast.closeToast} />
       <div className="max-w-md mx-auto px-6 py-8">
-        <div className="flex flex-col items-center mb-16">
-          <img src={logo} alt="" />
+        <div className="flex flex-col items-center mb-8">
+          <img src={logo} alt="Logo" className="h-12 mb-4" />
           <h1 className="text-green-600 font-bold text-xl">PickEAT PickIT</h1>
         </div>
 
-        <div className="mb-8">
+        <div className="mb-6">
           <h2 className="text-2xl font-bold text-gray-900 mb-2">
-            Forgot Password
+            Personal Info
           </h2>
           <p className="text-gray-600 text-sm">
-            To continue, kindly enter your email address
+            Complete the fields below to continue.
           </p>
         </div>
 
-        {/* Error display */}
-        {error && (
-          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
-            {error}
-          </div>
-        )}
-
-        <div className="relative mb-8">
-          <div className="absolute left-4 top-1/2 -translate-y-1/2">
-            <div className="w-10 h-10 bg-green-600 rounded-lg flex items-center justify-center">
-              <svg
-                className="w-5 h-5 text-white"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
-                />
-              </svg>
-            </div>
-          </div>
+        <div className="space-y-4 mb-6">
+          <input
+            type="text"
+            name="firstname"
+            placeholder="First Name"
+            value={formData.firstname}
+            onChange={handleInputChange}
+            className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent"
+          />
+          <input
+            type="text"
+            name="lastname"
+            placeholder="Last Name"
+            value={formData.lastname}
+            onChange={handleInputChange}
+            className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent"
+          />
           <input
             type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="E-mail address"
-            className="w-full pl-16 pr-4 py-3.5 border border-gray-300 rounded-lg text-green-600 placeholder-green-600 focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent"
+            name="email"
+            placeholder="Email Address"
+            value={formData.email}
+            onChange={handleInputChange}
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent"
           />
-        </div>
+          <input
+            type="tel"
+            name="phone"
+            placeholder="Phone Number"
+            value={formData.phone}
+            onChange={handleInputChange}
+            className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent"
+          />
 
-        <button
-          className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-4 rounded-lg transition-colors mb-32 disabled:opacity-50 disabled:cursor-not-allowed"
-          onClick={handleSendOTP}
-          disabled={loading}
-        >
-          {loading ? "Sending..." : "Send One Time Pass"}
-        </button>
-
-        <div className="text-center">
-          <p className="text-gray-600 text-sm">
-            Already have an account?{" "}
+          <div className="relative">
+            <input
+              type={showPassword ? "text" : "password"}
+              name="password"
+              placeholder="Password"
+              value={formData.password}
+              onChange={handleInputChange}
+              className="w-full pl-4 pr-12 py-3 bg-gray-50 border border-gray-200 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent"
+            />
             <button
-              onClick={() => onNavigate("login")}
-              className="text-gray-900 font-semibold hover:text-green-600"
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400"
             >
-              Sign in
+              {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
             </button>
-          </p>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-const ConfirmPinPage = ({ onNavigate }: PageProps) => {
-  const [pin, setPin] = useState(["", "", "", ""]);
-
-  const handlePinChange = (index: number, value: string) => {
-    if (value.length <= 1 && /^\d*$/.test(value)) {
-      const newPin = [...pin];
-      newPin[index] = value;
-      setPin(newPin);
-
-      if (value && index < 3) {
-        document.getElementById(`pin-${index + 1}`)?.focus();
-      }
-    }
-  };
-
-  const handleKeyDown = (
-    index: number,
-    e: React.KeyboardEvent<HTMLInputElement>
-  ) => {
-    if (e.key === "Backspace" && !pin[index] && index > 0) {
-      document.getElementById(`pin-${index - 1}`)?.focus();
-    }
-  };
-  return (
-    <div className="min-h-screen bg-white">
-      <div className="max-w-md mx-auto px-6 py-8">
-        <div className="flex flex-col items-center mb-16">
-          <img src={logo} alt="" />
-          <h1 className="text-green-600 font-bold text-xl">PickEAT PickIT</h1>
-        </div>
-
-        <div className="mb-8">
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Confirm Pin</h2>
-          <p className="text-gray-600 text-sm">
-            To continue, kindly enter your emmail address
-          </p>
-        </div>
-
-        <div className="relative mb-12">
-          <div className="absolute left-4 top-1/2 -translate-y-1/2">
-            <div className="w-10 h-10 bg-green-600 rounded-lg flex items-center justify-center">
-              <svg
-                className="w-5 h-5 text-white"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
-                />
-              </svg>
-            </div>
           </div>
-          <div className="pl-16 pr-4 py-3.5 border border-gray-300 rounded-lg">
-            <span className="text-green-600 font-medium">E-mail address</span>
+
+          <div className="relative">
+            <input
+              type={showConfirmPassword ? "text" : "password"}
+              name="confirmPassword"
+              placeholder="Confirm Password"
+              value={formData.confirmPassword}
+              onChange={handleInputChange}
+              className="w-full pl-4 pr-12 py-3 bg-gray-50 border border-gray-200 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent"
+            />
+            <button
+              type="button"
+              onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+              className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400"
+            >
+              {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+            </button>
           </div>
         </div>
 
-        <div className="mb-8">
-          <div className="flex justify-center gap-4 mb-4">
-            {[0, 1, 2, 3].map((index) => (
-              <input
-                key={index}
-                id={`pin-${index}`}
-                type="text"
-                maxLength={1}
-                value={pin[index]}
-                onChange={(e) => handlePinChange(index, e.target.value)}
-                onKeyDown={(e) => handleKeyDown(index, e)}
-                className="w-12 h-12 text-center text-2xl font-semibold border-b-2 border-gray-300 focus:border-green-600 focus:outline-none transition-colors"
-              />
-            ))}
-          </div>
-          <p className="text-center text-gray-500 text-sm">
-            Enter the Four Digit code sent
-            <br />
-            to your email
-          </p>
-        </div>
+        <p className="text-center text-gray-600 text-sm mb-6">
+          Already have an account?{" "}
+          <Link
+            to="/vendor-login"
+            className="text-green-600 font-semibold hover:text-green-700"
+          >
+            Sign in
+          </Link>
+        </p>
 
         <button
-          onClick={() => onNavigate("profile1")}
-          className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-4 rounded-lg transition-colors mt-12"
+          onClick={handleSignUp}
+          disabled={isLoading}
+          className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed mb-4"
         >
-          Done
+          {isLoading ? "Signing Up..." : "Sign Up"}
         </button>
+
+        <Link to="/">
+          <Button text="Select Role" />
+        </Link>
       </div>
     </div>
   );
 };
 
 const CreateProfile1 = ({ onNavigate }: PageProps) => {
+  const [isLoading, setIsLoading] = useState(false);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
+  const toast = useToast();
+  const [profileData, setProfileData] = useState({
+    businessName: "",
+    howToAddress: "",
+    fullName: "",
+    yearsOfExperience: "",
+    businessEmail: "",
+    country: "Nigeria",
+    businessPhone: "",
+    businessAddress: "",
+    profession: "",
+    vendorType: "",
+    workAlone: "YES",
+    membershipId: "",
+  });
+
+  const handleInputChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
+  ) => {
+    const { name, value } = e.target;
+    setProfileData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleSaveProfile = async () => {
+    if (
+      !profileData.businessName ||
+      !profileData.fullName ||
+      !profileData.businessEmail
+    ) {
+      toast.error("Please fill required fields");
+      return;
+    }
+
+    if (!agreedToTerms) {
+      toast.error("Please agree to terms and conditions");
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const vendorId = localStorage.getItem("tempVendorId");
+      if (!vendorId) {
+        toast.error("Vendor ID not found");
+        return;
+      }
+
+      await authService.saveProfileDetails(vendorId, profileData);
+      toast.success("Profile details saved!");
+      onNavigate("profile2");
+    } catch (err) {
+      console.error("Error saving profile:", err);
+      if (err instanceof APIError) {
+        toast.error(err.message);
+      } else {
+        toast.error("Failed to save profile details");
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const professions = ["Chef", "Caterer", "Restaurant Owner", "Food Vendor"];
+  const vendorTypes = ["Restaurant", "Delivery Only", "Both"];
+  const experienceOptions = [
+    "Less than 1 year",
+    "1-3 years",
+    "3-5 years",
+    "5+ years",
+  ];
 
   return (
     <div className="min-h-screen bg-white">
-      <div className=" px-6 py-6">
+      <ToastContainer toasts={toast.toasts} onClose={toast.closeToast} />
+      <div className="max-w-md mx-auto px-6 py-8">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-xl font-bold text-gray-900">Create Profile</h2>
-          <button className="text-green-600 font-semibold text-sm">Skip</button>
+          <button
+            onClick={() => onNavigate("main")}
+            className="text-green-600 font-semibold text-sm"
+          >
+            Skip
+          </button>
         </div>
 
-        <div className="bg-blue-50 border-l-4 border-yellow-500 p-3 mb-6 flex items-start gap-2">
-          <div className="w-5 h-5 bg-yellow-500 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-            <span className="text-white text-xs font-bold">!</span>
-          </div>
-          <p className="text-green-600 text-sm">
-            Please Kindly provide the correct info below
+        <div className="bg-yellow-50 border-l-4 border-yellow-500 p-3 mb-6">
+          <p className="text-yellow-800 text-sm">
+            Please provide accurate information below.
           </p>
         </div>
 
         <div className="space-y-4 mb-6">
           <input
             type="text"
+            name="businessName"
+            value={profileData.businessName}
+            onChange={handleInputChange}
             placeholder="Business Name*"
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent"
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-green-600"
           />
           <input
             type="text"
-            placeholder="How do you want to address?"
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent"
+            name="howToAddress"
+            value={profileData.howToAddress}
+            onChange={handleInputChange}
+            placeholder="How to address?"
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-green-600"
           />
           <input
             type="text"
+            name="fullName"
+            value={profileData.fullName}
+            onChange={handleInputChange}
             placeholder="Full Name*"
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent"
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-green-600"
           />
+
           <div className="relative">
-            <select className="w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-500 appearance-none focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent">
-              <option>Years of Experience</option>
+            <select
+              name="yearsOfExperience"
+              value={profileData.yearsOfExperience}
+              onChange={handleInputChange}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg appearance-none focus:outline-none focus:ring-2 focus:ring-green-600"
+            >
+              <option value="">Years of Experience</option>
+              {experienceOptions.map((opt) => (
+                <option key={opt} value={opt.toLowerCase()}>
+                  {opt}
+                </option>
+              ))}
             </select>
-            <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
+            <ChevronDown
+              size={20}
+              className="absolute right-3 top-3.5 text-gray-400 pointer-events-none"
+            />
           </div>
-        </div>
 
-        <div className="bg-blue-50 border-l-4 border-yellow-500 p-3 mb-6 flex items-start gap-2">
-          <div className="w-5 h-5 bg-yellow-500 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-            <span className="text-white text-xs font-bold">!</span>
-          </div>
-          <p className="text-green-600 text-sm">
-            All necessary info will be sent to business contact provided below
-          </p>
-        </div>
-
-        <div className="space-y-4 mb-6">
           <input
             type="email"
-            placeholder="Business mail*"
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent"
+            name="businessEmail"
+            value={profileData.businessEmail}
+            onChange={handleInputChange}
+            placeholder="Business Email*"
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-green-600"
           />
+
           <div className="relative">
-            <select className="w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-500 appearance-none focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent">
-              <option>Select country region(Nigeria)</option>
+            <select
+              name="country"
+              value={profileData.country}
+              onChange={handleInputChange}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg appearance-none focus:outline-none focus:ring-2 focus:ring-green-600"
+            >
+              <option value="Nigeria">Nigeria</option>
+              <option value="Ghana">Ghana</option>
+              <option value="Kenya">Kenya</option>
             </select>
-            <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
-          </div>
-          <div className="flex gap-2">
-            <input
-              type="text"
-              placeholder="+234"
-              className="w-20 px-3 py-3 border border-gray-300 rounded-lg text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent"
+            <ChevronDown
+              size={20}
+              className="absolute right-3 top-3.5 text-gray-400 pointer-events-none"
             />
-            <div className="relative flex-1">
-              <input
-                type="tel"
-                placeholder="Business Phone number*"
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent"
-              />
-              <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
-            </div>
           </div>
+
+          <input
+            type="tel"
+            name="businessPhone"
+            value={profileData.businessPhone}
+            onChange={handleInputChange}
+            placeholder="Business Phone*"
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-green-600"
+          />
+
           <input
             type="text"
-            placeholder="Business address*"
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent"
+            name="businessAddress"
+            value={profileData.businessAddress}
+            onChange={handleInputChange}
+            placeholder="Business Address"
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-green-600"
+          />
+
+          <div className="relative">
+            <select
+              name="profession"
+              value={profileData.profession}
+              onChange={handleInputChange}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg appearance-none focus:outline-none focus:ring-2 focus:ring-green-600"
+            >
+              <option value="">Profession*</option>
+              {professions.map((prof) => (
+                <option key={prof} value={prof.toLowerCase()}>
+                  {prof}
+                </option>
+              ))}
+            </select>
+            <ChevronDown
+              size={20}
+              className="absolute right-3 top-3.5 text-gray-400 pointer-events-none"
+            />
+          </div>
+
+          <div className="relative">
+            <select
+              name="vendorType"
+              value={profileData.vendorType}
+              onChange={handleInputChange}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg appearance-none focus:outline-none focus:ring-2 focus:ring-green-600"
+            >
+              <option value="">Vendor Type*</option>
+              {vendorTypes.map((type) => (
+                <option key={type} value={type.toLowerCase()}>
+                  {type}
+                </option>
+              ))}
+            </select>
+            <ChevronDown
+              size={20}
+              className="absolute right-3 top-3.5 text-gray-400 pointer-events-none"
+            />
+          </div>
+
+          <div className="relative">
+            <select
+              name="workAlone"
+              value={profileData.workAlone}
+              onChange={handleInputChange}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg appearance-none focus:outline-none focus:ring-2 focus:ring-green-600"
+            >
+              <option value="YES">Work Alone</option>
+              <option value="NO">Work with Team</option>
+            </select>
+            <ChevronDown
+              size={20}
+              className="absolute right-3 top-3.5 text-gray-400 pointer-events-none"
+            />
+          </div>
+
+          <input
+            type="text"
+            name="membershipId"
+            value={profileData.membershipId}
+            onChange={handleInputChange}
+            placeholder="Membership ID (optional)"
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-green-600"
           />
         </div>
-
-        <div className="bg-blue-50 border-l-4 border-yellow-500 p-3 mb-6 flex items-start gap-2">
-          <div className="w-5 h-5 bg-yellow-500 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-            <span className="text-white text-xs font-bold">!</span>
-          </div>
-          <p className="text-green-600 text-sm">
-            All details you provided must be true, accurate and non-misleading.
-            In the event you provided wrong information, you shall be held
-            liable for such misconduct
-          </p>
-        </div>
-
-        <div className="space-y-4 mb-6">
-          <div className="relative">
-            <select className="w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-500 appearance-none focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent">
-              <option>Profession*</option>
-            </select>
-            <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
-          </div>
-          <div className="relative">
-            <select className="w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-500 appearance-none focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent">
-              <option>Vendor type*</option>
-            </select>
-            <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
-          </div>
-          <div className="relative">
-            <select className="w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-500 appearance-none focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent">
-              <option>You work alone? - YES</option>
-            </select>
-            <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
-          </div>
-        </div>
-
-        <div className="bg-blue-50 border-l-4 border-yellow-500 p-3 mb-6 flex items-start gap-2">
-          <div className="w-5 h-5 bg-yellow-500 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-            <span className="text-white text-xs font-bold">!</span>
-          </div>
-          <p className="text-green-600 text-sm">
-            In order to make points and benefits from PickEat Pickit please
-            enter your membership ID
-          </p>
-        </div>
-
-        <input
-          type="text"
-          placeholder="Membership ID/Promo Code"
-          className="w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent mb-4"
-        />
 
         <div className="flex items-center gap-2 mb-6">
           <input
@@ -648,20 +475,26 @@ const CreateProfile1 = ({ onNavigate }: PageProps) => {
             id="terms"
             checked={agreedToTerms}
             onChange={(e) => setAgreedToTerms(e.target.checked)}
-            className="w-5 h-5 text-green-600 border-gray-300 rounded focus:ring-green-600"
+            className="w-4 h-4 accent-green-600"
           />
-          <label htmlFor="terms" className="text-sm text-gray-700">
-            I understand and agree with the{" "}
-            <span className="font-semibold">Terms</span> and{" "}
-            <span className="font-semibold">Conditions</span>
+          <label htmlFor="terms" className="text-sm text-gray-600">
+            I agree to terms and conditions
           </label>
         </div>
 
         <button
-          onClick={() => onNavigate("profile2")}
-          className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-4 rounded-lg transition-colors"
+          onClick={handleSaveProfile}
+          disabled={isLoading || !agreedToTerms}
+          className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-4 rounded-lg disabled:opacity-50 mb-4"
         >
-          Continue
+          {isLoading ? "Saving..." : "Continue"}
+        </button>
+
+        <button
+          onClick={() => onNavigate("main")}
+          className="w-full border border-green-600 text-green-600 font-semibold py-4 rounded-lg hover:bg-green-50"
+        >
+          Back
         </button>
       </div>
     </div>
@@ -669,75 +502,184 @@ const CreateProfile1 = ({ onNavigate }: PageProps) => {
 };
 
 const CreateProfile2 = ({ onNavigate }: PageProps) => {
+  const [isLoading, setIsLoading] = useState(false);
+  const [businessDescription, setBusinessDescription] = useState("");
+  const [additionalInfo, setAdditionalInfo] = useState("");
+  const [logoUploaded, setLogoUploaded] = useState(false);
+  const [coverUploaded, setCoverUploaded] = useState(false);
+  const toast = useToast();
+
+  const handleFileUpload = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+    photoType: "store_logo" | "store_cover",
+  ) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 1024 * 1024) {
+      toast.error("File size must be less than 1MB");
+      return;
+    }
+
+    if (!["image/jpeg", "image/png"].includes(file.type)) {
+      toast.error("Only JPEG and PNG allowed");
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const vendorId = localStorage.getItem("tempVendorId");
+      if (!vendorId) {
+        toast.error("Vendor ID not found");
+        return;
+      }
+
+      await authService.uploadVendorPhoto(vendorId, file, photoType);
+      toast.success(
+        `${photoType === "store_logo" ? "Logo" : "Cover photo"} uploaded!`,
+      );
+      if (photoType === "store_logo") {
+        setLogoUploaded(true);
+      } else {
+        setCoverUploaded(true);
+      }
+    } catch (err) {
+      console.error("Upload error:", err);
+      if (err instanceof APIError) {
+        toast.error(err.message);
+      } else {
+        toast.error("Failed to upload photo");
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSaveDetails = async () => {
+    if (!businessDescription.trim()) {
+      toast.error("Please add a business description");
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const vendorId = localStorage.getItem("tempVendorId");
+      if (!vendorId) {
+        toast.error("Vendor ID not found");
+        return;
+      }
+
+      await authService.saveBusinessDetails(vendorId, {
+        businessDescription,
+        additionalInfo,
+      });
+
+      toast.success("Details saved!");
+      onNavigate("availability");
+    } catch (err) {
+      console.error("Error:", err);
+      if (err instanceof APIError) {
+        toast.error(err.message);
+      } else {
+        toast.error("Failed to save details");
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className=" px-6 py-6">
-        <div className="flex items-center justify-between mb-6">
-          <button onClick={() => onNavigate("profile1")}>
-            <ArrowLeft className="w-6 h-6 text-gray-900" />
-          </button>
-          <h2 className="text-xl font-bold text-gray-900">Create Profile</h2>
-          <button className="text-green-600 font-semibold text-sm">Skip</button>
-        </div>
+    <div className="min-h-screen bg-white">
+      <ToastContainer toasts={toast.toasts} onClose={toast.closeToast} />
+      <div className="max-w-md mx-auto px-6 py-8">
+        <h2 className="text-xl font-bold text-gray-900 mb-2">
+          Business Details
+        </h2>
+        <p className="text-gray-600 text-sm mb-6">
+          Add images and describe your business (images are optional)
+        </p>
 
-        <div className="bg-white rounded-lg p-6 mb-4">
-          <div className="flex items-start gap-4 mb-4">
-            <div className="w-24 h-24 bg-blue-100 rounded-full flex flex-col items-center justify-center flex-shrink-0">
-              <Camera className="w-8 h-8 text-green-600 mb-1" />
-              <span className="text-xs text-gray-600">Upload</span>
-              <span className="text-xs text-gray-600">Store Image</span>
-            </div>
-            <div>
-              <h3 className="font-bold text-gray-900">Mr. Moe's Kitchen</h3>
-              <p className="text-green-600 text-sm">Restaurant</p>
-              <p className="text-gray-600 text-sm mt-2">
-                Creativeomotayo@gmail.com
+        <div className="space-y-6 mb-8">
+          <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-green-500 transition">
+            <label className="cursor-pointer block">
+              <Camera className="w-8 h-8 mx-auto text-gray-400 mb-2" />
+              <p className="text-sm text-gray-600 font-medium">
+                Upload store logo
               </p>
-              <p className="text-gray-600 text-sm">+234 906 3287 855</p>
-            </div>
+              <p className="text-xs text-gray-400 mt-1">
+                {logoUploaded ? "✓ Uploaded" : "Optional"}
+              </p>
+              <input
+                type="file"
+                accept="image/jpeg,image/png"
+                onChange={(e) => handleFileUpload(e, "store_logo")}
+                className="hidden"
+                disabled={isLoading}
+              />
+            </label>
           </div>
-        </div>
 
-        <div className="bg-white rounded-lg p-6 mb-4">
-          <div className="flex flex-col items-center mb-4">
-            <div className="w-24 h-24 bg-blue-100 rounded-full flex flex-col items-center justify-center mb-2">
-              <Camera className="w-8 h-8 text-green-600 mb-1" />
-              <span className="text-xs text-gray-600">Upload</span>
-              <span className="text-xs text-gray-600">Cover Photo</span>
-            </div>
-            <h3 className="text-green-600 font-semibold mb-1">
-              Upload store cover photo
-            </h3>
-            <p className="text-xs text-gray-500 text-center">Allowed formats</p>
-            <p className="text-xs text-gray-500">• Jpeg</p>
-            <p className="text-xs text-gray-500">• Png</p>
-            <p className="text-xs text-gray-500 mt-1">Less than 1mb</p>
+          <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-green-500 transition">
+            <label className="cursor-pointer block">
+              <Camera className="w-8 h-8 mx-auto text-gray-400 mb-2" />
+              <p className="text-sm text-gray-600 font-medium">
+                Upload cover photo
+              </p>
+              <p className="text-xs text-gray-400 mt-1">
+                {coverUploaded ? "✓ Uploaded" : "Optional"}
+              </p>
+              <input
+                type="file"
+                accept="image/jpeg,image/png"
+                onChange={(e) => handleFileUpload(e, "store_cover")}
+                className="hidden"
+                disabled={isLoading}
+              />
+            </label>
           </div>
-        </div>
 
-        <div className="bg-white rounded-lg p-6 mb-4">
-          <div className="border-b-2 border-green-600 pb-2 mb-4">
-            <h3 className="text-green-600 font-semibold">
-              Business Description
-            </h3>
+          <div>
+            <label className="block text-sm font-semibold text-gray-900 mb-2">
+              Business Description*
+            </label>
+            <textarea
+              value={businessDescription}
+              onChange={(e) => setBusinessDescription(e.target.value)}
+              placeholder="Tell us about your business, specialties, and what makes you unique..."
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-600"
+              rows={4}
+            />
           </div>
-          <p className="text-gray-500 text-sm">Kindly Provide details below</p>
-        </div>
 
-        <div className="bg-white rounded-lg p-6 mb-4">
-          <div className="border-b-2 border-green-600 pb-2 mb-4">
-            <h3 className="text-green-600 font-semibold">Additional Info</h3>
+          <div>
+            <label className="block text-sm font-semibold text-gray-900 mb-2">
+              Additional Information
+            </label>
+            <textarea
+              value={additionalInfo}
+              onChange={(e) => setAdditionalInfo(e.target.value)}
+              placeholder="Any additional details customers should know..."
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-600"
+              rows={3}
+            />
           </div>
-          <p className="text-gray-500 text-sm">
-            Please provide additional details if need be
-          </p>
         </div>
 
         <button
-          onClick={() => onNavigate("availability")}
-          className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-4 rounded-lg transition-colors"
+          onClick={handleSaveDetails}
+          disabled={isLoading}
+          className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-4 rounded-lg disabled:opacity-50 mb-4"
         >
-          Continue
+          {isLoading ? "Saving..." : "Continue"}
+        </button>
+
+        <button
+          onClick={() => onNavigate("profile1")}
+          className="w-full border border-green-600 text-green-600 font-semibold py-4 rounded-lg hover:bg-green-50"
+        >
+          Back
         </button>
       </div>
     </div>
@@ -745,90 +687,174 @@ const CreateProfile2 = ({ onNavigate }: PageProps) => {
 };
 
 const SetAvailability = ({ onNavigate }: PageProps) => {
+  const [isLoading, setIsLoading] = useState(false);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
+  const toast = useToast();
+  const [availability, setAvailability] = useState<AvailabilityState>({
+    dayFrom: "Monday",
+    dayTo: "Sunday",
+    holidaysAvailable: "yes",
+    timeStart: "09:00",
+    timeEnd: "21:00",
+    workers: "1",
+  });
+
+  const handleInputChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
+  ) => {
+    const { name, value } = e.target;
+    setAvailability((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleSaveAvailability = async () => {
+    if (!agreedToTerms) {
+      toast.error("Please agree to terms and conditions");
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const vendorId = localStorage.getItem("tempVendorId");
+      if (!vendorId) {
+        toast.error("Vendor ID not found");
+        return;
+      }
+
+      await authService.saveAvailability(vendorId, availability);
+      toast.success("Availability saved!");
+      localStorage.removeItem("tempVendorId");
+      onNavigate("success");
+    } catch (err) {
+      console.error("Error:", err);
+      if (err instanceof APIError) {
+        toast.error(err.message);
+      } else {
+        toast.error("Failed to save availability");
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const days = [
+    "Monday",
+    "Tuesday",
+    "Wednesday",
+    "Thursday",
+    "Friday",
+    "Saturday",
+    "Sunday",
+  ];
 
   return (
     <div className="min-h-screen bg-white">
-      <div className=" px-6 py-6">
-        <div className="flex items-center justify-between mb-6">
-          <button onClick={() => onNavigate("profile2")}>
-            <ArrowLeft className="w-6 h-6 text-gray-900" />
-          </button>
-          <h2 className="text-xl font-bold text-gray-900">Set Availability</h2>
-          <button className="text-green-600 font-semibold text-sm">Skip</button>
-        </div>
+      <ToastContainer toasts={toast.toasts} onClose={toast.closeToast} />
+      <div className="max-w-md mx-auto px-6 py-8">
+        <h2 className="text-xl font-bold text-gray-900 mb-6">
+          Operating Hours
+        </h2>
 
-        <div className="bg-green-600 rounded-lg p-6 mb-6">
-          <div className="space-y-4">
-            <div>
-              <label className="text-white text-sm mb-1 block">From</label>
-              <div className="relative">
-                <select className="w-full px-4 py-3 bg-white border border-white rounded-lg text-green-600 font-semibold appearance-none focus:outline-none">
-                  <option>Monday</option>
-                </select>
-                <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-green-600 pointer-events-none" />
-              </div>
-            </div>
+        <div className="space-y-4 mb-8">
+          <div className="relative">
+            <label className="block text-sm font-semibold mb-2">
+              Working From
+            </label>
+            <select
+              name="dayFrom"
+              value={availability.dayFrom}
+              onChange={handleInputChange}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg appearance-none focus:outline-none focus:ring-2 focus:ring-green-600"
+            >
+              {days.map((day) => (
+                <option key={day} value={day}>
+                  {day}
+                </option>
+              ))}
+            </select>
+            <ChevronDown
+              size={20}
+              className="absolute right-3 top-11 text-gray-400 pointer-events-none"
+            />
+          </div>
 
-            <div>
-              <label className="text-white text-sm mb-1 block">To</label>
-              <div className="relative">
-                <select className="w-full px-4 py-3 bg-white border border-white rounded-lg text-green-600 font-semibold appearance-none focus:outline-none">
-                  <option>Friday</option>
-                </select>
-                <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-green-600 pointer-events-none" />
-              </div>
-            </div>
+          <div className="relative">
+            <label className="block text-sm font-semibold mb-2">To</label>
+            <select
+              name="dayTo"
+              value={availability.dayTo}
+              onChange={handleInputChange}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg appearance-none focus:outline-none focus:ring-2 focus:ring-green-600"
+            >
+              {days.map((day) => (
+                <option key={day} value={day}>
+                  {day}
+                </option>
+              ))}
+            </select>
+            <ChevronDown
+              size={20}
+              className="absolute right-3 top-11 text-gray-400 pointer-events-none"
+            />
+          </div>
 
-            <div>
-              <label className="text-white text-sm mb-1 block">
-                Available during Holidays
-              </label>
-              <div className="relative">
-                <select className="w-full px-4 py-3 bg-white border border-white rounded-lg text-green-600 font-semibold appearance-none focus:outline-none">
-                  <option>Yes, I'm available</option>
-                </select>
-                <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-green-600 pointer-events-none" />
-              </div>
-            </div>
+          <div>
+            <label className="block text-sm font-semibold mb-2">
+              Opening Time
+            </label>
+            <input
+              type="time"
+              name="timeStart"
+              value={availability.timeStart}
+              onChange={handleInputChange}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-600"
+            />
+          </div>
 
-            <div className="flex gap-4">
-              <div className="flex-1">
-                <label className="text-white text-sm mb-1 block">
-                  Time Start
-                </label>
-                <div className="relative">
-                  <select className="w-full px-4 py-3 bg-white border border-white rounded-lg text-green-600 font-semibold appearance-none focus:outline-none">
-                    <option>10:00 am</option>
-                  </select>
-                  <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-green-600 pointer-events-none" />
-                </div>
-              </div>
+          <div>
+            <label className="block text-sm font-semibold mb-2">
+              Closing Time
+            </label>
+            <input
+              type="time"
+              name="timeEnd"
+              value={availability.timeEnd}
+              onChange={handleInputChange}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-600"
+            />
+          </div>
 
-              <div className="flex-1">
-                <label className="text-white text-sm mb-1 block">
-                  Time End
-                </label>
-                <div className="relative">
-                  <select className="w-full px-4 py-3 bg-white border border-white rounded-lg text-green-600 font-semibold appearance-none focus:outline-none">
-                    <option>6:00 pm</option>
-                  </select>
-                  <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-green-600 pointer-events-none" />
-                </div>
-              </div>
-            </div>
+          <div className="relative">
+            <label className="block text-sm font-semibold mb-2">
+              Available on Holidays?
+            </label>
+            <select
+              name="holidaysAvailable"
+              value={availability.holidaysAvailable}
+              onChange={handleInputChange}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg appearance-none focus:outline-none focus:ring-2 focus:ring-green-600"
+            >
+              <option value="yes">Yes</option>
+              <option value="no">No</option>
+            </select>
+            <ChevronDown
+              size={20}
+              className="absolute right-3 top-11 text-gray-400 pointer-events-none"
+            />
+          </div>
 
-            <div>
-              <label className="text-white text-sm mb-1 block">
-                Total Number of Workers
-              </label>
-              <div className="relative">
-                <select className="w-full px-4 py-3 bg-white border border-white rounded-lg text-green-600 font-semibold appearance-none focus:outline-none">
-                  <option>5 People</option>
-                </select>
-                <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-green-600 pointer-events-none" />
-              </div>
-            </div>
+          <div>
+            <label className="block text-sm font-semibold mb-2">
+              Number of Workers
+            </label>
+            <input
+              type="number"
+              name="workers"
+              min="1"
+              value={availability.workers}
+              onChange={handleInputChange}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-600"
+            />
           </div>
         </div>
 
@@ -838,20 +864,26 @@ const SetAvailability = ({ onNavigate }: PageProps) => {
             id="terms2"
             checked={agreedToTerms}
             onChange={(e) => setAgreedToTerms(e.target.checked)}
-            className="w-5 h-5 text-green-600 border-gray-300 rounded focus:ring-green-600"
+            className="w-4 h-4 accent-green-600"
           />
-          <label htmlFor="terms2" className="text-sm text-gray-700">
-            I understand and agree with the{" "}
-            <span className="font-semibold">Terms</span> and{" "}
-            <span className="font-semibold">Conditions</span>
+          <label htmlFor="terms2" className="text-sm text-gray-600">
+            I agree to terms and conditions
           </label>
         </div>
 
         <button
-          onClick={() => onNavigate("success")}
-          className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-4 rounded-lg transition-colors"
+          onClick={handleSaveAvailability}
+          disabled={isLoading || !agreedToTerms}
+          className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-4 rounded-lg disabled:opacity-50 mb-4"
         >
-          Done
+          {isLoading ? "Saving..." : "Complete Setup"}
+        </button>
+
+        <button
+          onClick={() => onNavigate("profile2")}
+          className="w-full border border-green-600 text-green-600 font-semibold py-4 rounded-lg hover:bg-green-50"
+        >
+          Back
         </button>
       </div>
     </div>
@@ -859,155 +891,37 @@ const SetAvailability = ({ onNavigate }: PageProps) => {
 };
 
 const SuccessPage = () => {
+  const toast = useToast();
+
   return (
-    <div className="min-h-screen bg-white flex flex-col">
-      <div className="flex-1 flex flex-col items-center justify-between px-6 py-12">
-        <h1 className="text-2xl font-bold text-gray-900 mt-8">
-          You're all set up
-        </h1>
-
-        <div className="relative w-full max-w-sm">
-          <svg className="w-full" viewBox="0 0 300 300" fill="none">
-            <ellipse cx="80" cy="260" rx="40" ry="8" fill="#E5E7EB" />
-
-            <rect x="60" y="220" width="40" height="40" fill="#22C55E" rx="4" />
-
-            <circle cx="75" cy="200" r="15" fill="#1F2937" />
-
-            <path
-              d="M75 180 Q70 190 75 200"
-              stroke="#1F2937"
-              strokeWidth="8"
-              strokeLinecap="round"
-              fill="none"
-            />
-            <path
-              d="M75 200 L70 220"
-              stroke="#1F2937"
-              strokeWidth="8"
-              strokeLinecap="round"
-            />
-            <path
-              d="M75 200 L80 220"
-              stroke="#1F2937"
-              strokeWidth="8"
-              strokeLinecap="round"
-            />
-            <path
-              d="M70 220 L65 240"
-              stroke="#1F2937"
-              strokeWidth="8"
-              strokeLinecap="round"
-            />
-            <path
-              d="M80 220 L85 240"
-              stroke="#1F2937"
-              strokeWidth="8"
-              strokeLinecap="round"
-            />
-
-            <rect
-              x="180"
-              y="100"
-              width="80"
-              height="100"
-              fill="white"
-              stroke="#D1D5DB"
-              strokeWidth="2"
-              rx="4"
-            />
-            <rect x="190" y="110" width="60" height="8" fill="#22C55E" rx="2" />
-            <rect x="190" y="125" width="60" height="4" fill="#E5E7EB" rx="2" />
-            <rect x="190" y="132" width="60" height="4" fill="#E5E7EB" rx="2" />
-            <rect x="190" y="139" width="60" height="4" fill="#E5E7EB" rx="2" />
-            <circle cx="270" cy="90" r="12" fill="#22C55E" />
-            <path
-              d="M265 90 L268 93 L275 86"
-              stroke="white"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              fill="none"
-            />
-
-            <rect
-              x="150"
-              y="190"
-              width="80"
-              height="100"
-              fill="white"
-              stroke="#D1D5DB"
-              strokeWidth="2"
-              rx="4"
-            />
-            <rect x="160" y="200" width="60" height="8" fill="#E5E7EB" rx="2" />
-            <rect x="160" y="215" width="60" height="4" fill="#E5E7EB" rx="2" />
-            <rect x="160" y="222" width="60" height="4" fill="#E5E7EB" rx="2" />
-            <rect x="160" y="229" width="60" height="4" fill="#E5E7EB" rx="2" />
-            <circle cx="240" cy="180" r="12" fill="#1F2937" />
-            <path
-              d="M235 180 L238 183 L245 176"
-              stroke="white"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              fill="none"
-            />
-
-            <rect
-              x="230"
-              y="230"
-              width="80"
-              height="100"
-              fill="white"
-              stroke="#D1D5DB"
-              strokeWidth="2"
-              rx="4"
-            />
-            <rect x="240" y="240" width="60" height="8" fill="#E5E7EB" rx="2" />
-            <rect x="240" y="255" width="60" height="4" fill="#E5E7EB" rx="2" />
-            <rect x="240" y="262" width="60" height="4" fill="#E5E7EB" rx="2" />
-            <rect x="240" y="269" width="60" height="4" fill="#E5E7EB" rx="2" />
-            <circle cx="320" cy="220" r="12" fill="#1F2937" />
-            <path
-              d="M315 220 L318 223 L325 216"
-              stroke="white"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              fill="none"
-            />
-          </svg>
+    <div className="min-h-screen bg-white flex flex-col items-center justify-center px-6">
+      <ToastContainer toasts={toast.toasts} onClose={toast.closeToast} />
+      <div className="text-center">
+        <div className="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
+          <span className="text-4xl">✓</span>
         </div>
-
-        <div className="w-full max-w-sm">
-          <p className="text-center text-gray-600 mb-8">
-            We'll notify you via mail or text message when your application has
-            been approved.
-          </p>
-          <Link to="/vendor-login">
-            <button className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-4 rounded-lg transition-colors">
-              Done
-            </button>
-          </Link>
-        </div>
+        <h2 className="text-2xl font-bold text-gray-900 mb-2">
+          Account Created!
+        </h2>
+        <p className="text-gray-600 mb-8">
+          Your vendor account setup is complete. You can now log in.
+        </p>
+        <Link
+          to="/vendor-login"
+          className="inline-block bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-8 rounded-lg"
+        >
+          Go to Login
+        </Link>
       </div>
     </div>
   );
 };
 
 const VendorSignup = () => {
-  const [currentPage, setCurrentPage] = useState("signup");
+  const [currentPage, setCurrentPage] = useState("main");
 
   const renderPage = () => {
     switch (currentPage) {
-      case "signup":
-        return <SignUpPage onNavigate={setCurrentPage} />;
-
-      case "forgot":
-        return <ForgotPasswordPage onNavigate={setCurrentPage} />;
-      case "pin":
-        return <ConfirmPinPage onNavigate={setCurrentPage} />;
       case "profile1":
         return <CreateProfile1 onNavigate={setCurrentPage} />;
       case "profile2":
@@ -1021,7 +935,7 @@ const VendorSignup = () => {
     }
   };
 
-  return <div className="font-sans">{renderPage()}</div>;
+  return <div>{renderPage()}</div>;
 };
 
 export default VendorSignup;
