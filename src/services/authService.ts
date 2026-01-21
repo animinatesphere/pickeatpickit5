@@ -26,23 +26,67 @@ export class APIError extends Error {
 }
 
 class AuthService {
-  async sendEmailOTP(email: string): Promise<{ message: string }> {
-    try {
-      // First, create a temporary user account that will send OTP
+  // Add this to your AuthService class in authService.ts
 
+  // src/services/authService.ts
+
+  async createInitialRiderProfile(
+    userId: string,
+    email: string,
+  ): Promise<string> {
+    const { data, error } = await supabase
+      .from("riders")
+      .insert([
+        {
+          user_id: userId,
+          email: email,
+          status: "pending",
+          firstname: "", // Provide empty string instead of NULL
+          lastname: "", // Provide empty string instead of NULL
+          phone: "", // Provide empty string instead of NULL
+        },
+      ])
+      .select("id")
+      .single();
+
+    if (error) throw new APIError(error.message, 400);
+    return data.id;
+  }
+  // Update the existing registerRider to handle UPDATES instead of a new SIGNUP
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  async updateRiderProfile(riderId: string, data: any): Promise<void> {
+    const { error } = await supabase
+      .from("riders")
+      .update({
+        firstname: data.firstName,
+        lastname: data.lastName,
+        phone: data.phone,
+        gender: data.gender,
+        previous_work: data.previousWork,
+        work_duration: data.workDuration,
+        referral_code: data.referralCode,
+      })
+      .eq("id", riderId);
+
+    if (error) throw new APIError(error.message, 400);
+  }
+  async sendEmailOTP(
+    email: string,
+    password?: string,
+  ): Promise<{ message: string }> {
+    try {
       const { error } = await supabase.auth.signUp({
         email,
-        password: Math.random().toString(36).slice(-8) + "Temp123!", // Temporary password
+        // If a password is provided (from Step 0), use it.
+        // Otherwise, use a temp one (not recommended for this flow).
+        password: password || "TempPassword123!",
         options: {
-          emailRedirectTo: undefined, // Prevent redirect
+          emailRedirectTo: undefined,
         },
       });
 
-      if (error) {
-        throw new APIError(error.message, 400);
-      }
-
-      return { message: "OTP sent to your email!" };
+      if (error) throw new APIError(error.message, 400);
+      return { message: "OTP sent!" };
     } catch (error) {
       if (error instanceof APIError) {
         throw error;
@@ -272,69 +316,100 @@ class AuthService {
       throw new APIError("Registration failed. Please try again.", 400);
     }
   }
+  // Inside class AuthService...
+
   async loginRider(email: string, password: string): Promise<LoginResponse> {
+    // 1. Try to log in to Supabase Auth
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (error) throw new APIError(error.message, 401);
+
+    // 2. If Auth works, check the database profile
+    const { data: riderData, error: dbError } = await supabase
+      .from("riders")
+      .select("*")
+      .eq("user_id", data.user.id)
+      .single();
+
+    if (dbError || !riderData)
+      throw new APIError("Rider profile not found.", 404);
+
+    // 3. Check Status
+    if (riderData.status === "pending") {
+      throw new APIError(
+        "Account pending approval. Please wait for an email.",
+        403,
+      );
+    }
+
+    // FIXED HERE: Added the 'message' property
+    return {
+      success: true,
+      message: "Login successful!", // Add this line
+      user: riderData,
+      token: data.session.access_token,
+    };
+  }
+  async uploadRiderDocument(
+    riderId: string,
+    file: File,
+    documentType: "drivers_license" | "selfie",
+  ): Promise<{ success: boolean; url: string; message: string }> {
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+      // Generate unique filename
+      const fileExt = file.name.split(".").pop();
+      const fileName = `${riderId}/${documentType}_${Date.now()}.${fileExt}`;
 
-      if (error) {
-        throw new APIError(error.message, 401);
+      // Upload to Supabase storage
+      // AFTER (Fixed)
+      const { error: uploadError } = await supabase.storage
+        .from("rider-documents")
+        .upload(fileName, file, {
+          cacheControl: "3600",
+          upsert: false,
+        });
+
+      if (uploadError) {
+        throw new APIError(uploadError.message, 400);
       }
 
-      if (!data.user || !data.session) {
-        throw new APIError("Login failed", 401);
-      }
+      // Get public URL
+      const { data: urlData } = supabase.storage
+        .from("rider-documents")
+        .getPublicUrl(fileName);
 
-      // Fetch rider profile from riders table
-      const { data: riderDataArray, error: riderError } = await supabase
-        .from("riders")
-        .select("*")
-        .eq("user_id", data.user.id);
+      const publicUrl = urlData.publicUrl;
 
-      if (riderError || !riderDataArray || riderDataArray.length === 0) {
-        throw new APIError(
-          "Rider profile not found. Please register as a rider first.",
-          404,
-        );
-      }
+      // Save document info to database (optional - create table if needed)
+      const { error: dbError } = await supabase.from("rider_documents").insert([
+        {
+          rider_id: riderId,
+          document_type: documentType,
+          document_url: publicUrl,
+          file_name: file.name,
+          file_size: file.size,
+          uploaded_at: new Date().toISOString(),
+        },
+      ]);
 
-      const riderData = riderDataArray[0];
-
-      // Check if rider application is approved
-      if (riderData.status === "pending") {
-        throw new APIError(
-          "Your application is still under review. Please wait for approval.",
-          403,
-        );
-      }
-
-      if (riderData.status === "rejected") {
-        throw new APIError(
-          "Your application was not approved. Please contact support.",
-          403,
-        );
+      if (dbError) {
+        console.warn("Document record save warning:", dbError.message);
+        // Don't fail if table doesn't exist, still return success
       }
 
       return {
         success: true,
-        message: "Login successful!",
-        user: {
-          id: data.user.id,
-          email: data.user.email,
-          ...riderData,
-        },
-        token: data.session.access_token,
+        url: publicUrl,
+        message: "Document uploaded successfully!",
       };
     } catch (error) {
-      if (error instanceof APIError) {
-        throw error;
-      }
-      throw new APIError("Login failed. Please check your credentials.", 401);
+      if (error instanceof APIError) throw error;
+      throw new APIError("Failed to upload document. Please try again.", 400);
     }
   }
-
   // Register new vendor
   async register(data: RegisterRequest): Promise<RegisterResponse> {
     try {
@@ -947,14 +1022,23 @@ export const authService = {
     phone: string;
     address?: string;
   }) => apiService.registerUser(data),
-
+  uploadRiderDocument: (
+    riderId: string,
+    file: File,
+    documentType: "drivers_license" | "selfie",
+  ) => apiService.uploadRiderDocument(riderId, file, documentType),
   loginRider: (email: string, password: string) =>
     apiService.loginRider(email, password), // NEW
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   registerRider: (data: any) => apiService.registerRider(data), // NEW
-  sendEmailOTP: (email: string) => apiService.sendEmailOTP(email),
-
+  sendEmailOTP: (email: string, password?: string) =>
+    apiService.sendEmailOTP(email, password),
+  createInitialRiderProfile: (userId: string, email: string) =>
+    apiService.createInitialRiderProfile(userId, email),
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  updateRiderProfile: (riderId: string, data: any) =>
+    apiService.updateRiderProfile(riderId, data),
   forgotPassword: (email: string) => apiService.forgotPassword(email),
   verifyOTP: (email: string, otp: string) => apiService.verifyOTP(email, otp),
 

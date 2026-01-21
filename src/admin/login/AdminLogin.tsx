@@ -8,12 +8,20 @@ export default function AdminLogin() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = () => {
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault(); // Prevent page reload
     setIsLoading(true);
-    setTimeout(() => {
+
+    // Check against hardcoded credentials
+    if (email === "ogbonnajohn11@gmail.com" && password === "Happyhome2022") {
+      setTimeout(() => {
+        setIsLoading(false);
+        window.location.href = "/admin-dashboard";
+      }, 1500);
+    } else {
       setIsLoading(false);
-      alert("Login functionality would be implemented here!");
-    }, 2000);
+      alert("Invalid Admin Credentials");
+    }
   };
 
   return (

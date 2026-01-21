@@ -1,5 +1,5 @@
 import { useState } from "react";
-// import { authService } from "../../services/authService";
+import { authService, supabase } from "../../services/authService";
 import {
   ChevronDown,
   Camera,
@@ -11,6 +11,8 @@ import {
   Lock,
   Eye,
   EyeOff,
+  X,
+  Upload,
 } from "lucide-react";
 
 type Step = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7;
@@ -49,6 +51,14 @@ interface FormData {
   timeStart: string;
   timeEnd: string;
 }
+interface StepProps {
+  formData: FormData;
+  onChange: (field: string, value: string | boolean) => void;
+  onNext: () => void;
+  onBack?: () => void;
+  riderId?: string; // Add this
+  setRiderId?: (id: string) => void; // Add this
+}
 
 interface StepProps {
   formData: FormData;
@@ -56,11 +66,16 @@ interface StepProps {
   onNext: () => void;
   onBack?: () => void;
 }
-
+interface Step4Props {
+  onNext: () => void;
+  onBack: () => void;
+  riderId?: string; // Pass this from parent if you have it
+}
 export default function RiderRegistration() {
   const [currentStep, setCurrentStep] = useState<Step>(0);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  const [riderId, setRiderId] = useState<string>("");
   const [formData, setFormData] = useState<FormData>({
     email: "",
     password: "",
@@ -138,11 +153,12 @@ export default function RiderRegistration() {
             setIsLoading={setIsLoading}
             error={error}
             setError={setError}
+            setRiderId={setRiderId} // Move setRiderId here
           />
         );
       case 2:
         return (
-          <Step1
+          <Step1 // Changed from StepOTP to Step1
             formData={formData}
             onChange={handleInputChange}
             onNext={nextStep}
@@ -168,7 +184,7 @@ export default function RiderRegistration() {
           />
         );
       case 5:
-        return <Step4 onNext={nextStep} onBack={prevStep} />;
+        return <Step4 onNext={nextStep} onBack={prevStep} riderId={riderId} />;
       case 6:
         return (
           <Step5
@@ -180,6 +196,7 @@ export default function RiderRegistration() {
             setIsLoading={setIsLoading}
             error={error}
             setError={setError}
+            riderId={riderId} // PASS THIS
           />
         );
       case 7:
@@ -210,6 +227,7 @@ function Step0({
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
+  // Step 0: Fixed handleSendOTP function
   const handleSendOTP = async () => {
     // Validation
     if (!formData.email || !formData.password || !formData.confirmPassword) {
@@ -231,26 +249,8 @@ function Step0({
     setError("");
 
     try {
-      // Call your authService to send OTP
-      const response = await fetch("https://api.anthropic.com/v1/messages", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "claude-sonnet-4-20250514",
-          max_tokens: 1000,
-          messages: [
-            {
-              role: "user",
-              content: `Simulate sending OTP to email: ${formData.email}. Return only: {"success": true, "message": "OTP sent to your email!"}`,
-            },
-          ],
-        }),
-      });
-
-      const data = await response.json();
-      console.log("OTP sent:", data);
+      // Call authService to send OTP
+      await authService.sendEmailOTP(formData.email, formData.password);
 
       // Move to OTP verification step
       onNext();
@@ -390,6 +390,7 @@ function StepOTP({
   setIsLoading,
   error,
   setError,
+  setRiderId, // ADD THIS HERE
 }: StepProps & {
   isLoading: boolean;
   setIsLoading: (val: boolean) => void;
@@ -397,41 +398,35 @@ function StepOTP({
   setError: (val: string) => void;
 }) {
   const handleVerifyOTP = async () => {
-    if (!formData.emailOTP || formData.emailOTP.length !== 6) {
-      setError("Please enter the 6-digit code");
-      return;
-    }
-
     setIsLoading(true);
-    setError("");
-
     try {
-      // Call your authService to verify OTP
-      const response = await fetch("https://api.anthropic.com/v1/messages", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "claude-sonnet-4-20250514",
-          max_tokens: 1000,
-          messages: [
-            {
-              role: "user",
-              content: `Simulate OTP verification for email: ${formData.email}, OTP: ${formData.emailOTP}. Return only: {"success": true, "message": "Email verified!"}`,
-            },
-          ],
-        }),
-      });
+      // 1. Verify OTP
+      const { data: authData, error: authError } =
+        await supabase.auth.verifyOtp({
+          email: formData.email,
+          token: formData.emailOTP,
+          type: "email",
+        });
 
-      const data = await response.json();
-      console.log("OTP verified:", data);
+      if (authError) throw authError;
 
-      // Move to personal information step
-      onNext();
-    } catch (err) {
-      setError("Invalid verification code. Please try again.");
-      console.error(err);
+      // 2. Create the profile immediately to get the UUID
+      if (authData.user) {
+        const realId = await authService.createInitialRiderProfile(
+          authData.user.id,
+          formData.email,
+        );
+
+        // Fix: Use optional chaining or check existence
+        if (setRiderId) {
+          setRiderId(realId);
+        }
+
+        onNext();
+      }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (err: any) {
+      setError(err.message || "Verification failed");
     } finally {
       setIsLoading(false);
     }
@@ -925,7 +920,140 @@ function Step3({ formData, onChange, onNext, onBack }: StepProps) {
   );
 }
 
-function Step4({ onNext, onBack }: { onNext: () => void; onBack: () => void }) {
+function Step4({ onNext, onBack, riderId }: Step4Props) {
+  const [licenseFile, setLicenseFile] = useState<File | null>(null);
+  const [licensePreview, setLicensePreview] = useState<string>("");
+  const [selfieFile, setSelfieFile] = useState<File | null>(null);
+  const [selfiePreview, setSelfiePreview] = useState<string>("");
+  const [isUploading, setIsUploading] = useState(false);
+
+  const [uploadStatus, setUploadStatus] = useState<{
+    license: boolean;
+    selfie: boolean;
+  }>({ license: false, selfie: false });
+  const [error, setError] = useState("");
+
+  // Handle file selection for driver's license
+  const handleLicenseChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Validate file type
+      if (!file.type.startsWith("image/")) {
+        setError("Please upload an image file");
+        return;
+      }
+
+      // Validate file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        setError("File size must be less than 5MB");
+        return;
+      }
+
+      setLicenseFile(file);
+      setError("");
+
+      // Create preview
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setLicensePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  // Handle file selection for selfie
+  const handleSelfieChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (!file.type.startsWith("image/")) {
+        setError("Please upload an image file");
+        return;
+      }
+
+      if (file.size > 5 * 1024 * 1024) {
+        setError("File size must be less than 5MB");
+        return;
+      }
+
+      setSelfieFile(file);
+      setError("");
+
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setSelfiePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  // Upload documents
+  const handleUploadDocuments = async () => {
+    if (!licenseFile && !selfieFile) {
+      setError("Please select at least one document to upload");
+      return;
+    }
+    if (!riderId) {
+      setError("Rider ID missing. Please go back and try again.");
+      return;
+    }
+    setIsUploading(true);
+    setError("");
+
+    try {
+      // Use a temporary rider ID if not provided
+      const uploadRiderId = riderId || "temp_" + Date.now();
+
+      // Upload driver's license if selected
+      if (licenseFile && !uploadStatus.license) {
+        const result = await authService.uploadRiderDocument(
+          uploadRiderId,
+          licenseFile,
+          "drivers_license",
+        );
+
+        if (result.success) {
+          setUploadStatus((prev) => ({ ...prev, license: true }));
+        }
+      }
+
+      // Upload selfie if selected
+      if (selfieFile && !uploadStatus.selfie) {
+        const result = await authService.uploadRiderDocument(
+          uploadRiderId,
+          selfieFile,
+          "selfie",
+        );
+
+        if (result.success) {
+          setUploadStatus((prev) => ({ ...prev, selfie: true }));
+        }
+      }
+
+      // Proceed to next step after successful uploads
+      setTimeout(() => {
+        onNext();
+      }, 500);
+    } catch (err) {
+      console.error("Upload error:", err);
+      setError("Failed to upload documents. Please try again.");
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  // Remove selected file
+  const removeLicense = () => {
+    setLicenseFile(null);
+    setLicensePreview("");
+    setUploadStatus((prev) => ({ ...prev, license: false }));
+  };
+
+  const removeSelfie = () => {
+    setSelfieFile(null);
+    setSelfiePreview("");
+    setUploadStatus((prev) => ({ ...prev, selfie: false }));
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 animate-fadeIn">
       <div className="max-w-2xl mx-auto px-4 py-6">
@@ -938,31 +1066,80 @@ function Step4({ onNext, onBack }: { onNext: () => void; onBack: () => void }) {
               Verify Identity
             </h1>
           </div>
-          <button className="text-green-600 font-medium">Skip</button>
+          <button onClick={onNext} className="text-green-600 font-medium">
+            Skip
+          </button>
         </div>
 
+        {/* Error Message */}
+        {error && (
+          <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-6">
+            <p className="text-red-700 text-sm">{error}</p>
+          </div>
+        )}
+
         <div className="space-y-4 mb-8">
-          <div className="bg-white rounded-2xl p-6 border border-gray-200 hover:border-green-500 transition-all cursor-pointer">
-            <div className="flex items-center gap-4">
+          {/* Driver's License Upload */}
+          <div className="bg-white rounded-2xl p-6 border-2 border-gray-200 hover:border-green-500 transition-all">
+            <div className="flex items-center gap-4 mb-4">
               <div className="bg-blue-50 rounded-full p-4">
                 <Camera className="w-8 h-8 text-green-600" />
               </div>
-              <div>
+              <div className="flex-1">
                 <p className="font-semibold text-gray-800 mb-1">
                   Upload a picture of your
                 </p>
                 <p className="font-semibold text-gray-800">Driver's License</p>
-                <p className="text-xs text-gray-500 mt-1">Choose Photo</p>
               </div>
+              {uploadStatus.license && (
+                <CheckCircle className="w-6 h-6 text-green-600" />
+              )}
             </div>
+
+            {/* Preview */}
+            {licensePreview && (
+              <div className="relative mb-4">
+                <img
+                  src={licensePreview}
+                  alt="License preview"
+                  className="w-full h-48 object-cover rounded-lg"
+                />
+                <button
+                  onClick={removeLicense}
+                  className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            )}
+
+            {/* Upload Button */}
+            <label className="flex items-center justify-center gap-2 bg-green-50 text-green-600 py-3 rounded-lg cursor-pointer hover:bg-green-100 transition-all">
+              <Upload className="w-5 h-5" />
+              <span className="font-medium">
+                {licenseFile ? "Change Photo" : "Choose Photo"}
+              </span>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleLicenseChange}
+                className="hidden"
+              />
+            </label>
+            {licenseFile && (
+              <p className="text-xs text-gray-500 mt-2 text-center">
+                {licenseFile.name} ({(licenseFile.size / 1024).toFixed(1)} KB)
+              </p>
+            )}
           </div>
 
-          <div className="bg-white rounded-2xl p-6 border border-gray-200 hover:border-green-500 transition-all cursor-pointer">
-            <div className="flex items-center gap-4">
+          {/* Selfie Upload */}
+          <div className="bg-white rounded-2xl p-6 border-2 border-gray-200 hover:border-green-500 transition-all">
+            <div className="flex items-center gap-4 mb-4">
               <div className="bg-blue-50 rounded-full p-4">
                 <User className="w-8 h-8 text-green-600" />
               </div>
-              <div>
+              <div className="flex-1">
                 <p className="text-green-600 font-semibold mb-1">
                   Position your bare face
                 </p>
@@ -972,18 +1149,71 @@ function Step4({ onNext, onBack }: { onNext: () => void; onBack: () => void }) {
                 <p className="text-gray-600 text-sm mt-2">
                   No face mask or glasses
                 </p>
-                <p className="text-xs text-gray-500 mt-1">Take photo</p>
               </div>
+              {uploadStatus.selfie && (
+                <CheckCircle className="w-6 h-6 text-green-600" />
+              )}
             </div>
+
+            {/* Preview */}
+            {selfiePreview && (
+              <div className="relative mb-4">
+                <img
+                  src={selfiePreview}
+                  alt="Selfie preview"
+                  className="w-full h-48 object-cover rounded-lg"
+                />
+                <button
+                  onClick={removeSelfie}
+                  className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            )}
+
+            {/* Upload Button */}
+            <label className="flex items-center justify-center gap-2 bg-green-50 text-green-600 py-3 rounded-lg cursor-pointer hover:bg-green-100 transition-all">
+              <Upload className="w-5 h-5" />
+              <span className="font-medium">
+                {selfieFile ? "Change Photo" : "Take Photo"}
+              </span>
+              <input
+                type="file"
+                accept="image/*"
+                capture="user"
+                onChange={handleSelfieChange}
+                className="hidden"
+              />
+            </label>
+            {selfieFile && (
+              <p className="text-xs text-gray-500 mt-2 text-center">
+                {selfieFile.name} ({(selfieFile.size / 1024).toFixed(1)} KB)
+              </p>
+            )}
           </div>
         </div>
 
+        {/* Upload Button */}
         <button
-          onClick={onNext}
-          className="w-full bg-green-600 hover:bg-green-700 text-white py-4 rounded-xl font-semibold text-lg transition-all transform hover:scale-[1.02] shadow-lg hover:shadow-xl"
+          onClick={handleUploadDocuments}
+          disabled={isUploading || (!licenseFile && !selfieFile)}
+          className="w-full bg-green-600 hover:bg-green-700 text-white py-4 rounded-xl font-semibold text-lg transition-all transform hover:scale-[1.02] shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
         >
-          Continue
+          {isUploading ? (
+            <>
+              <div className="w-6 h-6 border-3 border-white border-t-transparent rounded-full animate-spin mr-2" />
+              Uploading...
+            </>
+          ) : (
+            "Upload & Continue"
+          )}
         </button>
+
+        {/* Info text */}
+        <p className="text-xs text-gray-500 text-center mt-4">
+          Your documents are encrypted and stored securely
+        </p>
       </div>
     </div>
   );
@@ -998,71 +1228,55 @@ function Step5({
   setIsLoading,
   error,
   setError,
+  riderId, // ADD THIS HERE
 }: StepProps & {
   isLoading: boolean;
   setIsLoading: (val: boolean) => void;
   error: string;
   setError: (val: string) => void;
 }) {
+  // Inside Step 5 handleComplete
   const handleComplete = async () => {
-    if (!formData.availabilityTerms) {
-      setError("Please accept the terms and conditions");
+    // Check if riderId exists first
+    if (!riderId) {
+      setError("Registration session expired. Please restart.");
       return;
     }
 
     setIsLoading(true);
-    setError("");
-
     try {
-      // Here you would call your authService to save all rider data
-      const riderData = {
-        email: formData.email,
-        password: formData.password,
-        firstName: formData.firstName,
-        lastName: formData.lastName,
-        phone: formData.phone,
-        gender: formData.gender,
-        nextOfKinName: formData.nextOfKinName,
-        nextOfKinPhone: formData.nextOfKinPhone,
-        vehicleType: formData.vehicleType,
-        vehicleBrand: formData.vehicleBrand,
-        plateNumber: formData.plateNumber,
-        guarantor1: {
-          name: formData.guarantor1Name,
-          phone: formData.guarantor1Phone,
-          relationship: formData.guarantor1Relationship,
-        },
-        guarantor2: {
-          name: formData.guarantor2Name,
-          phone: formData.guarantor2Phone,
-          relationship: formData.guarantor2Relationship,
-        },
-        previousWork: formData.previousWork,
-        workDuration: formData.workDuration,
-        referralCode: formData.referralCode,
-        bankInfo: {
-          bankName: formData.bankName,
-          accountNumber: formData.accountNumber,
-          accountName: formData.accountName,
-        },
-        availability: {
-          fromDay: formData.fromDay,
-          toDay: formData.toDay,
-          holidayAvailable: formData.holidayAvailable,
-          timeStart: formData.timeStart,
-          timeEnd: formData.timeEnd,
-        },
-      };
+      // TypeScript now knows riderId is definitely a string here
+      await authService.updateRiderProfile(riderId, formData);
 
-      console.log("Saving rider data:", riderData);
+      // Update the rest of the calls to use riderId
+      await supabase.from("rider_bank_info").insert([
+        {
+          rider_id: riderId,
+          // ...
 
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+          bank_name: formData.bankName,
+          account_number: formData.accountNumber,
+          account_name: formData.accountName,
+        },
+      ]);
+
+      // 3. Insert Availability
+      await supabase.from("rider_availability").insert([
+        {
+          rider_id: riderId,
+          day_from: formData.fromDay,
+          day_to: formData.toDay,
+          holidays_available:
+            formData.holidayAvailable === "Yes, I'm available",
+          time_start: formData.timeStart,
+          time_end: formData.timeEnd,
+        },
+      ]);
 
       onNext();
-    } catch (err) {
-      setError("Failed to complete registration. Please try again.");
-      console.error(err);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (err: any) {
+      setError(err.message || "Failed to save details");
     } finally {
       setIsLoading(false);
     }
