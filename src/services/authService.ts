@@ -75,6 +75,266 @@ class AuthService {
       throw new APIError("OTP verification failed. Please try again.", 400);
     }
   }
+  async registerRider(data: {
+    email: string;
+    password: string;
+    firstName: string;
+    lastName: string;
+    phone: string;
+    gender?: string;
+    nextOfKinName?: string;
+    nextOfKinPhone?: string;
+    vehicleType?: string;
+    vehicleBrand?: string;
+    plateNumber?: string;
+    guarantor1?: {
+      name: string;
+      phone: string;
+      relationship: string;
+    };
+    guarantor2?: {
+      name: string;
+      phone: string;
+      relationship: string;
+    };
+    previousWork?: string;
+    workDuration?: string;
+    referralCode?: string;
+    bankInfo?: {
+      bankName: string;
+      accountNumber: string;
+      accountName: string;
+    };
+    availability?: {
+      fromDay: string;
+      toDay: string;
+      holidayAvailable: string;
+      timeStart: string;
+      timeEnd: string;
+    };
+  }): Promise<RegisterResponse> {
+    try {
+      // Sign up with Supabase auth
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: data.email,
+        password: data.password,
+        options: {
+          data: {
+            firstname: data.firstName,
+            lastname: data.lastName,
+            phone: data.phone,
+            user_type: "rider", // distinguish from vendors and customers
+          },
+        },
+      });
+
+      if (authError) {
+        throw new APIError(authError.message, 400);
+      }
+
+      if (!authData.user) {
+        throw new APIError("Registration failed", 400);
+      }
+
+      // Insert rider profile into riders table
+      const { error: riderProfileError } = await supabase
+        .from("riders")
+        .insert([
+          {
+            user_id: authData.user.id,
+            email: data.email,
+            firstname: data.firstName,
+            lastname: data.lastName,
+            phone: data.phone,
+            gender: data.gender || null,
+            next_of_kin_name: data.nextOfKinName || null,
+            next_of_kin_phone: data.nextOfKinPhone || null,
+            vehicle_type: data.vehicleType || null,
+            vehicle_brand: data.vehicleBrand || null,
+            plate_number: data.plateNumber || null,
+            previous_work: data.previousWork || null,
+            work_duration: data.workDuration || null,
+            referral_code: data.referralCode || null,
+            status: "pending", // Application starts as pending
+          },
+        ]);
+
+      if (riderProfileError) {
+        // Handle duplicate key violation
+        if (riderProfileError.code === "23505") {
+          throw new APIError(
+            "Account already exists. Please log in instead.",
+            409,
+          );
+        }
+        throw new APIError("Failed to create rider profile", 400);
+      }
+
+      // Query for the rider record to get its ID
+      const { data: riderDataArray, error: riderQueryError } = await supabase
+        .from("riders")
+        .select("id")
+        .eq("user_id", authData.user.id)
+        .single();
+
+      if (riderQueryError || !riderDataArray) {
+        throw new APIError("Failed to retrieve rider ID", 400);
+      }
+
+      const riderId = riderDataArray.id;
+
+      // Save guarantor information if provided
+      if (data.guarantor1 || data.guarantor2) {
+        const guarantors = [];
+
+        if (data.guarantor1?.name && data.guarantor1?.phone) {
+          guarantors.push({
+            rider_id: riderId,
+            name: data.guarantor1.name,
+            phone: data.guarantor1.phone,
+            relationship: data.guarantor1.relationship,
+            guarantor_number: 1,
+          });
+        }
+
+        if (data.guarantor2?.name && data.guarantor2?.phone) {
+          guarantors.push({
+            rider_id: riderId,
+            name: data.guarantor2.name,
+            phone: data.guarantor2.phone,
+            relationship: data.guarantor2.relationship,
+            guarantor_number: 2,
+          });
+        }
+
+        if (guarantors.length > 0) {
+          const { error: guarantorError } = await supabase
+            .from("rider_guarantors")
+            .insert(guarantors);
+
+          if (guarantorError) {
+            console.warn("Guarantor save warning:", guarantorError.message);
+          }
+        }
+      }
+
+      // Save bank information if provided
+      if (data.bankInfo?.bankName && data.bankInfo?.accountNumber) {
+        const { error: bankError } = await supabase
+          .from("rider_bank_info")
+          .insert([
+            {
+              rider_id: riderId,
+              bank_name: data.bankInfo.bankName,
+              account_number: data.bankInfo.accountNumber,
+              account_name: data.bankInfo.accountName,
+            },
+          ]);
+
+        if (bankError) {
+          console.warn("Bank info save warning:", bankError.message);
+        }
+      }
+
+      // Save availability if provided
+      if (data.availability) {
+        const { error: availabilityError } = await supabase
+          .from("rider_availability")
+          .insert([
+            {
+              rider_id: riderId,
+              day_from: data.availability.fromDay,
+              day_to: data.availability.toDay,
+              holidays_available:
+                data.availability.holidayAvailable === "Yes, I'm available",
+              time_start: data.availability.timeStart,
+              time_end: data.availability.timeEnd,
+            },
+          ]);
+
+        if (availabilityError) {
+          console.warn("Availability save warning:", availabilityError.message);
+        }
+      }
+
+      return {
+        success: true,
+        message: "Registration successful! Your application is under review.",
+        data: {
+          id: riderId,
+          email: authData.user.email || data.email,
+        },
+      };
+    } catch (error) {
+      if (error instanceof APIError) {
+        throw error;
+      }
+      throw new APIError("Registration failed. Please try again.", 400);
+    }
+  }
+  async loginRider(email: string, password: string): Promise<LoginResponse> {
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) {
+        throw new APIError(error.message, 401);
+      }
+
+      if (!data.user || !data.session) {
+        throw new APIError("Login failed", 401);
+      }
+
+      // Fetch rider profile from riders table
+      const { data: riderDataArray, error: riderError } = await supabase
+        .from("riders")
+        .select("*")
+        .eq("user_id", data.user.id);
+
+      if (riderError || !riderDataArray || riderDataArray.length === 0) {
+        throw new APIError(
+          "Rider profile not found. Please register as a rider first.",
+          404,
+        );
+      }
+
+      const riderData = riderDataArray[0];
+
+      // Check if rider application is approved
+      if (riderData.status === "pending") {
+        throw new APIError(
+          "Your application is still under review. Please wait for approval.",
+          403,
+        );
+      }
+
+      if (riderData.status === "rejected") {
+        throw new APIError(
+          "Your application was not approved. Please contact support.",
+          403,
+        );
+      }
+
+      return {
+        success: true,
+        message: "Login successful!",
+        user: {
+          id: data.user.id,
+          email: data.user.email,
+          ...riderData,
+        },
+        token: data.session.access_token,
+      };
+    } catch (error) {
+      if (error instanceof APIError) {
+        throw error;
+      }
+      throw new APIError("Login failed. Please check your credentials.", 401);
+    }
+  }
+
   // Register new vendor
   async register(data: RegisterRequest): Promise<RegisterResponse> {
     try {
@@ -687,9 +947,17 @@ export const authService = {
     phone: string;
     address?: string;
   }) => apiService.registerUser(data),
+
+  loginRider: (email: string, password: string) =>
+    apiService.loginRider(email, password), // NEW
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  registerRider: (data: any) => apiService.registerRider(data), // NEW
+  sendEmailOTP: (email: string) => apiService.sendEmailOTP(email),
+
   forgotPassword: (email: string) => apiService.forgotPassword(email),
   verifyOTP: (email: string, otp: string) => apiService.verifyOTP(email, otp),
-  sendEmailOTP: (email: string) => apiService.sendEmailOTP(email),
+
   verifyEmailOTP: (email: string, otp: string) =>
     apiService.verifyEmailOTP(email, otp),
 

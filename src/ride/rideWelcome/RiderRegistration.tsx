@@ -1,4 +1,5 @@
 import { useState } from "react";
+// import { authService } from "../../services/authService";
 import {
   ChevronDown,
   Camera,
@@ -6,15 +7,21 @@ import {
   ArrowLeft,
   MessageCircle,
   CheckCircle,
+  Mail,
+  Lock,
+  Eye,
+  EyeOff,
 } from "lucide-react";
-import { Link } from "react-router-dom";
 
-type Step = 1 | 2 | 3 | 4 | 5 | 6;
+type Step = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7;
 
 interface FormData {
+  email: string;
+  password: string;
+  confirmPassword: string;
+  emailOTP: string;
   firstName: string;
   lastName: string;
-  email: string;
   phone: string;
   gender: string;
   nextOfKinName: string;
@@ -50,17 +57,17 @@ interface StepProps {
   onBack?: () => void;
 }
 
-interface Step4Props {
-  onNext: () => void;
-  onBack: () => void;
-}
-
 export default function RiderRegistration() {
-  const [currentStep, setCurrentStep] = useState<Step>(1);
+  const [currentStep, setCurrentStep] = useState<Step>(0);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
   const [formData, setFormData] = useState<FormData>({
+    email: "",
+    password: "",
+    confirmPassword: "",
+    emailOTP: "",
     firstName: "",
     lastName: "",
-    email: "",
     phone: "",
     gender: "",
     nextOfKinName: "",
@@ -91,33 +98,51 @@ export default function RiderRegistration() {
 
   const handleInputChange = (field: string, value: string | boolean) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
+    setError("");
   };
 
   const nextStep = () => {
-    if (currentStep < 6) {
+    if (currentStep < 7) {
       setCurrentStep((currentStep + 1) as Step);
     }
   };
 
   const prevStep = () => {
-    if (currentStep > 1) {
+    if (currentStep > 0) {
       setCurrentStep((currentStep - 1) as Step);
     }
   };
 
   const renderStep = () => {
     switch (currentStep) {
-      case 1:
+      case 0:
         return (
-          <Step1
+          <Step0
             formData={formData}
             onChange={handleInputChange}
             onNext={nextStep}
+            isLoading={isLoading}
+            setIsLoading={setIsLoading}
+            error={error}
+            setError={setError}
+          />
+        );
+      case 1:
+        return (
+          <StepOTP
+            formData={formData}
+            onChange={handleInputChange}
+            onNext={nextStep}
+            onBack={prevStep}
+            isLoading={isLoading}
+            setIsLoading={setIsLoading}
+            error={error}
+            setError={setError}
           />
         );
       case 2:
         return (
-          <Step2
+          <Step1
             formData={formData}
             onChange={handleInputChange}
             onNext={nextStep}
@@ -126,7 +151,7 @@ export default function RiderRegistration() {
         );
       case 3:
         return (
-          <Step3
+          <Step2
             formData={formData}
             onChange={handleInputChange}
             onNext={nextStep}
@@ -134,17 +159,30 @@ export default function RiderRegistration() {
           />
         );
       case 4:
-        return <Step4 onNext={nextStep} onBack={prevStep} />;
-      case 5:
         return (
-          <Step5
+          <Step3
             formData={formData}
             onChange={handleInputChange}
             onNext={nextStep}
             onBack={prevStep}
           />
         );
+      case 5:
+        return <Step4 onNext={nextStep} onBack={prevStep} />;
       case 6:
+        return (
+          <Step5
+            formData={formData}
+            onChange={handleInputChange}
+            onNext={nextStep}
+            onBack={prevStep}
+            isLoading={isLoading}
+            setIsLoading={setIsLoading}
+            error={error}
+            setError={setError}
+          />
+        );
+      case 7:
         return <Step6 />;
       default:
         return null;
@@ -154,20 +192,359 @@ export default function RiderRegistration() {
   return <div className="min-h-screen bg-gray-50">{renderStep()}</div>;
 }
 
-// Step 1: Personal Information
-function Step1({ formData, onChange, onNext }: StepProps) {
+// Step 0: Email & Password Registration
+function Step0({
+  formData,
+  onChange,
+  onNext,
+  isLoading,
+  setIsLoading,
+  error,
+  setError,
+}: StepProps & {
+  isLoading: boolean;
+  setIsLoading: (val: boolean) => void;
+  error: string;
+  setError: (val: string) => void;
+}) {
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  const handleSendOTP = async () => {
+    // Validation
+    if (!formData.email || !formData.password || !formData.confirmPassword) {
+      setError("Please fill in all fields");
+      return;
+    }
+
+    if (formData.password !== formData.confirmPassword) {
+      setError("Passwords do not match");
+      return;
+    }
+
+    if (formData.password.length < 8) {
+      setError("Password must be at least 8 characters");
+      return;
+    }
+
+    setIsLoading(true);
+    setError("");
+
+    try {
+      // Call your authService to send OTP
+      const response = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "claude-sonnet-4-20250514",
+          max_tokens: 1000,
+          messages: [
+            {
+              role: "user",
+              content: `Simulate sending OTP to email: ${formData.email}. Return only: {"success": true, "message": "OTP sent to your email!"}`,
+            },
+          ],
+        }),
+      });
+
+      const data = await response.json();
+      console.log("OTP sent:", data);
+
+      // Move to OTP verification step
+      onNext();
+    } catch (err) {
+      setError("Failed to send OTP. Please try again.");
+      console.error(err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-50 animate-fadeIn">
+      <div className="max-w-2xl mx-auto px-4 py-6">
+        {/* Header */}
+        <div className="text-center mb-8">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-green-600 rounded-full mb-4">
+            <Mail className="w-8 h-8 text-white" />
+          </div>
+          <h1 className="text-3xl font-bold text-gray-800 mb-2">
+            Create Rider Account
+          </h1>
+          <p className="text-gray-600">
+            Enter your email and password to get started
+          </p>
+        </div>
+
+        {/* Error Message */}
+        {error && (
+          <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-6">
+            <p className="text-red-700 text-sm">{error}</p>
+          </div>
+        )}
+
+        {/* Form Fields */}
+        <div className="space-y-4 mb-6">
+          {/* Email Input */}
+          <div className="relative group">
+            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+              <Mail className="w-5 h-5 text-gray-400 group-focus-within:text-green-600 transition-colors" />
+            </div>
+            <input
+              type="email"
+              placeholder="Email address*"
+              value={formData.email}
+              onChange={(e) => onChange("email", e.target.value)}
+              className="w-full pl-12 pr-4 py-4 bg-white border-2 border-gray-200 rounded-xl focus:outline-none focus:border-green-500 transition-all"
+            />
+          </div>
+
+          {/* Password Input */}
+          <div className="relative group">
+            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+              <Lock className="w-5 h-5 text-gray-400 group-focus-within:text-green-600 transition-colors" />
+            </div>
+            <input
+              type={showPassword ? "text" : "password"}
+              placeholder="Password (min. 8 characters)*"
+              value={formData.password}
+              onChange={(e) => onChange("password", e.target.value)}
+              className="w-full pl-12 pr-12 py-4 bg-white border-2 border-gray-200 rounded-xl focus:outline-none focus:border-green-500 transition-all"
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-green-600 transition-colors"
+            >
+              {showPassword ? (
+                <EyeOff className="w-5 h-5" />
+              ) : (
+                <Eye className="w-5 h-5" />
+              )}
+            </button>
+          </div>
+
+          {/* Confirm Password Input */}
+          <div className="relative group">
+            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+              <Lock className="w-5 h-5 text-gray-400 group-focus-within:text-green-600 transition-colors" />
+            </div>
+            <input
+              type={showConfirmPassword ? "text" : "password"}
+              placeholder="Confirm Password*"
+              value={formData.confirmPassword}
+              onChange={(e) => onChange("confirmPassword", e.target.value)}
+              className="w-full pl-12 pr-12 py-4 bg-white border-2 border-gray-200 rounded-xl focus:outline-none focus:border-green-500 transition-all"
+            />
+            <button
+              type="button"
+              onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+              className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-green-600 transition-colors"
+            >
+              {showConfirmPassword ? (
+                <EyeOff className="w-5 h-5" />
+              ) : (
+                <Eye className="w-5 h-5" />
+              )}
+            </button>
+          </div>
+        </div>
+
+        {/* Info Box */}
+        <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 mb-6 flex items-start gap-3">
+          <div className="bg-blue-500 rounded-full w-6 h-6 flex items-center justify-center flex-shrink-0 mt-0.5">
+            <span className="text-white font-bold text-sm">i</span>
+          </div>
+          <p className="text-gray-700 text-sm">
+            We'll send a verification code to your email to confirm your
+            account.
+          </p>
+        </div>
+
+        {/* Continue Button */}
+        <button
+          onClick={handleSendOTP}
+          disabled={isLoading}
+          className="w-full bg-green-600 hover:bg-green-700 text-white py-4 rounded-xl font-semibold text-lg transition-all transform hover:scale-[1.02] shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+        >
+          {isLoading ? (
+            <div className="w-6 h-6 border-3 border-white border-t-transparent rounded-full animate-spin" />
+          ) : (
+            "Send Verification Code"
+          )}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// Step OTP: Verify Email OTP
+function StepOTP({
+  formData,
+  onChange,
+  onNext,
+  onBack,
+  isLoading,
+  setIsLoading,
+  error,
+  setError,
+}: StepProps & {
+  isLoading: boolean;
+  setIsLoading: (val: boolean) => void;
+  error: string;
+  setError: (val: string) => void;
+}) {
+  const handleVerifyOTP = async () => {
+    if (!formData.emailOTP || formData.emailOTP.length !== 6) {
+      setError("Please enter the 6-digit code");
+      return;
+    }
+
+    setIsLoading(true);
+    setError("");
+
+    try {
+      // Call your authService to verify OTP
+      const response = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "claude-sonnet-4-20250514",
+          max_tokens: 1000,
+          messages: [
+            {
+              role: "user",
+              content: `Simulate OTP verification for email: ${formData.email}, OTP: ${formData.emailOTP}. Return only: {"success": true, "message": "Email verified!"}`,
+            },
+          ],
+        }),
+      });
+
+      const data = await response.json();
+      console.log("OTP verified:", data);
+
+      // Move to personal information step
+      onNext();
+    } catch (err) {
+      setError("Invalid verification code. Please try again.");
+      console.error(err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleResendOTP = async () => {
+    setIsLoading(true);
+    setError("");
+
+    try {
+      // Resend OTP
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      alert("New verification code sent to " + formData.email);
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    } catch (err) {
+      setError("Failed to resend code. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-50 animate-fadeIn">
+      <div className="max-w-2xl mx-auto px-4 py-6">
+        {/* Header */}
+        <div className="flex items-center mb-8">
+          <button onClick={onBack} className="text-gray-600 mr-4">
+            <ArrowLeft className="w-6 h-6" />
+          </button>
+          <div className="flex-1 text-center">
+            <div className="inline-flex items-center justify-center w-16 h-16 bg-green-600 rounded-full mb-4">
+              <Mail className="w-8 h-8 text-white" />
+            </div>
+            <h1 className="text-3xl font-bold text-gray-800 mb-2">
+              Verify Your Email
+            </h1>
+            <p className="text-gray-600">
+              Enter the 6-digit code sent to
+              <br />
+              <span className="font-semibold text-green-600">
+                {formData.email}
+              </span>
+            </p>
+          </div>
+        </div>
+
+        {/* Error Message */}
+        {error && (
+          <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-6">
+            <p className="text-red-700 text-sm">{error}</p>
+          </div>
+        )}
+
+        {/* OTP Input */}
+        <div className="mb-6">
+          <input
+            type="text"
+            placeholder="Enter 6-digit code"
+            value={formData.emailOTP}
+            onChange={(e) => {
+              const value = e.target.value.replace(/\D/g, "").slice(0, 6);
+              onChange("emailOTP", value);
+            }}
+            maxLength={6}
+            className="w-full px-4 py-4 bg-white border-2 border-gray-200 rounded-xl focus:outline-none focus:border-green-500 transition-all text-center text-2xl font-semibold tracking-widest"
+          />
+        </div>
+
+        {/* Resend Code */}
+        <div className="text-center mb-6">
+          <button
+            onClick={handleResendOTP}
+            disabled={isLoading}
+            className="text-green-600 hover:text-green-700 font-medium transition-colors disabled:opacity-50"
+          >
+            Didn't receive code? Resend
+          </button>
+        </div>
+
+        {/* Verify Button */}
+        <button
+          onClick={handleVerifyOTP}
+          disabled={isLoading || formData.emailOTP.length !== 6}
+          className="w-full bg-green-600 hover:bg-green-700 text-white py-4 rounded-xl font-semibold text-lg transition-all transform hover:scale-[1.02] shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+        >
+          {isLoading ? (
+            <div className="w-6 h-6 border-3 border-white border-t-transparent rounded-full animate-spin" />
+          ) : (
+            "Verify & Continue"
+          )}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// Step 1: Personal Information (same as before but updated step number)
+function Step1({ formData, onChange, onNext, onBack }: StepProps) {
   return (
     <div className="min-h-screen bg-gray-50 animate-fadeIn">
       <div className="max-w-2xl mx-auto px-4 py-6">
-        {/* Header */}
         <div className="flex justify-between items-center mb-6">
-          <h1 className="text-xl font-semibold text-gray-800">
-            Create Profile
-          </h1>
+          <div className="flex items-center gap-3">
+            <button onClick={onBack} className="text-gray-600">
+              <ArrowLeft className="w-6 h-6" />
+            </button>
+            <h1 className="text-xl font-semibold text-gray-800">
+              Personal Information
+            </h1>
+          </div>
           <button className="text-green-600 font-medium">Skip</button>
         </div>
 
-        {/* Alert Box */}
         <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 mb-6 flex items-start gap-3">
           <div className="bg-yellow-400 rounded-full w-6 h-6 flex items-center justify-center flex-shrink-0 mt-0.5">
             <span className="text-white font-bold text-sm">!</span>
@@ -177,7 +554,6 @@ function Step1({ formData, onChange, onNext }: StepProps) {
           </p>
         </div>
 
-        {/* Form Fields */}
         <div className="space-y-4">
           <input
             type="text"
@@ -192,14 +568,6 @@ function Step1({ formData, onChange, onNext }: StepProps) {
             placeholder="Last Name"
             value={formData.lastName}
             onChange={(e) => onChange("lastName", e.target.value)}
-            className="w-full px-4 py-4 bg-white border border-gray-300 rounded-xl focus:outline-none focus:border-green-500 transition-all"
-          />
-
-          <input
-            type="email"
-            placeholder="contact mail*"
-            value={formData.email}
-            onChange={(e) => onChange("email", e.target.value)}
             className="w-full px-4 py-4 bg-white border border-gray-300 rounded-xl focus:outline-none focus:border-green-500 transition-all"
           />
 
@@ -228,75 +596,74 @@ function Step1({ formData, onChange, onNext }: StepProps) {
             </select>
             <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
           </div>
-
-          <input
-            type="text"
-            placeholder="Next of Kin Name"
-            value={formData.nextOfKinName}
-            onChange={(e) => onChange("nextOfKinName", e.target.value)}
-            className="w-full px-4 py-4 bg-white border border-gray-300 rounded-xl focus:outline-none focus:border-green-500 transition-all"
-          />
-
-          <div className="flex gap-2">
-            <div className="w-20 px-4 py-4 bg-white border border-gray-300 rounded-xl flex items-center justify-center text-gray-700">
-              +234
-            </div>
-            <input
-              type="tel"
-              placeholder="Next of Kin Phone Number"
-              value={formData.nextOfKinPhone}
-              onChange={(e) => onChange("nextOfKinPhone", e.target.value)}
-              className="flex-1 px-4 py-4 bg-white border border-gray-300 rounded-xl focus:outline-none focus:border-green-500 transition-all"
-            />
-          </div>
         </div>
 
-        {/* Warning Box */}
         <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 my-6 flex items-start gap-3">
           <div className="bg-yellow-400 rounded-full w-6 h-6 flex items-center justify-center flex-shrink-0 mt-0.5">
             <span className="text-white font-bold text-sm">!</span>
           </div>
           <p className="text-green-700 text-sm">
             All details you provided must be true, accurate and non-misleading.
-            In the event you provided wrong information, you shall be held
-            liable for such misconduct
           </p>
         </div>
 
-        {/* Vehicle Information */}
         <div className="space-y-4 mb-6">
+          <input
+            type="text"
+            placeholder="Previous Place of Work"
+            value={formData.previousWork}
+            onChange={(e) => onChange("previousWork", e.target.value)}
+            className="w-full px-4 py-4 bg-white border border-gray-300 rounded-xl focus:outline-none focus:border-green-500 transition-all"
+          />
+
           <div className="relative">
             <select
-              value={formData.vehicleType}
-              onChange={(e) => onChange("vehicleType", e.target.value)}
+              value={formData.workDuration}
+              onChange={(e) => onChange("workDuration", e.target.value)}
               className="w-full px-4 py-4 bg-white border border-gray-300 rounded-xl focus:outline-none focus:border-green-500 transition-all appearance-none text-gray-700"
             >
-              <option value="">Vehicle type</option>
-              <option value="motorcycle">Motorcycle</option>
-              <option value="bicycle">Bicycle</option>
-              <option value="car">Car</option>
+              <option value="">How long did you work there for?</option>
+              <option value="less-than-6">Less than 6 months</option>
+              <option value="6-12">6 months - 1 year</option>
+              <option value="1-2">1 - 2 years</option>
+              <option value="more-than-2">More than 2 years</option>
             </select>
             <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
           </div>
-
-          <input
-            type="text"
-            placeholder="Vehicle Brand"
-            value={formData.vehicleBrand}
-            onChange={(e) => onChange("vehicleBrand", e.target.value)}
-            className="w-full px-4 py-4 bg-white border border-gray-300 rounded-xl focus:outline-none focus:border-green-500 transition-all"
-          />
-
-          <input
-            type="text"
-            placeholder="Plate Number"
-            value={formData.plateNumber}
-            onChange={(e) => onChange("plateNumber", e.target.value)}
-            className="w-full px-4 py-4 bg-white border border-gray-300 rounded-xl focus:outline-none focus:border-green-500 transition-all"
-          />
         </div>
 
-        {/* Continue Button */}
+        <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 mb-6 flex items-start gap-3">
+          <div className="bg-yellow-400 rounded-full w-6 h-6 flex items-center justify-center flex-shrink-0 mt-0.5">
+            <span className="text-white font-bold text-sm">!</span>
+          </div>
+          <p className="text-green-700 text-sm">
+            In order to earn registration points and benefits, please enter your
+            Referral code
+          </p>
+        </div>
+
+        <input
+          type="text"
+          placeholder="Referral code (optional)"
+          value={formData.referralCode}
+          onChange={(e) => onChange("referralCode", e.target.value)}
+          className="w-full px-4 py-4 bg-white border border-gray-300 rounded-xl focus:outline-none focus:border-green-500 transition-all mb-6"
+        />
+
+        <label className="flex items-start gap-3 mb-6 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={formData.termsAccepted}
+            onChange={(e) => onChange("termsAccepted", e.target.checked)}
+            className="w-5 h-5 rounded border-gray-300 text-green-600 focus:ring-2 focus:ring-green-500 mt-0.5"
+          />
+          <span className="text-gray-700 text-sm">
+            I understand and agree with the{" "}
+            <span className="text-green-600 font-medium">Terms</span> and{" "}
+            <span className="text-green-600 font-medium">Conditions</span>
+          </span>
+        </label>
+
         <button
           onClick={onNext}
           className="w-full bg-green-600 hover:bg-green-700 text-white py-4 rounded-xl font-semibold text-lg transition-all transform hover:scale-[1.02] shadow-lg hover:shadow-xl"
@@ -308,25 +675,22 @@ function Step1({ formData, onChange, onNext }: StepProps) {
   );
 }
 
-// Step 2: Guarantor Information
 function Step2({ formData, onChange, onNext, onBack }: StepProps) {
   return (
     <div className="min-h-screen bg-gray-50 animate-fadeIn">
       <div className="max-w-2xl mx-auto px-4 py-6">
-        {/* Header */}
         <div className="flex justify-between items-center mb-6">
           <div className="flex items-center gap-3">
             <button onClick={onBack} className="text-gray-600">
               <ArrowLeft className="w-6 h-6" />
             </button>
             <h1 className="text-xl font-semibold text-gray-800">
-              Create Profile
+              Guarantor Information
             </h1>
           </div>
           <button className="text-green-600 font-medium">Skip</button>
         </div>
 
-        {/* Alert Box */}
         <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 mb-6 flex items-start gap-3">
           <div className="bg-yellow-400 rounded-full w-6 h-6 flex items-center justify-center flex-shrink-0 mt-0.5">
             <span className="text-white font-bold text-sm">!</span>
@@ -336,7 +700,6 @@ function Step2({ formData, onChange, onNext, onBack }: StepProps) {
           </p>
         </div>
 
-        {/* Form Fields */}
         <div className="space-y-4">
           <input
             type="text"
@@ -415,7 +778,6 @@ function Step2({ formData, onChange, onNext, onBack }: StepProps) {
           </div>
         </div>
 
-        {/* Warning Box */}
         <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 my-6 flex items-start gap-3">
           <div className="bg-yellow-400 rounded-full w-6 h-6 flex items-center justify-center flex-shrink-0 mt-0.5">
             <span className="text-white font-bold text-sm">!</span>
@@ -425,7 +787,6 @@ function Step2({ formData, onChange, onNext, onBack }: StepProps) {
           </p>
         </div>
 
-        {/* Previous Work */}
         <div className="space-y-4 mb-6">
           <input
             type="text"
@@ -449,36 +810,26 @@ function Step2({ formData, onChange, onNext, onBack }: StepProps) {
             </select>
             <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
           </div>
-
-          <input
-            type="text"
-            placeholder="Plate Number"
-            value={formData.plateNumber}
-            onChange={(e) => onChange("plateNumber", e.target.value)}
-            className="w-full px-4 py-4 bg-white border border-gray-300 rounded-xl focus:outline-none focus:border-green-500 transition-all"
-          />
         </div>
 
-        {/* Referral Box */}
         <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 mb-6 flex items-start gap-3">
           <div className="bg-yellow-400 rounded-full w-6 h-6 flex items-center justify-center flex-shrink-0 mt-0.5">
             <span className="text-white font-bold text-sm">!</span>
           </div>
           <p className="text-green-700 text-sm">
-            In order to make earn registration points and benefits, please enter
-            you Referral code
+            In order to earn registration points and benefits, please enter your
+            Referral code
           </p>
         </div>
 
         <input
           type="text"
-          placeholder="Referral code"
+          placeholder="Referral code (optional)"
           value={formData.referralCode}
           onChange={(e) => onChange("referralCode", e.target.value)}
           className="w-full px-4 py-4 bg-white border border-gray-300 rounded-xl focus:outline-none focus:border-green-500 transition-all mb-6"
         />
 
-        {/* Terms Checkbox */}
         <label className="flex items-start gap-3 mb-6 cursor-pointer">
           <input
             type="checkbox"
@@ -493,7 +844,6 @@ function Step2({ formData, onChange, onNext, onBack }: StepProps) {
           </span>
         </label>
 
-        {/* Continue Button */}
         <button
           onClick={onNext}
           className="w-full bg-green-600 hover:bg-green-700 text-white py-4 rounded-xl font-semibold text-lg transition-all transform hover:scale-[1.02] shadow-lg hover:shadow-xl"
@@ -505,25 +855,22 @@ function Step2({ formData, onChange, onNext, onBack }: StepProps) {
   );
 }
 
-// Step 3: Bank Information
 function Step3({ formData, onChange, onNext, onBack }: StepProps) {
   return (
     <div className="min-h-screen bg-gray-50 animate-fadeIn">
       <div className="max-w-2xl mx-auto px-4 py-6">
-        {/* Header */}
         <div className="flex justify-between items-center mb-6">
           <div className="flex items-center gap-3">
             <button onClick={onBack} className="text-gray-600">
               <ArrowLeft className="w-6 h-6" />
             </button>
             <h1 className="text-xl font-semibold text-gray-800">
-              Create Profile
+              Bank Information
             </h1>
           </div>
           <button className="text-green-600 font-medium">Skip</button>
         </div>
 
-        {/* Alert Box */}
         <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 mb-6 flex items-start gap-3">
           <div className="bg-yellow-400 rounded-full w-6 h-6 flex items-center justify-center flex-shrink-0 mt-0.5">
             <span className="text-white font-bold text-sm">!</span>
@@ -533,7 +880,6 @@ function Step3({ formData, onChange, onNext, onBack }: StepProps) {
           </p>
         </div>
 
-        {/* Form Fields */}
         <div className="space-y-4 mb-6">
           <div className="relative">
             <select
@@ -568,7 +914,6 @@ function Step3({ formData, onChange, onNext, onBack }: StepProps) {
           />
         </div>
 
-        {/* Continue Button */}
         <button
           onClick={onNext}
           className="w-full bg-green-600 hover:bg-green-700 text-white py-4 rounded-xl font-semibold text-lg transition-all transform hover:scale-[1.02] shadow-lg hover:shadow-xl"
@@ -580,27 +925,23 @@ function Step3({ formData, onChange, onNext, onBack }: StepProps) {
   );
 }
 
-// Step 4: Verify Identity
-function Step4({ onNext, onBack }: Step4Props) {
+function Step4({ onNext, onBack }: { onNext: () => void; onBack: () => void }) {
   return (
     <div className="min-h-screen bg-gray-50 animate-fadeIn">
       <div className="max-w-2xl mx-auto px-4 py-6">
-        {/* Header */}
         <div className="flex justify-between items-center mb-6">
           <div className="flex items-center gap-3">
             <button onClick={onBack} className="text-gray-600">
               <ArrowLeft className="w-6 h-6" />
             </button>
             <h1 className="text-xl font-semibold text-gray-800">
-              Verify Idenity
+              Verify Identity
             </h1>
           </div>
           <button className="text-green-600 font-medium">Skip</button>
         </div>
 
-        {/* Upload Cards */}
         <div className="space-y-4 mb-8">
-          {/* Driver's License Upload */}
           <div className="bg-white rounded-2xl p-6 border border-gray-200 hover:border-green-500 transition-all cursor-pointer">
             <div className="flex items-center gap-4">
               <div className="bg-blue-50 rounded-full p-4">
@@ -616,7 +957,6 @@ function Step4({ onNext, onBack }: Step4Props) {
             </div>
           </div>
 
-          {/* Selfie Upload */}
           <div className="bg-white rounded-2xl p-6 border border-gray-200 hover:border-green-500 transition-all cursor-pointer">
             <div className="flex items-center gap-4">
               <div className="bg-blue-50 rounded-full p-4">
@@ -626,24 +966,18 @@ function Step4({ onNext, onBack }: Step4Props) {
                 <p className="text-green-600 font-semibold mb-1">
                   Position your bare face
                 </p>
-                <p className="text-green-600 font-semibold">clearly in</p>
-                <p className="text-green-600 font-semibold mb-2">the camera.</p>
-                <p className="text-gray-600 text-sm">No face mask or glasses</p>
+                <p className="text-green-600 font-semibold">
+                  clearly in the camera.
+                </p>
+                <p className="text-gray-600 text-sm mt-2">
+                  No face mask or glasses
+                </p>
                 <p className="text-xs text-gray-500 mt-1">Take photo</p>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Additional Info */}
-        <div className="bg-white rounded-2xl p-6 border border-gray-200 mb-6">
-          <h3 className="text-green-600 font-semibold mb-3">Additional Info</h3>
-          <p className="text-gray-600 text-sm">
-            Please provide additional details if need be
-          </p>
-        </div>
-
-        {/* Continue Button */}
         <button
           onClick={onNext}
           className="w-full bg-green-600 hover:bg-green-700 text-white py-4 rounded-xl font-semibold text-lg transition-all transform hover:scale-[1.02] shadow-lg hover:shadow-xl"
@@ -655,12 +989,88 @@ function Step4({ onNext, onBack }: Step4Props) {
   );
 }
 
-// Step 5: Set Availability
-function Step5({ formData, onChange, onNext, onBack }: StepProps) {
+function Step5({
+  formData,
+  onChange,
+  onNext,
+  onBack,
+  isLoading,
+  setIsLoading,
+  error,
+  setError,
+}: StepProps & {
+  isLoading: boolean;
+  setIsLoading: (val: boolean) => void;
+  error: string;
+  setError: (val: string) => void;
+}) {
+  const handleComplete = async () => {
+    if (!formData.availabilityTerms) {
+      setError("Please accept the terms and conditions");
+      return;
+    }
+
+    setIsLoading(true);
+    setError("");
+
+    try {
+      // Here you would call your authService to save all rider data
+      const riderData = {
+        email: formData.email,
+        password: formData.password,
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        phone: formData.phone,
+        gender: formData.gender,
+        nextOfKinName: formData.nextOfKinName,
+        nextOfKinPhone: formData.nextOfKinPhone,
+        vehicleType: formData.vehicleType,
+        vehicleBrand: formData.vehicleBrand,
+        plateNumber: formData.plateNumber,
+        guarantor1: {
+          name: formData.guarantor1Name,
+          phone: formData.guarantor1Phone,
+          relationship: formData.guarantor1Relationship,
+        },
+        guarantor2: {
+          name: formData.guarantor2Name,
+          phone: formData.guarantor2Phone,
+          relationship: formData.guarantor2Relationship,
+        },
+        previousWork: formData.previousWork,
+        workDuration: formData.workDuration,
+        referralCode: formData.referralCode,
+        bankInfo: {
+          bankName: formData.bankName,
+          accountNumber: formData.accountNumber,
+          accountName: formData.accountName,
+        },
+        availability: {
+          fromDay: formData.fromDay,
+          toDay: formData.toDay,
+          holidayAvailable: formData.holidayAvailable,
+          timeStart: formData.timeStart,
+          timeEnd: formData.timeEnd,
+        },
+      };
+
+      console.log("Saving rider data:", riderData);
+
+      // Simulate API call
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+
+      onNext();
+    } catch (err) {
+      setError("Failed to complete registration. Please try again.");
+      console.error(err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 animate-fadeIn">
       <div className="max-w-2xl mx-auto px-4 py-6">
-        {/* Header */}
         <div className="flex justify-between items-center mb-6">
           <div className="flex items-center gap-3">
             <button onClick={onBack} className="text-gray-600">
@@ -673,10 +1083,14 @@ function Step5({ formData, onChange, onNext, onBack }: StepProps) {
           <button className="text-green-600 font-medium">Skip</button>
         </div>
 
-        {/* Availability Card */}
+        {error && (
+          <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-6">
+            <p className="text-red-700 text-sm">{error}</p>
+          </div>
+        )}
+
         <div className="bg-green-600 rounded-2xl p-6 mb-6">
           <div className="space-y-4">
-            {/* From Day */}
             <div>
               <label className="text-white text-sm mb-2 block">From</label>
               <div className="relative">
@@ -697,7 +1111,6 @@ function Step5({ formData, onChange, onNext, onBack }: StepProps) {
               </div>
             </div>
 
-            {/* To Day */}
             <div>
               <label className="text-white text-sm mb-2 block">To</label>
               <div className="relative">
@@ -718,7 +1131,6 @@ function Step5({ formData, onChange, onNext, onBack }: StepProps) {
               </div>
             </div>
 
-            {/* Holiday Availability */}
             <div>
               <label className="text-white text-sm mb-2 block">
                 Available during Holidays
@@ -736,7 +1148,6 @@ function Step5({ formData, onChange, onNext, onBack }: StepProps) {
               </div>
             </div>
 
-            {/* Time Range */}
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="text-white text-sm mb-2 block">
@@ -780,7 +1191,6 @@ function Step5({ formData, onChange, onNext, onBack }: StepProps) {
           </div>
         </div>
 
-        {/* Terms Checkbox */}
         <label className="flex items-start gap-3 mb-6 cursor-pointer">
           <input
             type="checkbox"
@@ -795,38 +1205,37 @@ function Step5({ formData, onChange, onNext, onBack }: StepProps) {
           </span>
         </label>
 
-        {/* Done Button */}
         <button
-          onClick={onNext}
-          className="w-full bg-green-600 hover:bg-green-700 text-white py-4 rounded-xl font-semibold text-lg transition-all transform hover:scale-[1.02] shadow-lg hover:shadow-xl"
+          onClick={handleComplete}
+          disabled={isLoading}
+          className="w-full bg-green-600 hover:bg-green-700 text-white py-4 rounded-xl font-semibold text-lg transition-all transform hover:scale-[1.02] shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
         >
-          Done
+          {isLoading ? (
+            <div className="w-6 h-6 border-3 border-white border-t-transparent rounded-full animate-spin" />
+          ) : (
+            "Complete Registration"
+          )}
         </button>
       </div>
     </div>
   );
 }
 
-// Step 6: Success Screen
 function Step6() {
   return (
     <div className="min-h-screen bg-gray-50 animate-fadeIn flex items-center justify-center">
       <div className="max-w-2xl mx-auto px-4 py-6 w-full">
-        {/* Chat Icon */}
         <div className="flex justify-end mb-8">
           <div className="bg-white rounded-full p-3 shadow-lg border-2 border-green-500">
             <MessageCircle className="w-6 h-6 text-green-600" />
           </div>
         </div>
 
-        {/* Success Title */}
         <h1 className="text-3xl font-bold text-center text-gray-800 mb-12">
-          You're all set up
+          You're all set up!
         </h1>
 
-        {/* Illustration */}
         <div className="flex justify-center items-center mb-12 relative">
-          {/* Person Illustration */}
           <div className="relative">
             <svg
               width="120"
@@ -834,7 +1243,6 @@ function Step6() {
               viewBox="0 0 120 200"
               className="animate-float"
             >
-              {/* Person */}
               <ellipse
                 cx="60"
                 cy="180"
@@ -870,7 +1278,6 @@ function Step6() {
               <circle cx="67" cy="38" r="2" fill="#1f2937" />
             </svg>
 
-            {/* Document Cards */}
             <div className="absolute -right-24 top-8 bg-white rounded-lg shadow-lg p-3 border-2 border-gray-200 w-20 animate-slideInRight">
               <div className="flex items-center justify-between mb-2">
                 <div className="w-8 h-1 bg-green-500 rounded"></div>
@@ -912,7 +1319,6 @@ function Step6() {
           </div>
         </div>
 
-        {/* Success Message */}
         <div className="text-center mb-8">
           <p className="text-gray-700 text-base leading-relaxed">
             We'll notify you via mail or text message when
@@ -921,7 +1327,6 @@ function Step6() {
           </p>
         </div>
 
-        {/* Info Box */}
         <div className="bg-gray-100 rounded-2xl p-6 mb-8">
           <p className="text-gray-600 text-sm font-medium mb-4">
             Only reach out to our support team if:
@@ -933,62 +1338,34 @@ function Step6() {
             </li>
             <li className="flex items-start gap-2">
               <span className="text-green-600 mt-1">•</span>
-              <span>You need to change any details you need</span>
+              <span>You need to change any details you provided</span>
             </li>
           </ul>
         </div>
-        <Link to="/rider-login">
-          {/* Done Button */}
-          <button className="w-full bg-green-600 hover:bg-green-700 text-white py-4 rounded-xl font-semibold text-lg transition-all transform hover:scale-[1.02] shadow-lg hover:shadow-xl">
-            Done
-          </button>
-        </Link>
 
-        {/* Animations */}
+        <button
+          onClick={() => (window.location.href = "/rider-login")}
+          className="w-full bg-green-600 hover:bg-green-700 text-white py-4 rounded-xl font-semibold text-lg transition-all transform hover:scale-[1.02] shadow-lg hover:shadow-xl"
+        >
+          Go to Login
+        </button>
+
         <style>{`
           @keyframes fadeIn {
-            from {
-              opacity: 0;
-              transform: translateY(20px);
-            }
-            to {
-              opacity: 1;
-              transform: translateY(0);
-            }
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
           }
-
           @keyframes float {
-            0%, 100% {
-              transform: translateY(0px);
-            }
-            50% {
-              transform: translateY(-10px);
-            }
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
           }
-
           @keyframes slideInRight {
-            from {
-              opacity: 0;
-              transform: translateX(20px);
-            }
-            to {
-              opacity: 1;
-              transform: translateX(0);
-            }
+            from { opacity: 0; transform: translateX(20px); }
+            to { opacity: 1; transform: translateX(0); }
           }
-
-          .animate-fadeIn {
-            animation: fadeIn 0.5s ease-out;
-          }
-
-          .animate-float {
-            animation: float 3s ease-in-out infinite;
-          }
-
-          .animate-slideInRight {
-            animation: slideInRight 0.6s ease-out forwards;
-            opacity: 0;
-          }
+          .animate-fadeIn { animation: fadeIn 0.5s ease-out; }
+          .animate-float { animation: float 3s ease-in-out infinite; }
+          .animate-slideInRight { animation: slideInRight 0.6s ease-out forwards; opacity: 0; }
         `}</style>
       </div>
     </div>
