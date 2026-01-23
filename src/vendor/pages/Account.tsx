@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   User,
   FileText,
@@ -17,10 +17,155 @@ import {
 } from "lucide-react";
 import { VendorNav } from "../component/VendorNav";
 import { Link } from "react-router-dom";
+import { apiService, supabase } from "../../services/authService";
 
 const Account = () => {
   const [isHovering, setIsHovering] = useState<string | null>(null);
+    const [isOpen, setIsOpen] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
+  const [vendorId, setVendorId] = useState<string | null>(null);
+   const [formData, setFormData] = useState({
+      restaurantName: "",
+      category: "Restaurant",
+      email: "",
+      phone: "",
+      fullName: "",
+      address: "",
+      zip: "",
+      city: "",
+      state: "",
+      deliveryRange: "",
+    });
+  useEffect(() => {
+    const fetchVendorData = async () => {
+      try {
+        setIsLoading(true);
 
+        // Check session first
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+        console.log("Session:", session);
+
+        if (!session) {
+          console.log("No active session, redirecting to login");
+          window.location.href = "/vendor-login";
+          return;
+        }
+
+        // Check if email is confirmed
+        if (!session.user.email_confirmed_at) {
+          alert(
+            "Please verify your email before accessing your profile. Check your inbox for the verification link.",
+          );
+          window.location.href = "/vendor-login";
+          return;
+        }
+
+        // Get current user
+        const user = await apiService.getCurrentUser();
+        console.log("Current User:", user);
+
+        if (!user) {
+          console.error("No user found - redirecting to login");
+          window.location.href = "/vendor-login";
+          return;
+        }
+
+        // Get vendor record to find vendor_id
+        const { data: vendorData, error: vendorError } = await supabase
+          .from("vendors")
+          .select(
+            "id, email, firstname, lastname, phone, business_address, business_name, state, lga",
+          )
+          .eq("user_id", user.id)
+          .single();
+
+        console.log("Vendor Data:", vendorData);
+        console.log("Vendor Error:", vendorError);
+
+        if (vendorError) {
+          console.error("Error fetching vendor:", vendorError);
+          return;
+        }
+
+        setVendorId(vendorData.id);
+
+        // Fetch vendor profile
+        const { data: profileData, error: profileError } = await supabase
+          .from("vendor_profiles")
+          .select("*")
+          .eq("vendor_id", vendorData.id)
+          .single();
+
+        console.log("Profile Data:", profileData);
+        console.log("Profile Error:", profileError);
+
+        // Fetch vendor availability
+        const { data: availabilityData, error: availError } = await supabase
+          .from("vendor_availability")
+          .select("*")
+          .eq("vendor_id", vendorData.id)
+          .single();
+
+        console.log("Availability Data:", availabilityData);
+        console.log("Availability Error:", availError);
+
+        // Update formData with fetched data
+        setFormData({
+          restaurantName:
+            profileData?.business_name ||
+            vendorData.business_name ||
+            "Restaurant Name",
+          category: "Restaurant",
+          email: profileData?.business_email || vendorData.email || "",
+          phone: profileData?.business_phone || vendorData.phone || "",
+          fullName:
+            profileData?.full_name ||
+            `${vendorData.firstname || ""} ${vendorData.lastname || ""}`.trim(),
+          address:
+            profileData?.business_address || vendorData.business_address || "",
+          zip: "900104",
+          city: profileData?.lga || vendorData.lga || "City",
+          state: profileData?.state || vendorData.state || "State",
+          deliveryRange:
+            availabilityData?.day_from && availabilityData?.day_to
+              ? `${availabilityData.day_from} - ${availabilityData.day_to}`
+              : "Not Set",
+        });
+
+        // Set restaurant status based on availability
+        if (availabilityData?.is_open !== undefined) {
+          setIsOpen(availabilityData.is_open);
+        }
+      } catch (error) {
+        console.error("Error loading vendor data:", error);
+
+        // Check for email confirmation error
+        if (
+          error instanceof Error &&
+          error.message.includes("Email not confirmed")
+        ) {
+          alert(
+            "Please verify your email before accessing your profile. Check your inbox.",
+          );
+          window.location.href = "/vendor-login";
+          return;
+        }
+
+        if (
+          error instanceof Error &&
+          error.message.includes("Auth session missing")
+        ) {
+          window.location.href = "/vendor-login";
+        }
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchVendorData();
+  }, []);
   const menuItems = [
     {
       icon: User,
@@ -157,11 +302,11 @@ const Account = () => {
 
             {/* Store Info */}
             <div className="text-center mb-6">
-              <h2 className="text-3xl font-bold text-gray-800 mb-2">
-                Chef's Paradise
+              <h2 className="text-3xl font-sans font-bold text-gray-800 mb-2">
+                {formData.restaurantName}
               </h2>
               <p className="text-gray-500 mb-4">
-                123 Food Street, Lagos, Nigeria
+                {formData.address}, {formData.city}, {formData.state}
               </p>
 
               {/* Stats Row */}

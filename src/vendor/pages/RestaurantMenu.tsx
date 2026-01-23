@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
+import { addMenuItem, updateMenuItem, deleteMenuItem, getMenuItems, uploadMenuImage } from '../../services/api'
 import {
   ArrowLeft,
   Search,
@@ -37,7 +38,9 @@ const RestaurantMenu: React.FC = () => {
   const [priceDescription, setPriceDescription] = useState("");
   const [mealCategory, setMealCategory] = useState("Desert");
   const [mealDescription, setMealDescription] = useState("");
-
+ const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string>("");
+  const [uploading, setUploading] = useState(false);
   const categories: Category[] = ["All", "Desert", "Breakfast", "Add ons"];
 
   const addOnItems = [
@@ -47,93 +50,117 @@ const RestaurantMenu: React.FC = () => {
     { id: 4, name: "Fried Fish", image: "🐟" },
   ];
 
-  useEffect(() => {
-    setIsVisible(true);
-    // Initialize with some sample menu items
-    setMenuItems([
-      {
-        id: 1,
-        name: "Fried Rice",
-        category: "Desert",
-        price: 23.45,
-        description: "Fried rice is sweet",
-        image: "🍚",
-      },
-      {
-        id: 2,
-        name: "Fried Rice",
-        category: "Desert",
-        price: 23.45,
-        description: "Fried rice is sweet",
-        image: "🍚",
-      },
-      {
-        id: 3,
-        name: "Fried Rice",
-        category: "Desert",
-        price: 23.45,
-        description: "Fried rice is sweet",
-        image: "🍚",
-      },
-    ]);
-    setCurrentView("menu");
-  }, []);
+  
 
-  const handleAddMeal = () => {
+useEffect(() => {
+  const loadMenuItems = async () => {
+    const vendorId = 'YOUR_VENDOR_ID' // Get from auth context
+    const { data, error } = await getMenuItems(vendorId)
+    if (!error && data) {
+      setMenuItems(data)
+      setCurrentView(data.length > 0 ? 'menu' : 'empty')
+    }
+  }
+  loadMenuItems()
+  setIsVisible(true)
+}, [])
+const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setSelectedImage(file);
+      // Create preview
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+const handleAddMeal = async () => {
+    const vendorId = 'YOUR_VENDOR_ID' // Get from auth context
+    
+    setUploading(true);
+    let imageUrl = '🍚'; // Default emoji
+    
+    // Upload image if selected
+    if (selectedImage) {
+      const { data, error } = await uploadMenuImage(selectedImage, vendorId);
+      if (!error && data) {
+        imageUrl = data;
+      }
+    }
+    
     if (editingItem) {
-      // Update existing item
-      setMenuItems(
-        menuItems.map((item) =>
-          item.id === editingItem.id
-            ? {
-                ...item,
-                name: mealName,
-                price: parseFloat(mealPrice),
-                category: mealCategory,
+      const { error } = await updateMenuItem(editingItem.id.toString(), {
+        name: mealName,
+        price: parseFloat(mealPrice),
+        category: mealCategory,
+        description: mealDescription,
+        in_stock: inStock,
+        image_url: imageUrl
+      })
+      if (!error) {
+        setMenuItems(menuItems.map(item => 
+          item.id === editingItem.id 
+            ? { 
+                ...item, 
+                name: mealName, 
+                price: parseFloat(mealPrice), 
+                category: mealCategory, 
                 description: mealDescription,
+                image: imageUrl 
               }
             : item
-        )
-      );
+        ))
+      }
     } else {
-      // Add new item
-      const newItem: MenuItem = {
-        id: Date.now(),
+      const { data, error } = await addMenuItem({
+        vendor_id: vendorId,
         name: mealName,
-        category: mealCategory,
         price: parseFloat(mealPrice),
+        category: mealCategory,
         description: mealDescription,
-        image: "🍚",
-      };
-      setMenuItems([...menuItems, newItem]);
+        in_stock: inStock,
+        image_url: imageUrl
+      })
+      if (!error && data) {
+        setMenuItems([...menuItems, { ...data[0], image: imageUrl }])
+      }
     }
-
+    
+    setUploading(false);
     resetForm();
-    setCurrentView("menu");
-  };
+    setCurrentView('menu');
+  }
 
-  const resetForm = () => {
+
+const resetForm = () => {
     setMealName("");
     setMealPrice("");
     setPriceDescription("");
     setMealCategory("Desert");
     setMealDescription("");
     setEditingItem(null);
+    setSelectedImage(null);
+    setImagePreview("");
   };
 
-  const handleEdit = (item: MenuItem) => {
+    const handleEdit = (item: MenuItem) => {
     setEditingItem(item);
     setMealName(item.name);
     setMealPrice(item.price.toString());
     setMealCategory(item.category as string);
     setMealDescription(item.description);
+    setImagePreview(item.image);
     setCurrentView("add-meal");
   };
 
-  const handleRemove = (id: number) => {
-    setMenuItems(menuItems.filter((item) => item.id !== id));
-  };
-
+const handleRemove = async (id: number) => {
+  const { error } = await deleteMenuItem(id.toString())
+  if (!error) {
+    setMenuItems(menuItems.filter(item => item.id !== id))
+  }
+}
   const filteredItems = menuItems.filter((item) => {
     const matchesCategory =
       selectedCategory === "All" || item.category === selectedCategory;
@@ -418,18 +445,47 @@ const RestaurantMenu: React.FC = () => {
               </button>
             </div>
 
-            {/* Upload Image */}
-            <div className="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-3xl shadow-lg p-8 mb-6 text-center">
-              <div className="w-24 h-24 mx-auto bg-white rounded-3xl flex items-center justify-center mb-4 shadow-md">
-                <Upload className="w-12 h-12 text-green-600" />
-              </div>
-              <h3 className="text-green-600 font-bold text-lg mb-2">
-                Upload Cover Image
-              </h3>
-              <p className="text-sm text-gray-600 mb-1">Allowed formats:</p>
-              <p className="text-xs text-gray-500">• Jpeg • Jpg • Png</p>
-              <p className="text-xs text-gray-500 mt-2">Less than 1mb</p>
-            </div>
+          {/* Upload Image */}
+<div className="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-3xl shadow-lg p-8 mb-6 text-center">
+  <input
+    type="file"
+    id="imageUpload"
+    accept="image/jpeg,image/jpg,image/png"
+    onChange={handleImageSelect}
+    className="hidden"
+  />
+  
+  {imagePreview ? (
+    <div className="relative">
+      <img 
+        src={imagePreview} 
+        alt="Preview" 
+        className="w-full h-48 object-cover rounded-2xl mb-4"
+      />
+      <button
+        onClick={() => {
+          setSelectedImage(null);
+          setImagePreview("");
+        }}
+        className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-2 hover:bg-red-600"
+      >
+        ✕
+      </button>
+    </div>
+  ) : (
+    <label htmlFor="imageUpload" className="cursor-pointer">
+      <div className="w-24 h-24 mx-auto bg-white rounded-3xl flex items-center justify-center mb-4 shadow-md">
+        <Upload className="w-12 h-12 text-green-600" />
+      </div>
+      <h3 className="text-green-600 font-bold text-lg mb-2">
+        Upload Cover Image
+      </h3>
+      <p className="text-sm text-gray-600 mb-1">Allowed formats:</p>
+      <p className="text-xs text-gray-500">• Jpeg • Jpg • Png</p>
+      <p className="text-xs text-gray-500 mt-2">Less than 1mb</p>
+    </label>
+  )}
+</div>
 
             {/* Info Alert */}
             <div className="bg-gradient-to-r from-amber-50 to-yellow-50 rounded-2xl p-4 mb-6 flex items-start gap-3 border-2 border-amber-100">
@@ -499,12 +555,16 @@ const RestaurantMenu: React.FC = () => {
             </div>
 
             {/* Submit Button */}
-            <button
-              onClick={handleAddMeal}
-              className="w-full mt-8 bg-gradient-to-r from-green-600 to-emerald-600 text-white py-5 rounded-2xl font-bold text-lg shadow-xl hover:shadow-2xl transform hover:-translate-y-1 transition-all duration-300 active:scale-95"
-            >
-              {editingItem ? "Update meal" : "Add meal to menu"}
-            </button>
+          {/* Submit Button */}
+<button
+  onClick={handleAddMeal}
+  disabled={uploading}
+  className={`w-full mt-8 bg-gradient-to-r from-green-600 to-emerald-600 text-white py-5 rounded-2xl font-bold text-lg shadow-xl hover:shadow-2xl transform hover:-translate-y-1 transition-all duration-300 active:scale-95 ${
+    uploading ? 'opacity-50 cursor-not-allowed' : ''
+  }`}
+>
+  {uploading ? 'Uploading...' : editingItem ? "Update meal" : "Add meal to menu"}
+</button>
           </div>
         </div>
       )}

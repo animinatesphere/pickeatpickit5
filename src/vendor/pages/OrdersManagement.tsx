@@ -1,6 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react"; // Add useEffect
 import { MapPin, Clock, Check, Package } from "lucide-react";
 import { VendorNav } from "../component/VendorNav";
+
+import { getVendorOrders, updateOrderStatus } from '../../services/api'
 
 interface Order {
   id: string;
@@ -12,117 +14,59 @@ interface Order {
 }
 
 const OrdersManagement = () => {
-  const [activeTab, setActiveTab] = useState<
-    "pending" | "confirmed" | "cancelled" | "completed"
-  >("pending");
+ const [activeTab, setActiveTab] = useState<"pending" | "confirmed" | "cancelled" | "completed">("pending");
 
-  const [orders, setOrders] = useState<Order[]>([
-    {
-      id: "1",
-      customerName: "Samuel Omotayo .K",
-      address: "Vila Nova Estate, New Apo Ext.",
-      time: "Tue 21 Oct. - 4:00PM",
-      image: "🥗",
-      status: "pending",
-    },
-    {
-      id: "2",
-      customerName: "Samuel Omotayo .K",
-      address: "Vila Nova Estate, New Apo Ext.",
-      time: "Tue 21 Oct. - 4:00PM",
-      image: "🍖",
-      status: "pending",
-    },
-    {
-      id: "3",
-      customerName: "Samuel Omotayo .K",
-      address: "Vila Nova Estate, New Apo Ext.",
-      time: "Tue 21 Oct. - 4:00PM",
-      image: "🥗",
-      status: "pending",
-    },
-    {
-      id: "4",
-      customerName: "Samuel Omotayo .K",
-      address: "Vila Nova Estate, New Apo Ext.",
-      time: "Tue 21 Oct. - 4:00PM",
-      image: "🍰",
-      status: "pending",
-    },
-    {
-      id: "5",
-      customerName: "Samuel Omotayo .K",
-      address: "Vila Nova Estate, New Apo Ext.",
-      time: "Tue 21 Oct. - 4:00PM",
-      image: "🍰",
-      status: "confirmed",
-    },
-    {
-      id: "6",
-      customerName: "Samuel Omotayo .K",
-      address: "Vila Nova Estate, New Apo Ext.",
-      time: "Tue 21 Oct. - 4:00PM",
-      image: "👔",
-      status: "confirmed",
-    },
-    {
-      id: "7",
-      customerName: "Samuel Omotayo .K",
-      address: "Vila Nova Estate, New Apo Ext.",
-      time: "Tue 21 Oct. - 4:00PM",
-      image: "🥤",
-      status: "cancelled",
-    },
-    {
-      id: "8",
-      customerName: "Samuel Omotayo .K",
-      address: "Vila Nova Estate, New Apo Ext.",
-      time: "Tue 21 Oct. - 4:00PM",
-      image: "🥗",
-      status: "cancelled",
-    },
-    {
-      id: "9",
-      customerName: "Samuel Omotayo .K",
-      address: "Vila Nova Estate, New Apo Ext.",
-      time: "Tue 21 Oct. - 4:00PM",
-      image: "🥗",
-      status: "cancelled",
-    },
-    {
-      id: "10",
-      customerName: "Samuel Omotayo .K",
-      address: "Vila Nova Estate, New Apo Ext.",
-      time: "Tue 21 Oct. - 4:00PM",
-      image: "🍟",
-      status: "cancelled",
-    },
-  ]);
+  const [orders, setOrders] = useState<Order[]>([]); // Add this line
 
-  const handleAccept = (orderId: string) => {
-    setOrders(
-      orders.map((order) =>
-        order.id === orderId ? { ...order, status: "confirmed" } : order
-      )
-    );
-  };
+  // Add useEffect to load orders
+  useEffect(() => {
+    const loadOrders = async () => {
+      const vendorId = 'YOUR_VENDOR_ID' // Get from auth context
+      const { data, error } = await getVendorOrders(vendorId)
+      if (!error && data) {
+        const formattedOrders = data.map((order: any) => ({
+          id: order.id,
+          customerName: order.customer_name,
+          address: order.delivery_address,
+          time: new Date(order.scheduled_time).toLocaleString(),
+          image: order.order_items[0]?.menu_items?.image_url || '🍽️',
+          status: order.status
+        }))
+        setOrders(formattedOrders)
+      }
+    }
+    loadOrders()
+  }, [])
 
-  const handleCancel = (orderId: string) => {
-    setOrders(
-      orders.map((order) =>
-        order.id === orderId ? { ...order, status: "cancelled" } : order
-      )
-    );
-  };
+  // Fix the handler types
+  const handleAccept = async (orderId: string) => {
+    const { error } = await updateOrderStatus(orderId, 'confirmed')
+    if (!error) {
+      setOrders(orders.map(order => 
+        order.id === orderId ? { ...order, status: 'confirmed' as const } : order
+      ))
+    }
+  }
 
-  const handleCheckOut = (orderId: string) => {
-    setOrders(
-      orders.map((order) =>
-        order.id === orderId ? { ...order, status: "completed" } : order
-      )
-    );
-  };
+  const handleCancel = async (orderId: string) => {
+    const { error } = await updateOrderStatus(orderId, 'cancelled')
+    if (!error) {
+      setOrders(orders.map(order => 
+        order.id === orderId ? { ...order, status: 'cancelled' as const } : order
+      ))
+    }
+  }
 
+  const handleCheckOut = async (orderId: string) => {
+    const { error } = await updateOrderStatus(orderId, 'completed')
+    if (!error) {
+      setOrders(orders.map(order => 
+        order.id === orderId ? { ...order, status: 'completed' as const } : order
+      ))
+    }
+  }
+
+  // Rest of your component...
   const filteredOrders = orders.filter((order) => order.status === activeTab);
 
   const getStatusBadge = (status: string) => {

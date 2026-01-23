@@ -55,6 +55,7 @@ import SettingsScreen from "./ride/pages/SettingsScreen";
 import AdminDashboard from "./admin/dashboard/AdminDashboard";
 import AdminLogin from "./admin/login/AdminLogin";
 import VendorChat from "./vendor/pages/VendorChat";
+import ForgotPassword from "./auth/ForgotPassword";
 
 const AppRoutes = () => {
   return (
@@ -76,6 +77,9 @@ const AppRoutes = () => {
       <Route path="/support" element={<Support />} />
       <Route path="/wallet" element={<WalletComponent />} />
       <Route path="/booking" element={<Booking />} />
+
+      {/* Password Reset Route - Shared by all user types */}
+      <Route path="/forgot-password" element={<ForgotPassword />} />
 
       {/* vendor */}
 

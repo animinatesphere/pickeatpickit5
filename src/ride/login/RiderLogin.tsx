@@ -8,6 +8,7 @@ import {
   ArrowRight,
   AlertCircle,
 } from "lucide-react";
+import { Link } from "react-router-dom";
 import { authService, APIError } from "../../services/authService"; // Added APIError import
 
 export default function RiderLogin() {
@@ -161,12 +162,14 @@ export default function RiderLogin() {
                 />
                 <span className="ml-2 text-gray-600">Remember me</span>
               </label>
-              <button
-                type="button"
-                className="text-green-600 font-medium hover:underline"
-              >
-                Forgot password?
-              </button>
+              <Link to="/forgot-password?type=rider">
+                <button
+                  type="button"
+                  className="text-green-600 font-medium hover:underline"
+                >
+                  Forgot password?
+                </button>
+              </Link>
             </div>
 
             <button

@@ -1,7 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react"; 
 import { ChevronLeft, Search, Filter, Minus, Plus, Clock } from "lucide-react";
 import { Navbar } from "../../component/Navbar";
 import { Link } from "react-router-dom";
+// import { getMenuItems, createOrder } from '../services/api'
+import { getMenuItems, createOrder } from '../../services/api'
 
 type Screen = "kitchen" | "confirm" | "payment" | "success";
 
@@ -16,6 +18,7 @@ interface MenuItem {
 }
 
 interface OrderItem {
+  id: number; // Add this line
   name: string;
   quantity: number;
   price: number;
@@ -99,15 +102,60 @@ export default function MArket() {
   const [items, setItems] = useState<MenuItem[]>(menuItems);
   const [spiceLevel, setSpiceLevel] = useState(30);
   const [scheduleOrder, setScheduleOrder] = useState(true);
+useEffect(() => {
+  const loadMenu = async () => {
+    const { data, error } = await getMenuItems() // Gets all vendors' items
+    if (!error && data) {
+      const formattedItems = data.map(item => ({
+        ...item,
+        quantity: 0,
+        discount: 15 // Add discount logic if needed
+      }))
+      setItems(formattedItems)
+    }
+  }
+  loadMenu()
+}, [])
 
-  const getCart = (): OrderItem[] =>
-    items
-      .filter((item) => item.quantity > 0)
-      .map((item) => ({
-        name: item.name,
-        quantity: item.quantity,
-        price: item.price * item.quantity,
-      }));
+const handleConfirmOrder = async () => {
+  const userId = 'CURRENT_USER_ID' // Get from auth context
+  const vendorId = 'VENDOR_ID' // Get from selected restaurant
+  
+  const cart = getCart()
+  const total = cart.reduce((sum, item) => sum + item.price, 0)
+  
+  const orderData = {
+    vendor_id: vendorId,
+    customer_id: userId,
+    customer_name: 'User Name', // Get from user profile
+    delivery_address: 'User Address',
+    scheduled_time: scheduleOrder ? 'SELECTED_DATE_TIME' : new Date(),
+    status: 'pending',
+    spice_level: spiceLevel,
+    special_instructions: 'FROM_TEXTAREA',
+    total_amount: total
+  }
+  
+  const orderItems = cart.map(item => ({
+    menu_item_id: item.id,
+    quantity: item.quantity,
+    price_at_order: item.price / item.quantity
+  }))
+  
+  const { error } = await createOrder(orderData, orderItems)
+  if (!error) {
+    // Navigate to payment
+  }
+}
+const getCart = (): OrderItem[] =>
+  items
+    .filter((item) => item.quantity > 0)
+    .map((item) => ({
+      id: item.id, // Add this line
+      name: item.name,
+      quantity: item.quantity,
+      price: item.price * item.quantity,
+    }))
 
   const updateQuantity = (id: number, delta: number) => {
     setItems(
@@ -221,7 +269,8 @@ export default function MArket() {
         <div className="max-w-3xl mx-auto px-4 py-4 flex items-center gap-4">
           <ChevronLeft
             className="w-6 h-6 cursor-pointer text-gray-700 hover:text-gray-900"
-            onClick={() => setScreen("kitchen")}
+            // onClick={() => setScreen("kitchen")}
+          onClick={handleConfirmOrder}
           />
           <h1 className="text-xl font-bold text-gray-900 flex-1">
             Confirm Order

@@ -334,8 +334,15 @@ class AuthService {
       .eq("user_id", data.user.id)
       .single();
 
-    if (dbError || !riderData)
-      throw new APIError("Rider profile not found.", 404);
+    // Check if rider profile exists - if not, user is not a rider
+    if (dbError || !riderData) {
+      // Sign out the user since they're not a rider
+      await supabase.auth.signOut();
+      throw new APIError(
+        "This account is not registered as a rider. Please use the correct login portal.",
+        403
+      );
+    }
 
     // 3. Check Status
     if (riderData.status === "pending") {
@@ -345,10 +352,9 @@ class AuthService {
       );
     }
 
-    // FIXED HERE: Added the 'message' property
     return {
       success: true,
-      message: "Login successful!", // Add this line
+      message: "Login successful!",
       user: riderData,
       token: data.session.access_token,
     };
@@ -590,8 +596,14 @@ class AuthService {
         .select("*")
         .eq("user_id", data.user.id);
 
+      // Check if vendor profile exists - if not, user is not a vendor
       if (vendorError || !vendorDataArray || vendorDataArray.length === 0) {
-        throw new APIError("Failed to fetch vendor profile", 400);
+        // Sign out the user since they're not a vendor
+        await supabase.auth.signOut();
+        throw new APIError(
+          "This account is not registered as a vendor. Please use the correct login portal.",
+          403
+        );
       }
 
       const vendorData = vendorDataArray[0];
@@ -635,8 +647,14 @@ class AuthService {
         .select("*")
         .eq("user_id", data.user.id);
 
+      // Check if user profile exists - if not, user is not a customer
       if (userError || !userDataArray || userDataArray.length === 0) {
-        throw new APIError("Failed to fetch user profile", 400);
+        // Sign out the user since they're not a customer
+        await supabase.auth.signOut();
+        throw new APIError(
+          "This account is not registered as a customer. Please use the correct login portal.",
+          403
+        );
       }
 
       const userData = userDataArray[0];
@@ -740,6 +758,130 @@ class AuthService {
 
       return { message: "Password reset successfully!" };
     } catch (error) {
+      if (error instanceof APIError) {
+        throw error;
+      }
+      throw new APIError("Password reset failed. Please try again.", 400);
+    }
+  }
+
+  // Send OTP for password reset - using same method as signup
+  async sendPasswordResetOTP(email: string): Promise<{ message: string }> {
+    try {
+      console.log("Attempting to send OTP to:", email);
+      
+      // Use the SAME method as signup - this sends a numeric OTP code
+      const { error } = await supabase.auth.signUp({
+        email,
+        password: "TempPasswordForReset123!", // Temporary password, will be changed
+        options: {
+          emailRedirectTo: undefined, // This makes it send OTP instead of link
+        },
+      });
+
+      console.log("OTP send response:", { error });
+
+      if (error) {
+        // If user already exists, that's fine - we still want to send OTP
+        // Supabase will send OTP for existing users too
+        if (error.message.includes("already registered")) {
+          console.log("User exists, OTP should still be sent");
+          // Store email for verification
+          localStorage.setItem("password_reset_email", email);
+          return { message: "OTP sent to your email!" };
+        }
+        console.error("OTP send error:", error);
+        throw new APIError(error.message, 400);
+      }
+
+      // Store email for verification
+      localStorage.setItem("password_reset_email", email);
+      console.log("OTP sent successfully");
+
+      return { message: "OTP sent to your email!" };
+    } catch (error) {
+      console.error("Caught error in sendPasswordResetOTP:", error);
+      if (error instanceof APIError) {
+        throw error;
+      }
+      throw new APIError("Failed to send OTP. Please try again.", 400);
+    }
+  }
+
+  // Verify OTP for password reset - using same method as signup
+  async verifyPasswordResetOTP(
+    email: string,
+    otp: string,
+  ): Promise<{ message: string; access_token?: string }> {
+    try {
+      console.log("Verifying OTP for:", email);
+      console.log("Provided OTP:", otp);
+
+      // Use the SAME verification method as signup
+      const { data, error } = await supabase.auth.verifyOtp({
+        email,
+        token: otp,
+        type: "email", // Same as signup
+      });
+
+      console.log("OTP verification response:", { data, error });
+
+      if (error) {
+        console.error("OTP verification error:", error);
+        throw new APIError(error.message, 400);
+      }
+
+      console.log("OTP verified successfully!");
+
+      // Store that OTP was verified
+      localStorage.setItem("password_reset_verified", "true");
+      
+      return {
+        message: "OTP verified successfully!",
+        access_token: data.session?.access_token,
+      };
+    } catch (error) {
+      console.error("OTP verification error:", error);
+      if (error instanceof APIError) {
+        throw error;
+      }
+      throw new APIError("OTP verification failed. Please try again.", 400);
+    }
+  }
+
+  // Reset password after OTP verification
+  async resetPasswordWithOTP(newPassword: string): Promise<{ message: string }> {
+    try {
+      console.log("Attempting to reset password");
+
+      // Check if OTP was verified
+      const verified = localStorage.getItem("password_reset_verified");
+      
+      if (!verified) {
+        throw new APIError("Please verify OTP first.", 400);
+      }
+
+      console.log("OTP verification confirmed, updating password");
+
+      // Update the password using Supabase's updateUser
+      // The user should be authenticated from the OTP verification
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword,
+      });
+
+      if (error) {
+        console.error("Password update error:", error);
+        throw new APIError(error.message, 400);
+      }
+
+      // Clean up
+      localStorage.removeItem("password_reset_email");
+      localStorage.removeItem("password_reset_verified");
+      console.log("Password reset successful");
+
+      return { message: "Password reset successfully!" };
+    } catch (error) {
+      console.error("Password reset error:", error);
       if (error instanceof APIError) {
         throw error;
       }
@@ -1048,6 +1190,13 @@ export const authService = {
   getOTP: (phone: string) => apiService.getOTP(phone),
   resetPassword: (email: string, token: string, newPassword: string) =>
     apiService.resetPassword(email, token, newPassword),
+  // New OTP-based password reset methods
+  sendPasswordResetOTP: (email: string) =>
+    apiService.sendPasswordResetOTP(email),
+  verifyPasswordResetOTP: (email: string, otp: string) =>
+    apiService.verifyPasswordResetOTP(email, otp),
+  resetPasswordWithOTP: (newPassword: string) =>
+    apiService.resetPasswordWithOTP(newPassword),
   logout: () => apiService.logout(),
   getCurrentUser: () => apiService.getCurrentUser(),
   saveProfileDetails: (
