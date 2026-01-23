@@ -302,7 +302,7 @@ const Account = () => {
 
             {/* Store Info */}
             <div className="text-center mb-6">
-              <h2 className="text-3xl font-sans font-bold text-gray-800 mb-2">
+              <h2 className="text-3xl font font-bold text-gray-800 mb-2">
                 {formData.restaurantName}
               </h2>
               <p className="text-gray-500 mb-4">
