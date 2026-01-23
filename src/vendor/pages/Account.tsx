@@ -21,9 +21,9 @@ import { apiService, supabase } from "../../services/authService";
 
 const Account = () => {
   const [isHovering, setIsHovering] = useState<string | null>(null);
-    const [isOpen, setIsOpen] = useState(true);
-  const [isLoading, setIsLoading] = useState(true);
-  const [vendorId, setVendorId] = useState<string | null>(null);
+    const [, setIsOpen] = useState(true);
+  const [, setIsLoading] = useState(true);
+  const [, setVendorId] = useState<string | null>(null);
    const [formData, setFormData] = useState({
       restaurantName: "",
       category: "Restaurant",
