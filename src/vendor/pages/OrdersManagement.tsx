@@ -21,7 +21,7 @@ const OrdersManagement = () => {
   // Add useEffect to load orders
   useEffect(() => {
     const loadOrders = async () => {
-      const vendorId = 'YOUR_VENDOR_ID' // Get from auth context
+      const vendorId = 'vendor_id' // Get from auth context
       const { data, error } = await getVendorOrders(vendorId)
       if (!error && data) {
         const formattedOrders = data.map((order: any) => ({

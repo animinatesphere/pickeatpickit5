@@ -10,6 +10,7 @@ import {
   ChevronDown,
 } from "lucide-react";
 import { VendorNav } from "../component/VendorNav";
+import { supabase } from "../../services/authService";
 
 interface MenuItem {
   id: number;
@@ -24,6 +25,8 @@ type View = "empty" | "menu" | "add-meal";
 type Category = "All" | "Desert" | "Breakfast" | "Add ons";
 
 const RestaurantMenu: React.FC = () => {
+   const [vendorId, setVendorId] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
   const [currentView, setCurrentView] = useState<View>("empty");
   const [selectedCategory, setSelectedCategory] = useState<Category>("All");
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
@@ -52,18 +55,51 @@ const RestaurantMenu: React.FC = () => {
 
   
 
-useEffect(() => {
-  const loadMenuItems = async () => {
-    const vendorId = 'YOUR_VENDOR_ID' // Get from auth context
-    const { data, error } = await getMenuItems(vendorId)
-    if (!error && data) {
-      setMenuItems(data)
-      setCurrentView(data.length > 0 ? 'menu' : 'empty')
-    }
-  }
-  loadMenuItems()
-  setIsVisible(true)
-}, [])
+// Update the useEffect to get vendor ID first
+  useEffect(() => {
+    const initializeVendor = async () => {
+      try {
+        // Get current user from session
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        if (!session?.user) {
+          console.error('No user session found');
+          setLoading(false);
+          return;
+        }
+
+        // Get vendor ID from vendors table
+        const { data: vendorData, error: vendorError } = await supabase
+          .from('vendors')
+          .select('id')
+          .eq('user_id', session.user.id)
+          .single();
+
+        if (vendorError || !vendorData) {
+          console.error('Vendor not found:', vendorError);
+          setLoading(false);
+          return;
+        }
+
+        setVendorId(vendorData.id);
+        
+        // Now load menu items with the vendor ID
+        const { data, error } = await getMenuItems(vendorData.id);
+        if (!error && data) {
+          setMenuItems(data);
+          setCurrentView(data.length > 0 ? 'menu' : 'empty');
+        }
+      } catch (error) {
+        console.error('Error initializing:', error);
+      } finally {
+        setLoading(false);
+        setIsVisible(true);
+      }
+    };
+
+    initializeVendor();
+  }, []);
+
 const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -77,7 +113,10 @@ const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     }
   };
 const handleAddMeal = async () => {
-    const vendorId = 'YOUR_VENDOR_ID' // Get from auth context
+    if (!vendorId) {
+      alert('Vendor ID not found. Please log in again.');
+      return;
+    }
     
     setUploading(true);
     let imageUrl = '🍚'; // Default emoji
@@ -112,6 +151,9 @@ const handleAddMeal = async () => {
               }
             : item
         ))
+      } else {
+        console.error('Error updating item:', error);
+        alert('Failed to update menu item');
       }
     } else {
       const { data, error } = await addMenuItem({
@@ -125,6 +167,9 @@ const handleAddMeal = async () => {
       })
       if (!error && data) {
         setMenuItems([...menuItems, { ...data[0], image: imageUrl }])
+      } else {
+        console.error('Error adding item:', error);
+        alert('Failed to add menu item');
       }
     }
     
@@ -132,6 +177,7 @@ const handleAddMeal = async () => {
     resetForm();
     setCurrentView('menu');
   }
+
 
 
 const resetForm = () => {
@@ -169,7 +215,27 @@ const handleRemove = async (id: number) => {
       .includes(searchQuery.toLowerCase());
     return matchesCategory && matchesSearch;
   });
+if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-emerald-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-green-600 mx-auto mb-4"></div>
+          <p className="text-gray-600 font-semibold">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
+  if (!vendorId) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-emerald-50 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-red-600 font-semibold text-lg mb-4">Vendor not found</p>
+          <p className="text-gray-600">Please log in again</p>
+        </div>
+      </div>
+    );
+  }
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-emerald-50">
       {/* Header */}
