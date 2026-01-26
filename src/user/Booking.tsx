@@ -1,20 +1,30 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Bell, ChevronLeft, CheckCircle, Clock } from "lucide-react";
 import { Navbar } from "../component/Navbar";
+import { authService } from "../services/authService";
+import { supabase } from "../services/authService";
+import { getOrderTracking } from "../services/api";
 
 interface Order {
   id: string;
-  restaurant: string;
-  items: number;
-  price: number;
-  date: string;
-  status: "pending" | "completed" | "canceled";
+  restaurant_name: string;
+  items_count: number;
+  total_price: number;
+  scheduled_time: string;
+  status: "pending" | "completed" | "canceled" | "accepted";
 }
 
 interface OrderProgress {
   time: string;
   message: string;
   completed: boolean;
+}
+
+interface TrackingUpdate {
+  id: string;
+  status: string;
+  message: string;
+  timestamp: string;
 }
 
 const Booking: React.FC = () => {
@@ -24,50 +34,132 @@ const Booking: React.FC = () => {
   const [currentView, setCurrentView] = useState<
     "bookings" | "track" | "history"
   >("bookings");
-  const [selectedOrder, setSelectedOrder] = useState<string | null>(null);
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [trackingUpdates, setTrackingUpdates] = useState<TrackingUpdate[]>([]);
 
-  const orders: Order[] = [
-    {
-      id: "ERFH76",
-      restaurant: "Mardiya Kitchen",
-      items: 3,
-      price: 17.84,
-      date: "Sep 4, 2021 at 12:14 am",
-      status: "pending",
-    },
-    {
-      id: "ERFHTU",
-      restaurant: "Mardiya Kitchen",
-      items: 3,
-      price: 17.84,
-      date: "Sep 4, 2021 at 12:14 am",
-      status: "completed",
-    },
-    {
-      id: "ERFHTU2",
-      restaurant: "Mardiya Kitchen",
-      items: 3,
-      price: 17.84,
-      date: "Sep 4, 2021 at 12:14 am",
-      status: "canceled",
-    },
-    {
-      id: "ERFHTU3",
-      restaurant: "Mardiya Kitchen",
-      items: 3,
-      price: 17.84,
-      date: "Sep 4, 2021 at 12:14 am",
-      status: "completed",
-    },
-    {
-      id: "ERFHTU4",
-      restaurant: "Mardiya Kitchen",
-      items: 3,
-      price: 17.84,
-      date: "Sep 4, 2021 at 12:14 am",
-      status: "completed",
-    },
-  ];
+  // Fetch user orders on component mount
+  useEffect(() => {
+    const fetchUserOrders = async () => {
+      try {
+        setLoading(true);
+        const authUser = await authService.getCurrentUser();
+
+        if (!authUser) {
+          console.error("User not authenticated");
+          setLoading(false);
+          return;
+        }
+
+        // Fetch orders for the current user
+        const { data, error } = await supabase
+          .from("orders")
+          .select("*")
+          .eq("user_id", authUser.id)
+          .order("created_at", { ascending: false });
+
+        if (error) {
+          console.error("Error fetching orders:", error);
+          setLoading(false);
+          return;
+        }
+
+        // Transform data to match Order interface
+        const formattedOrders = (data || []).map(
+          (order: {
+            id: string;
+            restaurant_name: string;
+            items_count: number;
+            total_price: number;
+            scheduled_time: string;
+            status: string;
+          }) => ({
+            id: order.id,
+            restaurant_name: order.restaurant_name,
+            items_count: order.items_count || 0,
+            total_price: order.total_price || 0,
+            scheduled_time: order.scheduled_time,
+            status: (order.status || "pending") as
+              | "pending"
+              | "completed"
+              | "canceled"
+              | "accepted",
+          }),
+        );
+
+        setOrders(formattedOrders);
+      } catch (error) {
+        console.error("Error fetching user orders:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchUserOrders();
+
+    // Set up real-time listener for order updates
+    const subscription = supabase
+      .channel("user-orders-changes")
+      .on(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        "postgres_changes" as any,
+        {
+          event: "*",
+          schema: "public",
+          table: "orders",
+          filter: `user_id=eq.${authService.getCurrentUser().then((u) => u?.id)}`,
+        },
+        (payload: {
+          eventType: string;
+          new: {
+            id: string;
+            restaurant_name: string;
+            items_count: number;
+            total_price: number;
+            scheduled_time: string;
+            status: string;
+          };
+        }) => {
+          if (payload.eventType === "INSERT") {
+            const newOrder: Order = {
+              id: payload.new.id,
+              restaurant_name: payload.new.restaurant_name,
+              items_count: payload.new.items_count,
+              total_price: payload.new.total_price,
+              scheduled_time: payload.new.scheduled_time,
+              status: (payload.new.status || "pending") as
+                | "pending"
+                | "completed"
+                | "canceled"
+                | "accepted",
+            };
+            setOrders((prev) => [newOrder, ...prev]);
+          } else if (payload.eventType === "UPDATE") {
+            setOrders((prev) =>
+              prev.map((order) =>
+                order.id === payload.new.id
+                  ? {
+                      ...order,
+                      status: (payload.new.status || "pending") as
+                        | "pending"
+                        | "completed"
+                        | "canceled"
+                        | "accepted",
+                      total_price: payload.new.total_price,
+                    }
+                  : order,
+              ),
+            );
+          }
+        },
+      )
+      .subscribe();
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
 
   const orderProgress: OrderProgress[] = [
     {
@@ -98,15 +190,22 @@ const Booking: React.FC = () => {
   ];
 
   const filteredOrders = orders.filter((order) => {
-    if (activeTab === "accepted") return order.status === "pending";
+    if (activeTab === "accepted")
+      return order.status === "pending" || order.status === "accepted";
     if (activeTab === "canceled") return order.status === "canceled";
     if (activeTab === "completed") return order.status === "completed";
     return true;
   });
 
-  const handleTrackOrder = (orderId: string) => {
-    setSelectedOrder(orderId);
+  const handleTrackOrder = async (order: Order) => {
+    setSelectedOrder(order);
     setCurrentView("track");
+
+    // Fetch real tracking data
+    const { data: updates } = await getOrderTracking(order.id);
+    if (updates) {
+      setTrackingUpdates(updates);
+    }
   };
 
   const handleReOrder = () => {
@@ -116,6 +215,7 @@ const Booking: React.FC = () => {
   const getStatusColor = (status: string) => {
     switch (status) {
       case "pending":
+      case "accepted":
         return "text-orange-500";
       case "completed":
         return "text-green-600";
@@ -183,33 +283,38 @@ const Booking: React.FC = () => {
             </button>
           </div>
 
-          {/* Orders List */}
-          {filteredOrders.length > 0 ? (
+          {loading ? (
+            <div className="flex items-center justify-center py-20">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto mb-4"></div>
+                <p className="text-gray-600">Loading your orders...</p>
+              </div>
+            </div>
+          ) : filteredOrders.length > 0 ? (
             <div className="space-y-4">
               {filteredOrders.map((order) => (
                 <div
                   key={order.id}
-                  onClick={() => selectedOrder}
                   className="bg-white rounded-xl p-5 shadow-sm border border-gray-100 hover:shadow-md transition-shadow"
                 >
                   <div className="flex justify-between items-start mb-3">
                     <div>
                       <h3 className="font-bold text-gray-800 text-lg mb-1">
-                        {order.restaurant}
+                        {order.restaurant_name}
                       </h3>
                       <p className="text-green-600 font-medium text-sm">
                         Order ID:{" "}
                         <span className="font-semibold">{order.id}</span> |{" "}
-                        {order.items} items
+                        {order.items_count} items
                       </p>
                     </div>
                     <div className="text-right">
                       <div className="text-xl font-bold text-gray-800">
-                        ${order.price}
+                        ${order.total_price.toFixed(2)}
                       </div>
                       <div
                         className={`text-sm font-semibold ${getStatusColor(
-                          order.status
+                          order.status,
                         )}`}
                       >
                         {getStatusText(order.status)}
@@ -217,20 +322,26 @@ const Booking: React.FC = () => {
                     </div>
                   </div>
                   <div className="flex justify-between items-center pt-3 border-t border-gray-100">
-                    <span className="text-gray-500 text-sm">{order.date}</span>
+                    <span className="text-gray-500 text-sm">
+                      {new Date(order.scheduled_time).toLocaleDateString()}
+                    </span>
                     <button
                       onClick={() =>
-                        order.status === "pending"
-                          ? handleTrackOrder(order.id)
+                        order.status === "pending" ||
+                        order.status === "accepted"
+                          ? handleTrackOrder(order)
                           : handleReOrder()
                       }
                       className={`px-5 py-2 rounded-lg font-medium text-sm transition-colors ${
-                        order.status === "pending"
+                        order.status === "pending" ||
+                        order.status === "accepted"
                           ? "bg-green-600 text-white hover:bg-green-700"
                           : "bg-green-50 text-green-700 hover:bg-green-100 border border-green-200"
                       }`}
                     >
-                      {order.status === "pending" ? "Track Order" : "Re Order"}
+                      {order.status === "pending" || order.status === "accepted"
+                        ? "Track Order"
+                        : "Re Order"}
                     </button>
                   </div>
                 </div>
@@ -253,7 +364,7 @@ const Booking: React.FC = () => {
   }
 
   // Track Order View
-  if (currentView === "track") {
+  if (currentView === "track" && selectedOrder) {
     return (
       <div className="min-h-screen bg-gray-50">
         {/* Header */}
@@ -273,53 +384,103 @@ const Booking: React.FC = () => {
             Order Progress
           </h2>
 
-          {/* Progress Timeline */}
+          {/* Tracking Code */}
+          <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-6 mb-6 shadow-sm border-2 border-green-200">
+            <p className="text-sm text-gray-600 mb-2">Your Tracking Code</p>
+            <div className="bg-white rounded-lg p-4 border-2 border-green-300">
+              <p className="text-3xl font-bold text-green-600 text-center font-mono tracking-wider">
+                {selectedOrder.id.slice(0, 8).toUpperCase()}
+              </p>
+            </div>
+            <p className="text-xs text-gray-500 mt-3 text-center">
+              Show this code to your rider
+            </p>
+          </div>
+
+          {/* Progress Timeline - Real Data or Fallback */}
           <div className="relative">
-            {orderProgress.map((progress, index) => (
-              <div key={index} className="flex gap-4 mb-8 relative">
-                {/* Timeline Line */}
-                {index < orderProgress.length - 1 && (
-                  <div
-                    className={`absolute left-3 top-8 w-0.5 h-12 ${
-                      progress.completed ? "bg-green-500" : "bg-gray-300"
-                    }`}
-                  ></div>
-                )}
+            {trackingUpdates.length > 0
+              ? trackingUpdates.map((update, index) => (
+                  <div key={update.id} className="flex gap-4 mb-8 relative">
+                    {/* Timeline Line */}
+                    {index < trackingUpdates.length - 1 && (
+                      <div className="absolute left-3 top-8 w-0.5 h-12 bg-green-500"></div>
+                    )}
 
-                {/* Time */}
-                <div className="w-16 flex-shrink-0">
-                  <span className="text-sm text-gray-600 font-medium">
-                    {progress.time}
-                  </span>
-                </div>
-
-                {/* Icon */}
-                <div className="flex-shrink-0">
-                  {progress.completed ? (
-                    <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
-                      <CheckCircle className="w-4 h-4 text-white" />
+                    {/* Time */}
+                    <div className="w-20 flex-shrink-0">
+                      <span className="text-sm text-gray-600 font-medium">
+                        {new Date(update.timestamp).toLocaleTimeString([], {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </span>
                     </div>
-                  ) : (
-                    <div className="w-6 h-6 bg-gray-300 rounded-full flex items-center justify-center">
-                      <Clock className="w-4 h-4 text-white" />
-                    </div>
-                  )}
-                </div>
 
-                {/* Message */}
-                <div className="flex-1 pb-2">
-                  <p
-                    className={`text-sm ${
-                      progress.completed
-                        ? "text-gray-800 font-medium"
-                        : "text-gray-500"
-                    }`}
-                  >
-                    {progress.message}
-                  </p>
-                </div>
-              </div>
-            ))}
+                    {/* Icon */}
+                    <div className="flex-shrink-0">
+                      <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
+                        <CheckCircle className="w-4 h-4 text-white" />
+                      </div>
+                    </div>
+
+                    {/* Message */}
+                    <div className="flex-1 pb-2">
+                      <p className="text-sm text-gray-800 font-medium">
+                        {update.message}
+                      </p>
+                      <p className="text-xs text-gray-500 mt-1">
+                        Status: {update.status}
+                      </p>
+                    </div>
+                  </div>
+                ))
+              : // Fallback to default progress if no updates exist
+                orderProgress.map((progress, index) => (
+                  <div key={index} className="flex gap-4 mb-8 relative">
+                    {/* Timeline Line */}
+                    {index < orderProgress.length - 1 && (
+                      <div
+                        className={`absolute left-3 top-8 w-0.5 h-12 ${
+                          progress.completed ? "bg-green-500" : "bg-gray-300"
+                        }`}
+                      ></div>
+                    )}
+
+                    {/* Time */}
+                    <div className="w-16 flex-shrink-0">
+                      <span className="text-sm text-gray-600 font-medium">
+                        {progress.time}
+                      </span>
+                    </div>
+
+                    {/* Icon */}
+                    <div className="flex-shrink-0">
+                      {progress.completed ? (
+                        <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
+                          <CheckCircle className="w-4 h-4 text-white" />
+                        </div>
+                      ) : (
+                        <div className="w-6 h-6 bg-gray-300 rounded-full flex items-center justify-center">
+                          <Clock className="w-4 h-4 text-white" />
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Message */}
+                    <div className="flex-1 pb-2">
+                      <p
+                        className={`text-sm ${
+                          progress.completed
+                            ? "text-gray-800 font-medium"
+                            : "text-gray-500"
+                        }`}
+                      >
+                        {progress.message}
+                      </p>
+                    </div>
+                  </div>
+                ))}
           </div>
 
           {/* Estimated Delivery */}
@@ -339,8 +500,10 @@ const Booking: React.FC = () => {
             </div>
             <div className="mt-4 pt-4 border-t border-gray-100">
               <span className="text-sm text-gray-600">
-                Order ID:{" "}
-                <span className="font-semibold text-gray-800">BH76898</span>
+                Restaurant:{" "}
+                <span className="font-semibold text-gray-800">
+                  {selectedOrder.restaurant_name}
+                </span>
               </span>
             </div>
           </div>

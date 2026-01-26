@@ -1,21 +1,27 @@
 import { useState, useEffect } from "react";
 import { MapPin, Clock, Check, Package } from "lucide-react";
 import { VendorNav } from "../component/VendorNav";
-import { supabase } from '../../services/authService'; // Add this import
-import { getVendorOrders, updateOrderStatus } from '../../services/api'
+import { supabase } from "../../services/authService"; // Add this import
+import {
+  getVendorOrders,
+  updateOrderStatus,
+  addTrackingUpdate,
+} from "../../services/api";
 
 interface Order {
   id: string;
   customerName: string;
-  phone:string;
+  phone: string;
   address: string;
   time: string;
   image: string;
-  status: "pending" | "confirmed" | "cancelled" | "completed";
+  status: "pending" | "accepted" | "canceled" | "completed";
 }
 
 const OrdersManagement = () => {
-  const [activeTab, setActiveTab] = useState<"pending" | "confirmed" | "cancelled" | "completed">("pending");
+  const [activeTab, setActiveTab] = useState<
+    "pending" | "accepted" | "canceled" | "completed"
+  >("pending");
   const [orders, setOrders] = useState<Order[]>([]);
   const [vendorId, setVendorId] = useState<string | null>(null); // Add this
   const [loading, setLoading] = useState(true); // Add this
@@ -25,45 +31,50 @@ const OrdersManagement = () => {
     const initializeOrders = async () => {
       try {
         // Get current user from session
-        const { data: { session } } = await supabase.auth.getSession();
-        
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+
         if (!session?.user) {
-          console.error('No user session found');
+          console.error("No user session found");
           setLoading(false);
           return;
         }
 
         // Get vendor ID from vendors table
         const { data: vendorData, error: vendorError } = await supabase
-          .from('vendors')
-          .select('id')
-          .eq('user_id', session.user.id)
+          .from("vendors")
+          .select("id")
+          .eq("user_id", session.user.id)
           .single();
 
         if (vendorError || !vendorData) {
-          console.error('Vendor not found:', vendorError);
+          console.error("Vendor not found:", vendorError);
           setLoading(false);
           return;
         }
 
         setVendorId(vendorData.id);
-        
+
         // Now load orders with the vendor ID
         const { data, error } = await getVendorOrders(vendorData.id);
         if (!error && data) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const formattedOrders = data.map((order: any) => ({
             id: order.id,
-            customerName: order.customer_name,
+            // Use the columns we just added to the orders table
+            customerName: order.customer_name || "Customer",
+            phone: order.customer_phone || "No phone",
+
             address: order.delivery_address,
             time: new Date(order.scheduled_time).toLocaleString(),
-            image: order.order_items[0]?.menu_items?.image_url || '🍽️',
-             phone: order.customer_phone,
-            status: order.status
+            image: order.order_items[0]?.menu_items?.image_url || "🍽️",
+            status: order.status,
           }));
           setOrders(formattedOrders);
         }
       } catch (error) {
-        console.error('Error initializing orders:', error);
+        console.error("Error initializing orders:", error);
       } finally {
         setLoading(false);
       }
@@ -74,31 +85,64 @@ const OrdersManagement = () => {
 
   // Fix the handler types
   const handleAccept = async (orderId: string) => {
-    const { error } = await updateOrderStatus(orderId, 'confirmed')
+    const { error } = await updateOrderStatus(orderId, "accepted");
     if (!error) {
-      setOrders(orders.map(order => 
-        order.id === orderId ? { ...order, status: 'confirmed' as const } : order
-      ))
+      // Add tracking update
+      await addTrackingUpdate(orderId, {
+        status: "accepted",
+        message: "Your order has been accepted and is being prepared",
+        timestamp: new Date().toISOString(),
+      });
+
+      setOrders(
+        orders.map((order) =>
+          order.id === orderId
+            ? { ...order, status: "accepted" as const }
+            : order,
+        ),
+      );
     }
-  }
+  };
 
   const handleCancel = async (orderId: string) => {
-    const { error } = await updateOrderStatus(orderId, 'cancelled')
+    const { error } = await updateOrderStatus(orderId, "canceled");
     if (!error) {
-      setOrders(orders.map(order => 
-        order.id === orderId ? { ...order, status: 'cancelled' as const } : order
-      ))
+      // Add tracking update
+      await addTrackingUpdate(orderId, {
+        status: "canceled",
+        message: "Your order has been canceled",
+        timestamp: new Date().toISOString(),
+      });
+
+      setOrders(
+        orders.map((order) =>
+          order.id === orderId
+            ? { ...order, status: "canceled" as const }
+            : order,
+        ),
+      );
     }
-  }
+  };
 
   const handleCheckOut = async (orderId: string) => {
-    const { error } = await updateOrderStatus(orderId, 'completed')
+    const { error } = await updateOrderStatus(orderId, "completed");
     if (!error) {
-      setOrders(orders.map(order => 
-        order.id === orderId ? { ...order, status: 'completed' as const } : order
-      ))
+      // Add tracking update
+      await addTrackingUpdate(orderId, {
+        status: "completed",
+        message: "Your order has been delivered",
+        timestamp: new Date().toISOString(),
+      });
+
+      setOrders(
+        orders.map((order) =>
+          order.id === orderId
+            ? { ...order, status: "completed" as const }
+            : order,
+        ),
+      );
     }
-  }
+  };
 
   const filteredOrders = orders.filter((order) => order.status === activeTab);
 
@@ -110,13 +154,13 @@ const OrdersManagement = () => {
             Pending
           </span>
         );
-      case "confirmed":
+      case "accepted":
         return (
           <span className="px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700">
             Preparing
           </span>
         );
-      case "cancelled":
+      case "canceled":
         return (
           <span className="px-3 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-700">
             Cancelled
@@ -129,7 +173,7 @@ const OrdersManagement = () => {
           </span>
         );
       default:
-        return <p>Nothing for now  </p>
+        return <p>Nothing for now </p>;
     }
   };
 
@@ -153,7 +197,9 @@ const OrdersManagement = () => {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
         <div className="text-center">
-          <p className="text-red-600 font-semibold text-lg mb-4">Vendor not found</p>
+          <p className="text-red-600 font-semibold text-lg mb-4">
+            Vendor not found
+          </p>
           <p className="text-gray-600">Please log in again</p>
         </div>
       </div>
@@ -193,34 +239,34 @@ const OrdersManagement = () => {
             )}
           </button>
           <button
-            onClick={() => setActiveTab("confirmed")}
+            onClick={() => setActiveTab("accepted")}
             className={`px-4 py-2.5 rounded-full font-semibold transition-all duration-300 flex items-center justify-center gap-2 ${
-              activeTab === "confirmed"
+              activeTab === "accepted"
                 ? "bg-green-600 text-white shadow-lg scale-105"
                 : "bg-gray-100 text-gray-600 hover:bg-gray-200"
             }`}
           >
-            {activeTab === "confirmed" && <Check className="w-4 h-4" />}
-            <span className="text-sm">Confirmed</span>
-            {getOrderCount("confirmed") > 0 && (
+            {activeTab === "accepted" && <Check className="w-4 h-4" />}
+            <span className="text-sm">Accepted</span>
+            {getOrderCount("accepted") > 0 && (
               <span className="ml-1 px-2 py-0.5 rounded-full bg-white text-green-600 text-xs font-bold">
-                {getOrderCount("confirmed")}
+                {getOrderCount("accepted")}
               </span>
             )}
           </button>
           <button
-            onClick={() => setActiveTab("cancelled")}
+            onClick={() => setActiveTab("canceled")}
             className={`px-4 py-2.5 rounded-full font-semibold transition-all duration-300 flex items-center justify-center gap-2 ${
-              activeTab === "cancelled"
+              activeTab === "canceled"
                 ? "bg-green-600 text-white shadow-lg scale-105"
                 : "bg-gray-100 text-gray-600 hover:bg-gray-200"
             }`}
           >
-            {activeTab === "cancelled" && <Check className="w-4 h-4" />}
-            <span className="text-sm">Cancelled</span>
-            {getOrderCount("cancelled") > 0 && (
+            {activeTab === "canceled" && <Check className="w-4 h-4" />}
+            <span className="text-sm">Canceled</span>
+            {getOrderCount("canceled") > 0 && (
               <span className="ml-1 px-2 py-0.5 rounded-full bg-white text-green-600 text-xs font-bold">
-                {getOrderCount("cancelled")}
+                {getOrderCount("canceled")}
               </span>
             )}
           </button>
@@ -261,44 +307,49 @@ const OrdersManagement = () => {
                 className="bg-white rounded-2xl shadow-md hover:shadow-xl transition-all duration-300 p-4 transform hover:-translate-y-1"
               >
                 <div className="flex gap-4">
-               {/* Order Image */}
-<div className="w-20 h-20 rounded-xl bg-gradient-to-br from-green-100 to-green-200 flex items-center justify-center flex-shrink-0 shadow-md overflow-hidden">
-  {order.image.startsWith('http') ? (
-    <img 
-      src={order.image} 
-      alt="Food" 
-      className="w-full h-full object-cover"
-      onError={(e) => {
-        (e.target as HTMLImageElement).src = 'https://via.placeholder.com/80?text=Food'; // Fallback if link is broken
-      }}
-    />
-  ) : (
-    <span className="text-4xl">{order.image}</span>
-  )}
-</div>
+                  {/* Order Image */}
+                  <div className="w-20 h-20 rounded-xl bg-gradient-to-br from-green-100 to-green-200 flex items-center justify-center flex-shrink-0 shadow-md overflow-hidden">
+                    {order.image.startsWith("http") ? (
+                      <img
+                        src={order.image}
+                        alt="Food"
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src =
+                            "https://via.placeholder.com/80?text=Food"; // Fallback if link is broken
+                        }}
+                      />
+                    ) : (
+                      <span className="text-4xl">{order.image}</span>
+                    )}
+                  </div>
 
                   {/* Order Details */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between gap-2 mb-2">
-                      <h3 className="font-bold text-gray-800 text-lg">
-                        {order.customerName}
-                      </h3>
+                      <div>
+                        <h3 className="font-bold text-gray-800 text-lg">
+                          {order.customerName}
+                        </h3>
+                        <p className="text-xs text-gray-500 font-mono font-semibold">
+                          Order ID: {order.id.slice(0, 8).toUpperCase()}
+                        </p>
+                      </div>
                       <h3 className="font-bold text-gray-800 text-lg">
                         {order.phone}
                       </h3>
                       {getStatusBadge(order.status)}
                     </div>
-                  
-                    {/* Display Phone Number as a link */}
-  <div className="mb-2">
-    <a 
-      href={`tel:${order.phone}`} 
-      className="text-emerald-600 font-bold text-sm hover:underline flex items-center gap-1"
-    >
-      📞 {order.phone || "No phone provided"}
-    </a>
-  </div>
 
+                    {/* Display Phone Number as a link */}
+                    <div className="mb-2">
+                      <a
+                        href={`tel:${order.phone}`}
+                        className="text-emerald-600 font-bold text-sm hover:underline flex items-center gap-1"
+                      >
+                        📞 {order.phone || "No phone provided"}
+                      </a>
+                    </div>
 
                     <div className="flex items-start gap-2 text-gray-600 text-sm mb-2">
                       <MapPin className="w-4 h-4 mt-0.5 flex-shrink-0 text-green-600" />
@@ -330,7 +381,7 @@ const OrdersManagement = () => {
                       </button>
                     </>
                   )}
-                  {order.status === "confirmed" && (
+                  {order.status === "accepted" && (
                     <button
                       onClick={() => handleCheckOut(order.id)}
                       className="flex-1 py-2.5 px-4 rounded-xl font-semibold text-white bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 transition-all duration-300 shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
@@ -338,9 +389,9 @@ const OrdersManagement = () => {
                       Check Out
                     </button>
                   )}
-                  {order.status === "cancelled" && (
+                  {order.status === "canceled" && (
                     <div className="flex-1 text-center py-2.5 px-4 text-gray-500 text-sm font-semibold">
-                      Order was cancelled
+                      Order was canceled
                     </div>
                   )}
                   {order.status === "completed" && (

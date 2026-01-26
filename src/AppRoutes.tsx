@@ -56,6 +56,7 @@ import AdminDashboard from "./admin/dashboard/AdminDashboard";
 import AdminLogin from "./admin/login/AdminLogin";
 import VendorChat from "./vendor/pages/VendorChat";
 import ForgotPassword from "./auth/ForgotPassword";
+import Device from "./user/component/Device";
 
 const AppRoutes = () => {
   return (
@@ -73,6 +74,7 @@ const AppRoutes = () => {
       <Route path="/cart" element={<FoodCartApp />} />
       <Route path="/payment" element={<PaymentComponent />} />
       <Route path="/profile" element={<Profile />} />
+      <Route path="/device" element={<Device />} />
       <Route path="/profile-edit" element={<ProfileEditForm />} />
       <Route path="/support" element={<Support />} />
       <Route path="/wallet" element={<WalletComponent />} />

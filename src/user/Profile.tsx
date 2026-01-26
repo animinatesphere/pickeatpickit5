@@ -1,4 +1,5 @@
 // import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   User,
   Clock,
@@ -10,7 +11,8 @@ import {
   LogOut,
 } from "lucide-react";
 import { Navbar } from "../component/Navbar";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { authService } from "../services/authService";
 // import { useNavigate } from "react-router-dom";
 
 interface MenuItem {
@@ -20,7 +22,21 @@ interface MenuItem {
   secs: string;
 }
 
+interface UserProfile {
+  firstname?: string;
+  lastname?: string;
+  email?: string;
+  phone?: string;
+}
+
 const Profile: React.FC = () => {
+  const navigate = useNavigate();
+  const [userProfile, setUserProfile] = useState<UserProfile>({
+    firstname: "",
+    lastname: "",
+    email: "",
+    phone: "",
+  });
   const menuItems: MenuItem[] = [
     {
       icon: <User className="w-5 h-5 text-green-600" />,
@@ -30,7 +46,7 @@ const Profile: React.FC = () => {
     {
       icon: <Clock className="w-5 h-5 text-green-600" />,
       label: "Booking History",
-      secs: "/profile-edit",
+      secs: "/booking",
     },
     {
       icon: <Wallet className="w-5 h-5 text-green-600" />,
@@ -45,7 +61,7 @@ const Profile: React.FC = () => {
     {
       icon: <Monitor className="w-5 h-5 text-green-600" />,
       label: "Devices and Session",
-      secs: "/profile-edit",
+      secs: "/device",
     },
     {
       icon: <HelpCircle className="w-5 h-5 text-green-600" />,
@@ -58,6 +74,36 @@ const Profile: React.FC = () => {
       secs: "/support",
     },
   ];
+
+  // Fetch user profile on component mount
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      try {
+        const profile = await authService.getCurrentUserProfile();
+        setUserProfile(profile);
+      } catch (error) {
+        console.error("Failed to fetch user profile:", error);
+        // Show error toast or default to empty values
+      }
+    };
+
+    fetchUserProfile();
+  }, []);
+
+  const handleLogout = async () => {
+    try {
+      await authService.logout();
+      navigate("/");
+    } catch (error) {
+      console.error("Logout failed:", error);
+    }
+  };
+
+  const fullName = `${userProfile.firstname || ""} ${
+    userProfile.lastname || ""
+  }`.trim();
+  const initials =
+    (userProfile.firstname?.[0] || "U") + (userProfile.lastname?.[0] || "S");
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex flex-col">
@@ -74,17 +120,21 @@ const Profile: React.FC = () => {
           <div className="bg-white rounded-3xl shadow-lg shadow-gray-200/50 p-8 text-center border border-gray-100">
             <div className="relative inline-block mb-6">
               <div className="w-28 h-28 rounded-full bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center shadow-xl">
-                <span className="text-4xl font-bold text-white">JS</span>
+                <span className="text-4xl font-bold text-white">
+                  {initials}
+                </span>
               </div>
               <div className="absolute bottom-1 right-1 w-6 h-6 bg-green-500 rounded-full border-4 border-white"></div>
             </div>
 
             <h2 className="text-2xl font-bold text-gray-900 mb-2">
-              James Sussy Milburn
+              {fullName || "User"}
             </h2>
-            <p className="text-sm text-gray-500 mb-1">sussyjames@outlook.com</p>
+            <p className="text-sm text-gray-500 mb-1">
+              {userProfile.email || "email@example.com"}
+            </p>
             <p className="text-sm font-semibold text-green-600">
-              +234 906 3287 855
+              {userProfile.phone || "+234 0000 0000 000"}
             </p>
           </div>
         </div>
@@ -92,11 +142,8 @@ const Profile: React.FC = () => {
         {/* Menu Items */}
         <div className="px-6 space-y-3 mb-6">
           {menuItems.map((item, index) => (
-            <Link to={item.secs}>
-              <button
-                key={index}
-                className="w-full bg-white rounded-2xl p-4 flex items-center gap-4 shadow-sm hover:shadow-md transition-all duration-300 border border-gray-100 hover:border-green-200 group"
-              >
+            <Link to={item.secs} key={index}>
+              <button className="w-full bg-white rounded-2xl p-4 flex items-center gap-4 shadow-sm hover:shadow-md transition-all duration-300 border border-gray-100 hover:border-green-200 group">
                 <div className="w-12 h-12 bg-green-50 rounded-xl flex items-center justify-center group-hover:bg-green-100 transition-colors">
                   {item.icon}
                 </div>
@@ -123,7 +170,10 @@ const Profile: React.FC = () => {
 
         {/* Logout Button */}
         <div className="px-6 mb-8">
-          <button className="w-full bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white font-bold py-4 px-6 rounded-2xl shadow-lg shadow-green-600/30 flex items-center justify-center gap-3 transition-all duration-300 hover:shadow-xl hover:shadow-green-600/40 active:scale-95">
+          <button
+            onClick={handleLogout}
+            className="w-full bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white font-bold py-4 px-6 rounded-2xl shadow-lg shadow-green-600/30 flex items-center justify-center gap-3 transition-all duration-300 hover:shadow-xl hover:shadow-green-600/40 active:scale-95"
+          >
             <span className="text-lg">Log out</span>
             <LogOut className="w-5 h-5" />
           </button>

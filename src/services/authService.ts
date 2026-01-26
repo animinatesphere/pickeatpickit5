@@ -340,7 +340,7 @@ class AuthService {
       await supabase.auth.signOut();
       throw new APIError(
         "This account is not registered as a rider. Please use the correct login portal.",
-        403
+        403,
       );
     }
 
@@ -602,7 +602,7 @@ class AuthService {
         await supabase.auth.signOut();
         throw new APIError(
           "This account is not registered as a vendor. Please use the correct login portal.",
-          403
+          403,
         );
       }
 
@@ -653,7 +653,7 @@ class AuthService {
         await supabase.auth.signOut();
         throw new APIError(
           "This account is not registered as a customer. Please use the correct login portal.",
-          403
+          403,
         );
       }
 
@@ -769,7 +769,7 @@ class AuthService {
   async sendPasswordResetOTP(email: string): Promise<{ message: string }> {
     try {
       console.log("Attempting to send OTP to:", email);
-      
+
       // Use the SAME method as signup - this sends a numeric OTP code
       const { error } = await supabase.auth.signUp({
         email,
@@ -835,7 +835,7 @@ class AuthService {
 
       // Store that OTP was verified
       localStorage.setItem("password_reset_verified", "true");
-      
+
       return {
         message: "OTP verified successfully!",
         access_token: data.session?.access_token,
@@ -850,13 +850,15 @@ class AuthService {
   }
 
   // Reset password after OTP verification
-  async resetPasswordWithOTP(newPassword: string): Promise<{ message: string }> {
+  async resetPasswordWithOTP(
+    newPassword: string,
+  ): Promise<{ message: string }> {
     try {
       console.log("Attempting to reset password");
 
       // Check if OTP was verified
       const verified = localStorage.getItem("password_reset_verified");
-      
+
       if (!verified) {
         throw new APIError("Please verify OTP first.", 400);
       }
@@ -907,6 +909,79 @@ class AuthService {
       throw new APIError(error.message, 400);
     }
     return user;
+  }
+
+  // Get current user profile (customer/user)
+  async getCurrentUserProfile() {
+    try {
+      const authUser = await this.getCurrentUser();
+      if (!authUser) {
+        throw new APIError("User not authenticated", 401);
+      }
+
+      // First try to fetch by user_id
+      const { data, error } = await supabase
+        .from("users")
+        .select("*")
+        .eq("user_id", authUser.id);
+
+      if (error) {
+        throw new APIError(`Error fetching user: ${error.message}`, 400);
+      }
+
+      // Check if data exists
+      if (!data || data.length === 0) {
+        console.warn(
+          "No user profile found for ID:",
+          authUser.id,
+          "Creating default response",
+        );
+        // Return user data from auth if profile doesn't exist yet
+        return {
+          user_id: authUser.id,
+          email: authUser.email,
+          firstname: authUser.user_metadata?.firstname || "",
+          lastname: authUser.user_metadata?.lastname || "",
+          phone: authUser.user_metadata?.phone || "",
+          address: "",
+          zip: "",
+          city: "",
+          state: "",
+        };
+      }
+
+      return data[0];
+    } catch (error) {
+      if (error instanceof APIError) throw error;
+      throw new APIError("Failed to fetch user profile", 400);
+    }
+  }
+
+  // Update current user profile
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  async updateCurrentUserProfile(updates: any) {
+    try {
+      const authUser = await this.getCurrentUser();
+      if (!authUser) {
+        throw new APIError("User not authenticated", 401);
+      }
+
+      const { data, error } = await supabase
+        .from("users")
+        .update(updates)
+        .eq("user_id", authUser.id)
+        .select()
+        .single();
+
+      if (error) {
+        throw new APIError(error.message, 400);
+      }
+
+      return data;
+    } catch (error) {
+      if (error instanceof APIError) throw error;
+      throw new APIError("Failed to update user profile", 400);
+    }
   }
 
   // Verify vendor exists
@@ -1199,6 +1274,9 @@ export const authService = {
     apiService.resetPasswordWithOTP(newPassword),
   logout: () => apiService.logout(),
   getCurrentUser: () => apiService.getCurrentUser(),
+  getCurrentUserProfile: () => apiService.getCurrentUserProfile(),
+  updateCurrentUserProfile: (updates: Record<string, unknown>) =>
+    apiService.updateCurrentUserProfile(updates),
   saveProfileDetails: (
     vendorId: string,
     profileData: Record<string, string | number>,
