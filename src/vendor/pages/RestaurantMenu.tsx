@@ -18,7 +18,7 @@ interface MenuItem {
   category: string;
   price: number;
   description: string;
-  image: string;
+  image_url: string; // Changed from image to image_url
 }
 
 type View = "empty" | "menu" | "add-meal";
@@ -147,7 +147,7 @@ const handleAddMeal = async () => {
                 price: parseFloat(mealPrice), 
                 category: mealCategory, 
                 description: mealDescription,
-                image: imageUrl 
+              image_url: imageUrl
               }
             : item
         ))
@@ -166,7 +166,7 @@ const handleAddMeal = async () => {
         image_url: imageUrl
       })
       if (!error && data) {
-        setMenuItems([...menuItems, { ...data[0], image: imageUrl }])
+  setMenuItems([...menuItems, data[0]]) 
       } else {
         console.error('Error adding item:', error);
         alert('Failed to add menu item');
@@ -197,7 +197,7 @@ const resetForm = () => {
     setMealPrice(item.price.toString());
     setMealCategory(item.category as string);
     setMealDescription(item.description);
-    setImagePreview(item.image);
+      setImagePreview(item.image_url);
     setCurrentView("add-meal");
   };
 
@@ -438,9 +438,15 @@ if (loading) {
               >
                 <div className="flex flex-col sm:flex-row items-center gap-4 p-4 sm:p-5">
                   {/* Item Image */}
-                  <div className="w-full sm:w-24 h-40 sm:h-24 md:w-28 md:h-28 rounded-2xl bg-gradient-to-br from-green-100 to-emerald-100 flex items-center justify-center text-5xl sm:flex-shrink-0 shadow-md">
-                    {item.image}
-                  </div>
+                 {/* Item Image */}
+<div className="w-full sm:w-24 h-40 sm:h-24 md:w-28 md:h-28 rounded-2xl bg-gradient-to-br from-green-100 to-emerald-100 flex items-center justify-center text-5xl sm:flex-shrink-0 shadow-md">
+  {/* CHANGE item.image TO item.image_url */}
+  {item.image_url.startsWith('http') ? (
+    <img src={item.image_url} alt={item.name} className="w-full h-full object-cover rounded-2xl" />
+  ) : (
+    item.image_url
+  )}
+</div>
 
                   {/* Item Details */}
                   <div className="flex-1 w-full sm:min-w-0 text-center sm:text-left">

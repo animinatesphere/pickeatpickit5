@@ -26,13 +26,15 @@ export const deleteMenuItem = async (id: string) => {
   return { data, error }
 }
 
+// Update getMenuItems to handle optional vendor filtering
 export const getMenuItems = async (vendorId: string | null = null) => {
   let query = supabase.from('menu_items').select('*')
-  if (vendorId) query = query.eq('vendor_id', vendorId)
+  if (vendorId) {
+    query = query.eq('vendor_id', vendorId)
+  }
   const { data, error } = await query
   return { data, error }
 }
-
 // ORDERS
 export const createOrder = async (orderData: any, orderItems: any[]) => {
   // Create order
@@ -41,7 +43,10 @@ export const createOrder = async (orderData: any, orderItems: any[]) => {
     .insert([orderData])
     .select()
   
-  if (orderError) return { data: null, error: orderError }
+  if (orderError) {
+    console.error('Order creation error:', orderError);
+    return { data: null, error: orderError };
+  }
   
   // Add order items
   const itemsWithOrderId = orderItems.map(item => ({
@@ -52,6 +57,11 @@ export const createOrder = async (orderData: any, orderItems: any[]) => {
   const { data: items, error: itemsError } = await supabase
     .from('order_items')
     .insert(itemsWithOrderId)
+    .select()
+  
+  if (itemsError) {
+    console.error('Order items error:', itemsError);
+  }
   
   return { data: { order: order[0], items }, error: itemsError }
 }

@@ -1,57 +1,33 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Bell, X, Plus, Minus } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Navbar } from "../../component/Navbar";
 
 interface CartItem {
   id: number;
+  name: string;
   restaurant: string;
   items: string;
   date: string;
   price: number;
   quantity: number;
   selected: boolean;
+  image_url?: string;
 }
-
 const FoodCartApp: React.FC = () => {
-  const [cartItems, setCartItems] = useState<CartItem[]>([
-    {
-      id: 1,
-      restaurant: "Mardiya Kitchen",
-      items: "rice, milk shake, chicken",
-      date: "Sep 4, 2021 at 12:14 am",
-      price: 17.84,
-      quantity: 0,
-      selected: true,
-    },
-    {
-      id: 2,
-      restaurant: "Mardiya Kitchen",
-      items: "rice, milk shake, chicken",
-      date: "Sep 4, 2021 at 12:14 am",
-      price: 17.84,
-      quantity: 0,
-      selected: false,
-    },
-    {
-      id: 3,
-      restaurant: "Mardiya Kitchen",
-      items: "rice, milk shake, chicken",
-      date: "Sep 4, 2021 at 12:14 am",
-      price: 17.84,
-      quantity: 0,
-      selected: true,
-    },
-    {
-      id: 4,
-      restaurant: "Mardiya Kitchen",
-      items: "rice, milk shake, chicken",
-      date: "Sep 4, 2021 at 12:14 am",
-      price: 17.84,
-      quantity: 0,
-      selected: true,
-    },
-  ]);
+  const [cartItems, setCartItems] = useState<CartItem[]>([]);
+ const navigate=useNavigate()
+  useEffect(() => {
+    const savedCart = sessionStorage.getItem('cart');
+    if (savedCart) {
+      setCartItems(JSON.parse(savedCart));
+    }
+  }, []);
+  useEffect(() => {
+    if (cartItems.length > 0) {
+      sessionStorage.setItem('cart', JSON.stringify(cartItems));
+    }
+  }, [cartItems]);
 
   const toggleSelectAll = () => {
     const allSelected = cartItems.every((item) => item.selected);
@@ -68,24 +44,37 @@ const FoodCartApp: React.FC = () => {
     );
   };
 
-  const updateQuantity = (id: number, change: number) => {
+
+   const updateQuantity = (id: number, change: number) => {
     setCartItems(
       cartItems.map((item) =>
         item.id === id
-          ? { ...item, quantity: Math.max(0, item.quantity + change) }
+          ? { ...item, quantity: Math.max(1, item.quantity + change) }
           : item
       )
     );
   };
 
   const removeItem = (id: number) => {
-    setCartItems(cartItems.filter((item) => item.id !== id));
+    const newCart = cartItems.filter((item) => item.id !== id);
+    setCartItems(newCart);
+    sessionStorage.setItem('cart', JSON.stringify(newCart));
+  };
+   const handleCheckout = () => {
+    const selectedItems = cartItems.filter((item) => item.selected);
+    if (selectedItems.length === 0) {
+      alert('Please select items to checkout');
+      return;
+    }
+    
+    sessionStorage.setItem('checkoutItems', JSON.stringify(selectedItems));
+    navigate('/payment');
   };
 
-  const selectedCount = cartItems.filter((item) => item.selected).length;
+const selectedCount = cartItems.filter((item) => item.selected).length;
   const totalPrice = cartItems
     .filter((item) => item.selected)
-    .reduce((sum, item) => sum + item.price, 0);
+    .reduce((sum, item) => sum + (item.price * item.quantity), 0);
 
   return (
     <div className="flex flex-col h-screen bg-gray-50">
@@ -190,11 +179,12 @@ const FoodCartApp: React.FC = () => {
               ${totalPrice.toFixed(2)}
             </p>
           </div>
-          <Link to="/payment">
-            <button className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-16 py-4 rounded-xl transition-colors">
-              Checkout
-            </button>
-          </Link>
+         <button 
+    onClick={handleCheckout}
+    className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-16 py-4 rounded-xl transition-colors"
+  >
+    Checkout
+  </button>
         </div>
       </div>
     </div>

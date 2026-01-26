@@ -1,12 +1,13 @@
-import { useState, useEffect } from "react"; // Add useEffect
+import { useState, useEffect } from "react";
 import { MapPin, Clock, Check, Package } from "lucide-react";
 import { VendorNav } from "../component/VendorNav";
-
+import { supabase } from '../../services/authService'; // Add this import
 import { getVendorOrders, updateOrderStatus } from '../../services/api'
 
 interface Order {
   id: string;
   customerName: string;
+  phone:string;
   address: string;
   time: string;
   image: string;
@@ -14,29 +15,62 @@ interface Order {
 }
 
 const OrdersManagement = () => {
- const [activeTab, setActiveTab] = useState<"pending" | "confirmed" | "cancelled" | "completed">("pending");
+  const [activeTab, setActiveTab] = useState<"pending" | "confirmed" | "cancelled" | "completed">("pending");
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [vendorId, setVendorId] = useState<string | null>(null); // Add this
+  const [loading, setLoading] = useState(true); // Add this
 
-  const [orders, setOrders] = useState<Order[]>([]); // Add this line
-
-  // Add useEffect to load orders
+  // Update useEffect to get vendor ID first
   useEffect(() => {
-    const loadOrders = async () => {
-      const vendorId = 'vendor_id' // Get from auth context
-      const { data, error } = await getVendorOrders(vendorId)
-      if (!error && data) {
-        const formattedOrders = data.map((order: any) => ({
-          id: order.id,
-          customerName: order.customer_name,
-          address: order.delivery_address,
-          time: new Date(order.scheduled_time).toLocaleString(),
-          image: order.order_items[0]?.menu_items?.image_url || '🍽️',
-          status: order.status
-        }))
-        setOrders(formattedOrders)
+    const initializeOrders = async () => {
+      try {
+        // Get current user from session
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        if (!session?.user) {
+          console.error('No user session found');
+          setLoading(false);
+          return;
+        }
+
+        // Get vendor ID from vendors table
+        const { data: vendorData, error: vendorError } = await supabase
+          .from('vendors')
+          .select('id')
+          .eq('user_id', session.user.id)
+          .single();
+
+        if (vendorError || !vendorData) {
+          console.error('Vendor not found:', vendorError);
+          setLoading(false);
+          return;
+        }
+
+        setVendorId(vendorData.id);
+        
+        // Now load orders with the vendor ID
+        const { data, error } = await getVendorOrders(vendorData.id);
+        if (!error && data) {
+          const formattedOrders = data.map((order: any) => ({
+            id: order.id,
+            customerName: order.customer_name,
+            address: order.delivery_address,
+            time: new Date(order.scheduled_time).toLocaleString(),
+            image: order.order_items[0]?.menu_items?.image_url || '🍽️',
+             phone: order.customer_phone,
+            status: order.status
+          }));
+          setOrders(formattedOrders);
+        }
+      } catch (error) {
+        console.error('Error initializing orders:', error);
+      } finally {
+        setLoading(false);
       }
-    }
-    loadOrders()
-  }, [])
+    };
+
+    initializeOrders();
+  }, []);
 
   // Fix the handler types
   const handleAccept = async (orderId: string) => {
@@ -66,7 +100,6 @@ const OrdersManagement = () => {
     }
   }
 
-  // Rest of your component...
   const filteredOrders = orders.filter((order) => order.status === activeTab);
 
   const getStatusBadge = (status: string) => {
@@ -96,13 +129,36 @@ const OrdersManagement = () => {
           </span>
         );
       default:
-        return null;
+        return <p>Nothing for now  </p>
     }
   };
 
   const getOrderCount = (status: string) => {
     return orders.filter((order) => order.status === status).length;
   };
+
+  // Add loading state
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-green-600 mx-auto mb-4"></div>
+          <p className="text-gray-600 font-semibold">Loading orders...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!vendorId) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-red-600 font-semibold text-lg mb-4">Vendor not found</p>
+          <p className="text-gray-600">Please log in again</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 pb-24">
@@ -205,10 +261,21 @@ const OrdersManagement = () => {
                 className="bg-white rounded-2xl shadow-md hover:shadow-xl transition-all duration-300 p-4 transform hover:-translate-y-1"
               >
                 <div className="flex gap-4">
-                  {/* Order Image */}
-                  <div className="w-20 h-20 rounded-xl bg-gradient-to-br from-green-100 to-green-200 flex items-center justify-center text-4xl flex-shrink-0 shadow-md">
-                    {order.image}
-                  </div>
+               {/* Order Image */}
+<div className="w-20 h-20 rounded-xl bg-gradient-to-br from-green-100 to-green-200 flex items-center justify-center flex-shrink-0 shadow-md overflow-hidden">
+  {order.image.startsWith('http') ? (
+    <img 
+      src={order.image} 
+      alt="Food" 
+      className="w-full h-full object-cover"
+      onError={(e) => {
+        (e.target as HTMLImageElement).src = 'https://via.placeholder.com/80?text=Food'; // Fallback if link is broken
+      }}
+    />
+  ) : (
+    <span className="text-4xl">{order.image}</span>
+  )}
+</div>
 
                   {/* Order Details */}
                   <div className="flex-1 min-w-0">
@@ -216,8 +283,22 @@ const OrdersManagement = () => {
                       <h3 className="font-bold text-gray-800 text-lg">
                         {order.customerName}
                       </h3>
+                      <h3 className="font-bold text-gray-800 text-lg">
+                        {order.phone}
+                      </h3>
                       {getStatusBadge(order.status)}
                     </div>
+                  
+                    {/* Display Phone Number as a link */}
+  <div className="mb-2">
+    <a 
+      href={`tel:${order.phone}`} 
+      className="text-emerald-600 font-bold text-sm hover:underline flex items-center gap-1"
+    >
+      📞 {order.phone || "No phone provided"}
+    </a>
+  </div>
+
 
                     <div className="flex items-start gap-2 text-gray-600 text-sm mb-2">
                       <MapPin className="w-4 h-4 mt-0.5 flex-shrink-0 text-green-600" />

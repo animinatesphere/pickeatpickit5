@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react"; 
 import { ChevronLeft, Search, Filter, Minus, Plus, Clock } from "lucide-react";
 import { Navbar } from "../../component/Navbar";
-import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
+// import { Link } from "react-router-dom";
 // import { getMenuItems, createOrder } from '../services/api'
-import { getMenuItems, createOrder } from '../../services/api'
+import { getMenuItems } from '../../services/api'
 
 type Screen = "kitchen" | "confirm" | "payment" | "success";
 
@@ -12,11 +13,10 @@ interface MenuItem {
   name: string;
   price: number;
   discount: number;
-  image: string;
+  image_url: string; // Changed to match DB
   description: string;
   quantity: number;
 }
-
 interface OrderItem {
   id: number; // Add this line
   name: string;
@@ -24,129 +24,88 @@ interface OrderItem {
   price: number;
 }
 
-const menuItems: MenuItem[] = [
-  {
-    id: 1,
-    name: "Fried Rice",
-    price: 23.45,
-    discount: 15,
-    image:
-      "https://images.unsplash.com/photo-1562909895-d82f9655a90c?w=500&h=500&fit=crop",
-    description: "Delicious fried rice with vegetables",
-    quantity: 0,
-  },
-  {
-    id: 2,
-    name: "Fresh Salad",
-    price: 23.45,
-    discount: 30,
-    image:
-      "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500&h=500&fit=crop",
-    description: "Crisp and fresh garden salad",
-    quantity: 0,
-  },
-  {
-    id: 3,
-    name: "Chicken BBQ",
-    price: 23.45,
-    discount: 38,
-    image:
-      "https://images.unsplash.com/photo-1598103442097-8b74394b95c6?w=500&h=500&fit=crop",
-    description: "Smoky grilled chicken",
-    quantity: 0,
-  },
-  {
-    id: 4,
-    name: "Fried Plantain",
-    price: 23.45,
-    discount: 25,
-    image:
-      "https://images.unsplash.com/photo-1585238341710-4b4e6ceea842?w=500&h=500&fit=crop",
-    description: "Golden crispy plantain slices",
-    quantity: 0,
-  },
-  {
-    id: 5,
-    name: "Grilled Fish",
-    price: 23.45,
-    discount: 15,
-    image:
-      "https://images.unsplash.com/photo-1580959375944-abd7e991f971?w=500&h=500&fit=crop",
-    description: "Fresh grilled fish fillet",
-    quantity: 0,
-  },
-  {
-    id: 6,
-    name: "Premium Burger",
-    price: 23.45,
-    discount: 40,
-    image:
-      "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=500&h=500&fit=crop",
-    description: "Juicy beef burger with toppings",
-    quantity: 0,
-  },
-  {
-    id: 7,
-    name: "Fried Chicken",
-    price: 23.45,
-    discount: 25,
-    image:
-      "https://images.unsplash.com/photo-1626082927389-6cd097cdc45e?w=500&h=500&fit=crop",
-    description: "Crispy golden fried chicken",
-    quantity: 0,
-  },
-];
 
 export default function MArket() {
   const [screen, setScreen] = useState<Screen>("kitchen");
-  const [items, setItems] = useState<MenuItem[]>(menuItems);
+  const [items, setItems] = useState<MenuItem[]>([]);
   const [spiceLevel, setSpiceLevel] = useState(30);
   const [scheduleOrder, setScheduleOrder] = useState(true);
+  const navigate = useNavigate();
 useEffect(() => {
   const loadMenu = async () => {
-    const { data, error } = await getMenuItems() // Gets all vendors' items
+    const { data, error } = await getMenuItems(); 
     if (!error && data) {
-      const formattedItems = data.map(item => ({
+      const formattedItems = data.map((item: any) => ({
         ...item,
         quantity: 0,
-        discount: 15 // Add discount logic if needed
-      }))
-      setItems(formattedItems)
+        // Ensure we use image_url from the DB, fallback to a placeholder if null
+        image_url: item.image_url || "https://via.placeholder.com/150", 
+        discount: item.discount || 15 
+      }));
+      setItems(formattedItems);
     }
-  }
-  loadMenu()
-}, [])
+  };
+  loadMenu();
+}, []);
 
-const handleConfirmOrder = async () => {
-  const userId = 'CURRENT_USER_ID' // Get from auth context
-  const vendorId = 'VENDOR_ID' // Get from selected restaurant
-  
-  const cart = getCart()
-  const total = cart.reduce((sum, item) => sum + item.price, 0)
-  
-  const orderData = {
-    vendor_id: vendorId,
-    customer_id: userId,
-    customer_name: 'User Name', // Get from user profile
-    delivery_address: 'User Address',
-    scheduled_time: scheduleOrder ? 'SELECTED_DATE_TIME' : new Date(),
-    status: 'pending',
-    spice_level: spiceLevel,
-    special_instructions: 'FROM_TEXTAREA',
-    total_amount: total
+const addToCart = (item: MenuItem) => {
+  if (item.quantity === 0) {
+    alert('Please select quantity first');
+    return;
   }
-  
-  const orderItems = cart.map(item => ({
-    menu_item_id: item.id,
+
+  const existingCart = sessionStorage.getItem('cart');
+  let cart = existingCart ? JSON.parse(existingCart) : [];
+
+  const cartItem = {
+    id: item.id,
+    name: item.name,
+    restaurant: "Mardiya Kitchen", // You can make this dynamic
+    items: item.description,
+    date: new Date().toLocaleString(),
+    price: item.price * (1 - item.discount / 100),
     quantity: item.quantity,
-    price_at_order: item.price / item.quantity
-  }))
-  
-  const { error } = await createOrder(orderData, orderItems)
-  if (!error) {
-    // Navigate to payment
+    selected: true,
+    image_url: item.image_url
+  };
+
+  // Check if item already exists in cart
+  const existingItemIndex = cart.findIndex((i: any) => i.id === item.id);
+  if (existingItemIndex > -1) {
+    cart[existingItemIndex].quantity += item.quantity;
+  } else {
+    cart.push(cartItem);
   }
-}
+
+  sessionStorage.setItem('cart', JSON.stringify(cart));
+  alert('Item added to cart!');
+};
+const handleConfirmOrder = async () => {
+  const cart = getCart();
+  
+  if (cart.length === 0) {
+    alert('Please add items to cart first');
+    return;
+  }
+
+  // Get the input elements with proper typing
+  const dateInput = document.querySelector('input[type="date"]') as HTMLInputElement;
+  const timeInput = document.querySelector('input[type="time"]') as HTMLInputElement;
+  const instructionsTextarea = document.querySelector('textarea') as HTMLTextAreaElement;
+
+  // Store cart in sessionStorage to access in payment page
+  sessionStorage.setItem('pendingOrder', JSON.stringify({
+    items: cart,
+    spiceLevel,
+    scheduleOrder,
+    scheduledDate: scheduleOrder ? dateInput?.value : null,
+    scheduledTime: scheduleOrder ? timeInput?.value : null,
+    specialInstructions: instructionsTextarea?.value || ''
+  }));
+
+  navigate('/payment');
+};
+
 const getCart = (): OrderItem[] =>
   items
     .filter((item) => item.quantity > 0)
@@ -203,11 +162,14 @@ const getCart = (): OrderItem[] =>
               >
                 <div className="flex flex-col h-full">
                   <div className="relative overflow-hidden h-40 bg-gray-200">
-                    <img
-                      src={item.image}
-                      alt={item.name}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    />
+                 <img
+  src={item.image_url} // Changed from item.imageUrl
+  alt={item.name}
+  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+  // Error handling: if the image fails to load, show a placeholder
+  onError={(e) => {
+    (e.target as HTMLImageElement).src = "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500";
+  }} />
                   </div>
                   <div className="p-4 flex-1 flex flex-col">
                     <h3 className="font-bold text-lg text-gray-900 mb-1">
@@ -246,12 +208,26 @@ const getCart = (): OrderItem[] =>
                           <Plus className="w-4 h-4 text-gray-700" />
                         </button>
                       </div>
-                      <button
-                        onClick={() => setScreen("confirm")}
-                        className="text-green-600 font-bold text-sm hover:text-green-700 transition-colors"
-                      >
-                        Order Now
-                      </button>
+                    <div className="flex items-center gap-2">
+  <button
+    onClick={() => addToCart(item)}
+    className="text-green-600 font-bold text-sm hover:text-green-700 transition-colors"
+  >
+    Add to Cart
+  </button>
+  <button
+    onClick={() => {
+      if (item.quantity === 0) {
+        alert('Please select quantity first');
+        return;
+      }
+      setScreen("confirm");
+    }}
+    className="text-blue-600 font-bold text-sm hover:text-blue-700 transition-colors"
+  >
+    Order Now
+  </button>
+</div>
                     </div>
                   </div>
                 </div>
@@ -267,11 +243,10 @@ const getCart = (): OrderItem[] =>
     <div className="min-h-screen w-full bg-gray-50">
       <div className="sticky top-0 bg-white z-40 border-b border-gray-200 shadow-sm">
         <div className="max-w-3xl mx-auto px-4 py-4 flex items-center gap-4">
-          <ChevronLeft
-            className="w-6 h-6 cursor-pointer text-gray-700 hover:text-gray-900"
-            // onClick={() => setScreen("kitchen")}
-          onClick={handleConfirmOrder}
-          />
+      <ChevronLeft
+  className="w-6 h-6 cursor-pointer text-gray-700 hover:text-gray-900"
+  onClick={() => setScreen("kitchen")} // Go back to the menu
+/>
           <h1 className="text-xl font-bold text-gray-900 flex-1">
             Confirm Order
           </h1>
@@ -282,11 +257,11 @@ const getCart = (): OrderItem[] =>
         <div className="bg-white border border-gray-200 rounded-xl p-5 mb-6 hover:shadow-md transition-shadow">
           <div className="flex gap-4 mb-4">
             <div className="w-20 h-20 bg-gray-200 rounded-lg overflow-hidden flex-shrink-0">
-              <img
-                src="https://images.unsplash.com/photo-1555939594-58d7cb561404?w=80&h=80&fit=crop"
-                alt="Restaurant"
-                className="w-full h-full object-cover"
-              />
+            <img
+  src={getCart().length > 0 ? items.find(i => i.id === getCart()[0].id)?.image_url : "https://images.unsplash.com/photo-1555939594-58d7cb561404"}
+  alt="Restaurant"
+  className="w-full h-full object-cover"
+/>
             </div>
             <div className="flex-1">
               <h2 className="font-bold text-lg text-gray-900">
@@ -417,11 +392,12 @@ const getCart = (): OrderItem[] =>
             )}
           </div>
         </div>
-        <Link to="/payment">
-          <button className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-4 rounded-lg transition-colors shadow-lg hover:shadow-xl">
-            Confirm Order
-          </button>
-        </Link>
+      <button 
+  onClick={handleConfirmOrder}
+  className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-4 rounded-lg transition-colors shadow-lg hover:shadow-xl"
+>
+  Confirm Order
+</button>
       </div>
     </div>
   );
