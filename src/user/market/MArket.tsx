@@ -47,6 +47,23 @@ useEffect(() => {
   };
   loadMenu();
 }, []);
+const handleOrderNow = (item: MenuItem) => {
+  if (item.quantity === 0) return;
+
+  const checkoutItems = [{
+    id: item.id,
+    name: item.name,
+    quantity: item.quantity,
+    price: item.price,
+    image_url: item.image_url
+  }];
+
+  // Save to session storage so PaymentComponent can read it
+  sessionStorage.setItem("checkoutItems", JSON.stringify(checkoutItems));
+  
+  // Navigate to payment
+  navigate("/payment"); 
+};
 
 const addToCart = (item: MenuItem) => {
   if (item.quantity === 0) {
@@ -180,10 +197,10 @@ const getCart = (): OrderItem[] =>
                     </p>
                     <p className="text-gray-600 text-sm mb-3">
                       <span className="line-through text-gray-400">
-                        ${item.price.toFixed(2)}
+                         ₦{item.price.toLocaleString()}
                       </span>
                       <span className="ml-2 font-bold text-gray-900">
-                        ${discountedPrice}
+                       ₦{discountedPrice}
                       </span>
                     </p>
                     <p className="text-gray-500 text-xs mb-4 flex-1">
@@ -216,13 +233,7 @@ const getCart = (): OrderItem[] =>
     Add to Cart
   </button>
   <button
-    onClick={() => {
-      if (item.quantity === 0) {
-        alert('Please select quantity first');
-        return;
-      }
-      setScreen("confirm");
-    }}
+  onClick={() => handleOrderNow(item)}
     className="text-blue-600 font-bold text-sm hover:text-blue-700 transition-colors"
   >
     Order Now

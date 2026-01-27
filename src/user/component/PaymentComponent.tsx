@@ -75,51 +75,47 @@ const handlePayment = async () => {
 
   try {
     const { data: { session } } = await supabase.auth.getSession();
-
     if (!session?.user) {
       alert("Please login first");
       navigate("/login");
       return;
     }
 
-    // 1. Get vendor_id from the first menu item
+    // 1. Get metadata FIRST
+    const authMetadata = session.user.user_metadata;
+    const customerFullName = `${authMetadata?.firstname || ""} ${authMetadata?.lastname || ""}`.trim() || "Customer";
+    const customerPhone = authMetadata?.phone || "No phone";
+
+    // 2. Get vendor_id from the first menu item
     const firstItemId = orderData.items[0].id;
-    const { data: menuItem, error: menuError } = await supabase
+    const { data: menuItem } = await supabase
       .from("menu_items")
       .select("vendor_id")
       .eq("id", firstItemId)
       .single();
 
-    if (menuError || !menuItem?.vendor_id) {
+    if (!menuItem?.vendor_id) {
       alert("Unable to find vendor information.");
       setLoading(false);
       return;
     }
 
-    // 2. Get vendor business name
-    const { data: vendors } = await supabase
-      .from("vendors")
+    // 3. Get restaurant name
+    const { data: vendorProfile } = await supabase
+      .from("vendor_profiles")
       .select("business_name")
-      .eq("id", menuItem.vendor_id);
+      .eq("vendor_id", menuItem.vendor_id)
+      .single();
 
-    const restaurantName = vendors?.[0]?.business_name || "Restaurant";
+    const restaurantName = vendorProfile?.business_name || "Restaurant";
     const { total } = calculateTotal();
 
-    // --- MOVE THIS BLOCK UP (FIX START) ---
-    // 3. Define metadata and customer details BEFORE using them
-    const authMetadata = session.user.user_metadata;
-    const customerFirstName = authMetadata?.firstname || "";
-    const customerLastName = authMetadata?.lastname || "";
-    const customerFullName = `${customerFirstName} ${customerLastName}`.trim() || "Customer";
-    const customerPhone = authMetadata?.phone || "No phone";
-    // --- FIX END ---
-
-    // 4. Update/Sync user profile
+    // 4. Upsert User Profile (Requires the UNIQUE constraint from SQL above)
     await supabase.from("users").upsert(
       {
         user_id: session.user.id,
-        firstname: customerFirstName,
-        lastname: customerLastName,
+        firstname: authMetadata?.firstname || "",
+        lastname: authMetadata?.lastname || "",
         phone: customerPhone,
         email: session.user.email,
         updated_at: new Date().toISOString(),
@@ -127,45 +123,39 @@ const handlePayment = async () => {
       { onConflict: "user_id" }
     );
 
-    // 5. Prepare scheduled time
-    let scheduledTime = new Date();
-    if (orderData.scheduleOrder && orderData.scheduledDate && orderData.scheduledTime) {
-      scheduledTime = new Date(`${orderData.scheduledDate}T${orderData.scheduledTime}`);
-    }
-
-    // 6. Create the order
+    // 5. Create the order payload
     const orderPayload = {
       vendor_id: menuItem.vendor_id,
       restaurant_name: restaurantName,
       user_id: session.user.id,
-      customer_name: customerFullName, // Now uses the variable defined above
-      customer_phone: customerPhone,   // Now uses the variable defined above
-      items_count: orderData.items.length,
+      customer_name: customerFullName,
+      customer_phone: customerPhone,
       delivery_address: deliveryAddress,
-      scheduled_time: scheduledTime.toISOString(),
+      scheduled_time: new Date().toISOString(),
       status: "pending",
-      total_price: total,
+      total_amount: total, // Matches the renamed column in SQL
     };
 
     const orderItems = orderData.items.map((item) => ({
       menu_item_id: item.id,
       quantity: item.quantity,
-      price: item.price,
+      price_at_order: item.price,
     }));
 
-    const { data: createdOrder, error } = await createOrder(orderPayload, orderItems);
+    const { data: createdOrder, error: orderError } = await createOrder(orderPayload, orderItems);
 
-    if (!error && createdOrder?.order?.id) {
+    if (!orderError && createdOrder?.order?.id) {
       sessionStorage.removeItem("cart");
       sessionStorage.removeItem("pendingOrder");
       sessionStorage.removeItem("checkoutItems");
       setTrackingCode(createdOrder.order.id);
     } else {
-      alert("Failed to place order.");
+      console.error("Order Error:", orderError);
+      alert("Failed to place order. " + (orderError?.message || ""));
     }
   } catch (error) {
     console.error("Payment error:", error);
-    alert("An error occurred.");
+    alert("An error occurred. Check console for details.");
   } finally {
     setLoading(false);
   }
@@ -270,7 +260,7 @@ const handlePayment = async () => {
 
           {/* Action Buttons */}
           <button
-            onClick={() => navigate("/bookings")}
+            onClick={() => navigate("/booking")}
             className="w-full bg-green-600 text-white font-bold py-4 rounded-xl hover:bg-green-700 transition-colors shadow-lg mb-3"
           >
             Track Your Order
@@ -355,7 +345,7 @@ const handlePayment = async () => {
                   </p>
                 </div>
                 <p className="font-bold text-green-600 text-lg">
-                  ${(item.price * item.quantity).toFixed(2)}
+                    ₦{(item.price * item.quantity).toLocaleString()}
                 </p>
               </div>
             ))}
@@ -370,11 +360,11 @@ const handlePayment = async () => {
           <div className="space-y-3 text-base">
             <div className="flex justify-between text-gray-700">
               <span>Subtotal</span>
-              <span className="font-semibold">${subtotal.toFixed(2)}</span>
+              <span className="font-semibold"> ₦{subtotal.toFixed(2).toLocaleString()}</span>
             </div>
             <div className="flex justify-between text-gray-700">
               <span>Delivery Fee</span>
-              <span className="font-semibold">${delivery.toFixed(2)}</span>
+              <span className="font-semibold">₦{delivery.toFixed(2).toLocaleString()}</span>
             </div>
             {orderData.spiceLevel && (
               <div className="flex justify-between text-gray-600 text-sm pt-2 border-t">
@@ -400,7 +390,7 @@ const handlePayment = async () => {
             )}
             <div className="border-t-2 border-green-200 pt-4 mt-4 flex justify-between font-bold text-xl">
               <span className="text-gray-900">Total Amount</span>
-              <span className="text-green-600">${total.toFixed(2)}</span>
+              <span className="text-green-600">₦{total.toFixed(2).toLocaleString()}</span>
             </div>
           </div>
         </div>

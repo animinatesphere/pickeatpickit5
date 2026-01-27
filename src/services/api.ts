@@ -40,34 +40,28 @@ export const getMenuItems = async (vendorId: string | null = null) => {
 // ORDERS
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const createOrder = async (orderData: any, orderItems: any[]) => {
-  // Create order
+  // 1. Insert the main order
   const { data: order, error: orderError } = await supabase
-    .from("orders")
+    .from('orders')
     .insert([orderData])
-    .select();
-
-  if (orderError) {
-    console.error("Order creation error:", orderError);
-    return { data: null, error: orderError };
-  }
-
-  // Add order items
-  const itemsWithOrderId = orderItems.map((item) => ({
+    .select()
+    .single();
+  
+  if (orderError) return { data: null, error: orderError };
+  
+  // 2. Insert the individual items linked to that order
+  const itemsWithOrderId = orderItems.map(item => ({
     ...item,
-    order_id: order[0].id,
+    order_id: order.id
   }));
-
+  
   const { data: items, error: itemsError } = await supabase
-    .from("order_items")
+    .from('order_items')
     .insert(itemsWithOrderId)
     .select();
-
-  if (itemsError) {
-    console.error("Order items error:", itemsError);
-  }
-
-  return { data: { order: order[0], items }, error: itemsError };
-};
+  
+  return { data: { order, items }, error: itemsError };
+}
 
 // Upload menu item image
 export const uploadMenuImage = async (file: File, vendorId: string) => {

@@ -1049,68 +1049,41 @@ class AuthService {
   }
 
   // Upload vendor photo
-  async uploadVendorPhoto(
-    vendorId: string,
-    file: File,
-    photoType: "store_logo" | "store_cover",
-  ): Promise<Record<string, unknown>[] | null> {
-    try {
-      const fileName = `${vendorId}/${photoType}/${Date.now()}_${file.name}`;
+ // Inside authService.ts
+// Inside class AuthService...
 
-      // Try to upload, but don't fail if bucket doesn't exist
-      let publicUrl = `https://acuqcetaduizgwchoosa.supabase.co/storage/v1/object/public/vendor-photos/${fileName}`;
+async uploadVendorPhoto(vendorId: string, file: File, photoType: string) {
+    const fileName = `${vendorId}/${Date.now()}`;
+    
+    // 1. Fixed Error: Removed 'data: uploadData' since it was never read
+    const { error: uploadError } = await supabase.storage
+      .from('vendor-photos') 
+      .upload(fileName, file);
 
-      const { error: uploadError } = await supabase.storage
-        .from("vendor-photos")
-        .upload(fileName, file);
+    if (uploadError) throw uploadError;
 
-      // If upload fails due to bucket not existing, use placeholder
-      if (uploadError) {
-        console.warn("Photo upload warning:", uploadError.message);
-        // Generate a placeholder URL
-        publicUrl = `placeholder:${photoType}:${Date.now()}`;
-      } else {
-        // Get actual public URL if upload succeeded
-        const { data: publicUrlData } = supabase.storage
-          .from("vendor-photos")
-          .getPublicUrl(fileName);
-        publicUrl = publicUrlData.publicUrl;
-      }
+    const { data: urlData } = supabase.storage
+      .from('vendor-photos')
+      .getPublicUrl(fileName);
 
-      // Try to save photo record
-      const { data, error } = await supabase
-        .from("vendor_photos")
-        .insert([
-          {
-            vendor_id: vendorId,
-            photo_type: photoType,
-            photo_url: publicUrl,
-            file_size: file.size,
-            file_format: file.type,
-          },
-        ])
-        .select();
+    const publicUrl = urlData.publicUrl;
 
-      if (error) {
-        // If vendor_photos table doesn't exist or vendor not found, just return success
-        if (error.code === "23503" || error.code === "42P01") {
-          console.warn("Photo table warning:", error.message);
-          return [{ photo_type: photoType, photo_url: publicUrl }];
-        }
-        // For duplicate photos, still allow it
-        if (error.code === "23505") {
-          return [{ photo_type: photoType, photo_url: publicUrl }];
-        }
-        throw new APIError(error.message, 400);
-      }
-      return data;
-    } catch (error) {
-      if (error instanceof APIError) throw error;
-      // Allow upload to continue even if there's an error
-      console.warn("Photo upload error (non-critical):", error);
-      return [{ photo_type: photoType, success: true }];
+    // 2. Fixed Error: Added a check for 'error' (renamed to dbError) so it is used
+    const { data, error: dbError } = await supabase
+      .from("vendor_photos")
+      .insert([{
+        vendor_id: vendorId,
+        photo_type: photoType,
+        photo_url: publicUrl
+      }])
+      .select();
+
+    if (dbError) {
+      throw new APIError(dbError.message, 400);
     }
-  }
+
+    return data;
+}
 
   // Save business details
   async saveBusinessDetails(

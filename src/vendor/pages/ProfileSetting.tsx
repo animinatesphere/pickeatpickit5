@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ArrowLeft, Camera, MapPin, Edit2, Check, X } from "lucide-react";
 import { VendorNav } from "../component/VendorNav";
 // import { apiService } from "../services/authService";
@@ -10,7 +10,9 @@ const ProfileSetting = () => {
   const [editingField, setEditingField] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [vendorId, setVendorId] = useState<string | null>(null);
-
+const [profileImage, setProfileImage] = useState<string>("");
+const [isPhotoLoading, setIsPhotoLoading] = useState(false);
+const fileInputRef = useRef<HTMLInputElement>(null);
   // Initialize formData with empty values - will be populated by useEffect
   const [formData, setFormData] = useState({
     restaurantName: "",
@@ -42,136 +44,130 @@ const ProfileSetting = () => {
     setEditingField(null);
     setTempValue("");
   };
-  useEffect(() => {
-    const fetchVendorData = async () => {
-      try {
-        setIsLoading(true);
+useEffect(() => {
+  const fetchVendorData = async () => {
+    try {
+      setIsLoading(true);
 
-        // Check session first
-        const {
-          data: { session },
-        } = await supabase.auth.getSession();
-        console.log("Session:", session);
-
-        if (!session) {
-          console.log("No active session, redirecting to login");
-          window.location.href = "/vendor-login";
-          return;
-        }
-
-        // Check if email is confirmed
-        if (!session.user.email_confirmed_at) {
-          alert(
-            "Please verify your email before accessing your profile. Check your inbox for the verification link.",
-          );
-          window.location.href = "/vendor-login";
-          return;
-        }
-
-        // Get current user
-        const user = await apiService.getCurrentUser();
-        console.log("Current User:", user);
-
-        if (!user) {
-          console.error("No user found - redirecting to login");
-          window.location.href = "/vendor-login";
-          return;
-        }
-
-        // Get vendor record to find vendor_id
-        const { data: vendorData, error: vendorError } = await supabase
-          .from("vendors")
-          .select(
-            "id, email, firstname, lastname, phone, business_address, business_name, state, lga",
-          )
-          .eq("user_id", user.id)
-          .single();
-
-        console.log("Vendor Data:", vendorData);
-        console.log("Vendor Error:", vendorError);
-
-        if (vendorError) {
-          console.error("Error fetching vendor:", vendorError);
-          return;
-        }
-
-        setVendorId(vendorData.id);
-
-        // Fetch vendor profile
-        const { data: profileData, error: profileError } = await supabase
-          .from("vendor_profiles")
-          .select("*")
-          .eq("vendor_id", vendorData.id)
-          .single();
-
-        console.log("Profile Data:", profileData);
-        console.log("Profile Error:", profileError);
-
-        // Fetch vendor availability
-        const { data: availabilityData, error: availError } = await supabase
-          .from("vendor_availability")
-          .select("*")
-          .eq("vendor_id", vendorData.id)
-          .single();
-
-        console.log("Availability Data:", availabilityData);
-        console.log("Availability Error:", availError);
-
-        // Update formData with fetched data
-        setFormData({
-          restaurantName:
-            profileData?.business_name ||
-            vendorData.business_name ||
-            "Restaurant Name",
-          category: "Restaurant",
-          email: profileData?.business_email || vendorData.email || "",
-          phone: profileData?.business_phone || vendorData.phone || "",
-          fullName:
-            profileData?.full_name ||
-            `${vendorData.firstname || ""} ${vendorData.lastname || ""}`.trim(),
-          address:
-            profileData?.business_address || vendorData.business_address || "",
-          zip: "900104",
-          city: profileData?.lga || vendorData.lga || "City",
-          state: profileData?.state || vendorData.state || "State",
-          deliveryRange:
-            availabilityData?.day_from && availabilityData?.day_to
-              ? `${availabilityData.day_from} - ${availabilityData.day_to}`
-              : "Not Set",
-        });
-
-        // Set restaurant status based on availability
-        if (availabilityData?.is_open !== undefined) {
-          setIsOpen(availabilityData.is_open);
-        }
-      } catch (error) {
-        console.error("Error loading vendor data:", error);
-
-        // Check for email confirmation error
-        if (
-          error instanceof Error &&
-          error.message.includes("Email not confirmed")
-        ) {
-          alert(
-            "Please verify your email before accessing your profile. Check your inbox.",
-          );
-          window.location.href = "/vendor-login";
-          return;
-        }
-
-        if (
-          error instanceof Error &&
-          error.message.includes("Auth session missing")
-        ) {
-          window.location.href = "/vendor-login";
-        }
-      } finally {
-        setIsLoading(false);
+      // 1. Check session
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        window.location.href = "/vendor-login";
+        return;
       }
-    };
 
-    fetchVendorData();
-  }, []);
+      // 2. Check email verification
+      if (!session.user.email_confirmed_at) {
+        alert("Please verify your email before accessing your profile.");
+        window.location.href = "/vendor-login";
+        return;
+      }
+
+      // 3. Get current user
+      const user = await apiService.getCurrentUser();
+      if (!user) {
+        window.location.href = "/vendor-login";
+        return;
+      }
+
+      // 4. Get vendor record FIRST (This provides the vendor ID)
+      const { data: vendorData, error: vendorError } = await supabase
+        .from("vendors")
+        .select("id, email, firstname, lastname, phone, business_address, business_name, state, lga")
+        .eq("user_id", user.id)
+        .single();
+
+      if (vendorError || !vendorData) {
+        console.error("Error fetching vendor:", vendorError);
+        return;
+      }
+
+      setVendorId(vendorData.id);
+
+      // 5. NOW fetch the photo using the valid vendorData.id
+      const { data: photoData } = await supabase
+        .from("vendor_photos")
+        .select("photo_url")
+        .eq("vendor_id", vendorData.id)
+        .eq("photo_type", "store_logo")
+        .order("uploaded_at", { ascending: false })
+        .limit(1);
+
+      if (photoData && photoData.length > 0) {
+        setProfileImage(photoData[0].photo_url);
+      }
+
+      // 6. Fetch remaining profile data
+      const { data: profileData } = await supabase
+        .from("vendor_profiles")
+        .select("*")
+        .eq("vendor_id", vendorData.id)
+        .single();
+
+      const { data: availabilityData } = await supabase
+        .from("vendor_availability")
+        .select("*")
+        .eq("vendor_id", vendorData.id)
+        .single();
+
+      // 7. Update formData
+      setFormData({
+        restaurantName: profileData?.business_name || vendorData.business_name || "Restaurant Name",
+        category: "Restaurant",
+        email: profileData?.business_email || vendorData.email || "",
+        phone: profileData?.business_phone || vendorData.phone || "",
+        fullName: profileData?.full_name || `${vendorData.firstname || ""} ${vendorData.lastname || ""}`.trim(),
+        address: profileData?.business_address || vendorData.business_address || "",
+        zip: "900104",
+        city: profileData?.lga || vendorData.lga || "City",
+        state: profileData?.state || vendorData.state || "State",
+        deliveryRange: availabilityData?.day_from && availabilityData?.day_to
+            ? `${availabilityData.day_from} - ${availabilityData.day_to}`
+            : "Not Set",
+      });
+
+      if (availabilityData?.is_open !== undefined) {
+        setIsOpen(availabilityData.is_open);
+      }
+    } catch (error) {
+      console.error("Error loading vendor data:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  fetchVendorData();
+}, []);
+
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const file = e.target.files?.[0];
+  if (!file || !vendorId) return;
+
+  // Basic validation
+  if (file.size > 1024 * 1024) {
+    alert("File size must be less than 1MB");
+    return;
+  }
+
+  try {
+    setIsPhotoLoading(true);
+    
+    // Call your existing service
+    const response = await apiService.uploadVendorPhoto(vendorId, file, "store_logo");
+    
+    if (response && response.length > 0) {
+      // Update local UI
+      const newUrl = response[0].photo_url as string;
+      setProfileImage(newUrl);
+      alert("Profile photo updated!");
+    }
+  } catch (error) {
+    console.error("Upload error:", error);
+    alert("Failed to upload photo");
+  } finally {
+    setIsPhotoLoading(false);
+  }
+};
   const handleSaveChanges = async () => {
     if (!vendorId) return;
 
@@ -263,21 +259,43 @@ const ProfileSetting = () => {
         </div>
 
         {/* Profile Card */}
-        <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
-          <div className="flex items-start gap-4">
-            <div className="relative group">
-              <div className="w-24 h-24 rounded-full bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center shadow-lg">
-                <Camera className="w-10 h-10 text-white" />
-              </div>
-              <button className="absolute bottom-0 right-0 w-8 h-8 bg-green-600 rounded-full flex items-center justify-center shadow-lg hover:bg-green-700 transition-all transform hover:scale-110">
-                <Edit2 className="w-4 h-4 text-white" />
-              </button>
-              <p className="text-xs text-center text-gray-600 mt-2">
-                Update
-                <br />
-                Profile Photo
-              </p>
-            </div>
+     <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
+  <div className="flex items-start gap-4">
+    <div className="relative group">
+      {/* Hidden File Input */}
+      <input
+        type="file"
+        ref={fileInputRef}
+        onChange={handlePhotoUpload}
+        accept="image/*"
+        className="hidden"
+      />
+      
+      <div 
+        onClick={() => fileInputRef.current?.click()}
+        className="w-24 h-24 rounded-full bg-gray-100 flex items-center justify-center shadow-lg cursor-pointer overflow-hidden border-4 border-white relative"
+      >
+        {isPhotoLoading ? (
+          <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
+            <div className="w-6 h-6 border-2 border-green-600 border-t-transparent rounded-full animate-spin"></div>
+          </div>
+        ) : null}
+
+        {profileImage ? (
+          <img src={profileImage} alt="Profile" className="w-full h-full object-cover" />
+        ) : (
+          <Camera className="w-10 h-10 text-gray-400" />
+        )}
+      </div>
+
+      <button 
+        onClick={() => fileInputRef.current?.click()}
+        className="absolute bottom-0 right-0 w-8 h-8 bg-green-600 rounded-full flex items-center justify-center shadow-lg hover:bg-green-700 transition-all transform hover:scale-110"
+      >
+        <Edit2 className="w-4 h-4 text-white" />
+      </button>
+    </div>
+    
             <div className="flex-1">
               <h2 className="text-2xl font-bold text-gray-800">
                 {formData.restaurantName}

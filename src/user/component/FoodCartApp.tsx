@@ -130,7 +130,7 @@ const selectedCount = cartItems.filter((item) => item.selected).length;
                   </h3>
                   <div className="flex items-center gap-2">
                     <span className="text-emerald-600 font-bold">
-                      ${item.price.toFixed(2)}
+                      ₦{item.price.toFixed(2)}
                     </span>
                     <button
                       onClick={() => removeItem(item.id)}
@@ -176,7 +176,7 @@ const selectedCount = cartItems.filter((item) => item.selected).length;
           <div>
             <p className="text-sm text-gray-500">Total:</p>
             <p className="text-2xl font-bold text-gray-900">
-              ${totalPrice.toFixed(2)}
+              ₦{totalPrice.toFixed(2)}
             </p>
           </div>
          <button 

@@ -18,14 +18,16 @@ interface MenuItem {
   category: string;
   price: number;
   description: string;
-  image_url: string; // Changed from image to image_url
+  image_url: string;
+  discount: number; // Add this line
 }
-
 type View = "empty" | "menu" | "add-meal";
 type Category = "All" | "Desert" | "Breakfast" | "Add ons";
 
 const RestaurantMenu: React.FC = () => {
    const [vendorId, setVendorId] = useState<string | null>(null);
+   // Add this near your other form states
+const [mealDiscount, setMealDiscount] = useState("0");
   const [loading, setLoading] = useState(true);
   const [currentView, setCurrentView] = useState<View>("empty");
   const [selectedCategory, setSelectedCategory] = useState<Category>("All");
@@ -119,9 +121,8 @@ const handleAddMeal = async () => {
     }
     
     setUploading(true);
-    let imageUrl = '🍚'; // Default emoji
+    let imageUrl = imagePreview || '🍚'; 
     
-    // Upload image if selected
     if (selectedImage) {
       const { data, error } = await uploadMenuImage(selectedImage, vendorId);
       if (!error && data) {
@@ -129,54 +130,44 @@ const handleAddMeal = async () => {
       }
     }
     
+    const mealData = {
+      vendor_id: vendorId,
+      name: mealName,
+      price: parseFloat(mealPrice),
+      category: mealCategory,
+      description: mealDescription,
+      in_stock: inStock,
+      image_url: imageUrl,
+      discount: parseInt(mealDiscount) || 0
+    };
+
     if (editingItem) {
-      const { error } = await updateMenuItem(editingItem.id.toString(), {
-        name: mealName,
-        price: parseFloat(mealPrice),
-        category: mealCategory,
-        description: mealDescription,
-        in_stock: inStock,
-        image_url: imageUrl
-      })
+      const { error } = await updateMenuItem(editingItem.id.toString(), mealData);
       if (!error) {
         setMenuItems(menuItems.map(item => 
-          item.id === editingItem.id 
-            ? { 
-                ...item, 
-                name: mealName, 
-                price: parseFloat(mealPrice), 
-                category: mealCategory, 
-                description: mealDescription,
-              image_url: imageUrl
-              }
-            : item
-        ))
+          item.id === editingItem.id ? { ...item, ...mealData } : item
+        ));
+        alert('Meal updated!');
       } else {
-        console.error('Error updating item:', error);
-        alert('Failed to update menu item');
+        // FIX: Use optional chaining and a fallback message
+        alert('Update failed: ' + (error?.message || 'An unknown error occurred'));
       }
     } else {
-      const { data, error } = await addMenuItem({
-        vendor_id: vendorId,
-        name: mealName,
-        price: parseFloat(mealPrice),
-        category: mealCategory,
-        description: mealDescription,
-        in_stock: inStock,
-        image_url: imageUrl
-      })
+      const { data, error } = await addMenuItem(mealData);
       if (!error && data) {
-  setMenuItems([...menuItems, data[0]]) 
+        setMenuItems([...menuItems, data[0]]);
+        alert('Meal added!');
       } else {
-        console.error('Error adding item:', error);
-        alert('Failed to add menu item');
+        // FIX: Use optional chaining and a fallback message
+        alert('Add failed: ' + (error?.message || 'An unknown error occurred'));
       }
     }
     
     setUploading(false);
     resetForm();
     setCurrentView('menu');
-  }
+}
+
 
 
 
@@ -189,6 +180,7 @@ const resetForm = () => {
     setEditingItem(null);
     setSelectedImage(null);
     setImagePreview("");
+     setMealDiscount("0");
   };
 
     const handleEdit = (item: MenuItem) => {
@@ -198,6 +190,7 @@ const resetForm = () => {
     setMealCategory(item.category as string);
     setMealDescription(item.description);
       setImagePreview(item.image_url);
+       setMealDiscount(item.discount?.toString() || "0");
     setCurrentView("add-meal");
   };
 
@@ -458,7 +451,7 @@ if (loading) {
                         {item.category}
                       </span>
                       <span className="text-lg sm:text-xl font-bold text-gray-800">
-                        ${item.price.toFixed(2)}
+                        ₦{item.price.toLocaleString()}
                       </span>
                     </div>
                     <p className="text-sm text-gray-500 line-clamp-2">
@@ -592,7 +585,20 @@ if (loading) {
                 onChange={(e) => setPriceDescription(e.target.value)}
                 className="w-full px-5 py-4 rounded-2xl border-2 border-gray-200 focus:border-green-500 focus:ring-4 focus:ring-green-100 transition-all outline-none text-base"
               />
-
+ <div>
+    <label className="block text-green-600 font-bold mb-2 text-sm">
+      Discount Percentage (%)
+    </label>
+    <input
+      type="number"
+      placeholder="e.g. 10"
+      value={mealDiscount}
+      onChange={(e) => setMealDiscount(e.target.value)}
+      className="w-full px-5 py-4 rounded-2xl border-2 border-gray-200 focus:border-green-500 focus:ring-4 focus:ring-green-100 transition-all outline-none text-base"
+      min="0"
+      max="100"
+    />
+  </div>
               <div className="relative">
                 <select
                   value={mealCategory}

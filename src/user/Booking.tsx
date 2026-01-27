@@ -9,7 +9,7 @@ interface Order {
   id: string;
   restaurant_name: string;
   items_count: number;
-  total_price: number;
+  total_amount: number; // Changed from total_price
   scheduled_time: string;
   status: "pending" | "completed" | "canceled" | "accepted";
 }
@@ -66,27 +66,20 @@ const Booking: React.FC = () => {
         }
 
         // Transform data to match Order interface
-        const formattedOrders = (data || []).map(
-          (order: {
-            id: string;
-            restaurant_name: string;
-            items_count: number;
-            total_price: number;
-            scheduled_time: string;
-            status: string;
-          }) => ({
-            id: order.id,
-            restaurant_name: order.restaurant_name,
-            items_count: order.items_count || 0,
-            total_price: order.total_price || 0,
-            scheduled_time: order.scheduled_time,
-            status: (order.status || "pending") as
-              | "pending"
-              | "completed"
-              | "canceled"
-              | "accepted",
-          }),
-        );
+      const formattedOrders = (data || []).map(
+  (order: any) => ({ // Use any here for easier mapping
+    id: order.id,
+    restaurant_name: order.restaurant_name,
+    items_count: order.items_count || 0,
+    total_amount: order.total_amount || 0, // Changed from total_price: order.total_price
+    scheduled_time: order.scheduled_time,
+    status: (order.status || "pending") as
+      | "pending"
+      | "completed"
+      | "canceled"
+      | "accepted",
+  }),
+)
 
         setOrders(formattedOrders);
       } catch (error) {
@@ -116,7 +109,7 @@ const Booking: React.FC = () => {
             id: string;
             restaurant_name: string;
             items_count: number;
-            total_price: number;
+            total_amount: number;
             scheduled_time: string;
             status: string;
           };
@@ -126,7 +119,7 @@ const Booking: React.FC = () => {
               id: payload.new.id,
               restaurant_name: payload.new.restaurant_name,
               items_count: payload.new.items_count,
-              total_price: payload.new.total_price,
+              total_amount: payload.new.total_amount, // Changed from total_price
               scheduled_time: payload.new.scheduled_time,
               status: (payload.new.status || "pending") as
                 | "pending"
@@ -146,7 +139,7 @@ const Booking: React.FC = () => {
                         | "completed"
                         | "canceled"
                         | "accepted",
-                      total_price: payload.new.total_price,
+                      total_price: payload.new. total_amount,
                     }
                   : order,
               ),
@@ -310,7 +303,7 @@ const Booking: React.FC = () => {
                     </div>
                     <div className="text-right">
                       <div className="text-xl font-bold text-gray-800">
-                        ${order.total_price.toFixed(2)}
+                         ₦{order.total_amount.toLocaleString()}
                       </div>
                       <div
                         className={`text-sm font-semibold ${getStatusColor(
