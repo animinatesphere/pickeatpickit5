@@ -123,9 +123,57 @@ export default function UserDashboard() {
     fetchData();
   }, []);
 
-  if (loading) {
-    return <div className="flex items-center justify-center min-h-screen font-bold">Loading...</div>;
-  }
+ if (loading) {
+  return (
+    <div className="min-h-screen bg-white">
+      {/* 1. Header Skeleton */}
+      <div className="px-4 sm:px-6 py-6 border-b">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-full bg-gray-200 animate-pulse" />
+            <div className="space-y-2">
+              <div className="h-3 w-24 bg-gray-200 rounded animate-pulse" />
+              <div className="h-4 w-32 bg-gray-300 rounded animate-pulse" />
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <div className="w-10 h-10 rounded-full bg-gray-200 animate-pulse" />
+            <div className="w-10 h-10 rounded-full bg-gray-200 animate-pulse" />
+          </div>
+        </div>
+        <div className="w-full h-12 bg-gray-100 rounded-full animate-pulse" />
+      </div>
+
+      {/* 2. Hero Carousel Skeleton */}
+      <div className="px-4 sm:px-6 py-8">
+        <div className="w-full h-[400px] rounded-3xl bg-gray-200 animate-pulse relative overflow-hidden">
+          {/* Shimmer Effect */}
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full animate-[shimmer_2s_infinite]" />
+        </div>
+      </div>
+
+      {/* 3. Horizontal Scroll Skeleton */}
+      <div className="px-4 sm:px-6 py-6">
+        <div className="h-6 w-40 bg-gray-200 rounded mb-6 animate-pulse" />
+        <div className="flex gap-4 overflow-hidden">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="flex-shrink-0 w-40 space-y-3">
+              <div className="w-40 h-40 rounded-2xl bg-gray-200 animate-pulse" />
+              <div className="h-3 w-32 bg-gray-200 rounded animate-pulse" />
+              <div className="h-3 w-20 bg-gray-100 rounded animate-pulse" />
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <style>{`
+        @keyframes shimmer {
+          100% { transform: translateX(100%); }
+        }
+      `}</style>
+    </div>
+  );
+}
 
   return (
     <div className="w-full min-h-screen bg-gradient-to-br from-orange-50 via-white to-green-50">

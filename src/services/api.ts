@@ -82,20 +82,21 @@ export const uploadMenuImage = async (file: File, vendorId: string) => {
 
   return { data: urlData.publicUrl, error: null };
 };
+// src/services/api.ts
+
 export const getVendorOrders = async (vendorId: string) => {
   const { data, error } = await supabase
     .from("orders")
-    .select(
-      `
+    .select(`
       *,
       order_items (
         *,
-        menu_items (*)
+        menu_items!order_items_menu_item_id_fkey (*) 
       )
-    `,
-    )
+    `) // Notice the !order_items_menu_item_id_fkey added here
     .eq("vendor_id", vendorId)
     .order("created_at", { ascending: false });
+    
   return { data, error };
 };
 
