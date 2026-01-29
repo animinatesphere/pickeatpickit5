@@ -11,119 +11,150 @@ import {
 } from "lucide-react";
 import { VendorNav } from "../component/VendorNav";
 import { Link } from "react-router-dom";
+import { supabase } from "../../services/authService";
+
+interface DashboardStats {
+  totalOrders: number;
+  revenue: number;
+  customers: number;
+  avgRating: number;
+}
 
 const VendorDashboard = () => {
   const [animateStats, setAnimateStats] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [vendorInfo, setVendorInfo] = useState<any>(null);
+  const [stats, setStats] = useState<DashboardStats>({
+    totalOrders: 0,
+    revenue: 0,
+    customers: 0,
+    avgRating: 4.5,
+  });
+  const [popularItems, setPopularItems] = useState<any[]>([]);
+  const [recentOrders, setRecentOrders] = useState<any[]>([]);
 
   useEffect(() => {
-    setAnimateStats(true);
+    const fetchDashboardData = async () => {
+      try {
+        setLoading(true);
+        // 1. Get current vendor
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) return;
+
+        const { data: vendor } = await supabase
+          .from("vendors")
+          .select("id, business_name")
+          .eq("user_id", session.user.id)
+          .single();
+
+        if (!vendor) return;
+        setVendorInfo(vendor);
+
+        // 2. Fetch Orders for Stats and Recent List
+        const { data: orders } = await supabase
+          .from("orders")
+          .select("*")
+          .eq("vendor_id", vendor.id)
+          .order("created_at", { ascending: false });
+
+        if (orders) {
+          const totalRevenue = orders.reduce((acc, o) => acc + (Number(o.total_amount) || 0), 0);
+          const uniqueCustomers = new Set(orders.map((o) => o.customer_id)).size;
+
+          setStats({
+            totalOrders: orders.length,
+            revenue: totalRevenue,
+            customers: uniqueCustomers,
+            avgRating: 4.8, // Fallback until review table is ready
+          });
+
+          // Format recent orders for UI
+          setRecentOrders(orders.slice(0, 5).map(o => ({
+            id: `#${o.id.slice(0, 5).toUpperCase()}`,
+            customer: o.customer_name || "Guest",
+            item: "View Details", // You can join order_items for more detail
+            time: formatTime(o.created_at),
+            status: o.status || "pending"
+          })));
+        }
+
+        // 3. Fetch Popular Menu Items (Top 4)
+        const { data: items } = await supabase
+          .from("menu_items")
+          .select("*")
+          .eq("vendor_id", vendor.id)
+          .limit(4);
+        
+        if (items) setPopularItems(items);
+
+      } catch (error) {
+        console.error("Error fetching dashboard:", error);
+      } finally {
+        setLoading(false);
+        setAnimateStats(true);
+      }
+    };
+
+    fetchDashboardData();
   }, []);
 
-  const menuItems = [
-    {
-      name: "Jollof Rice",
-      orders: 89,
-      price: "₦2,500",
-      image: "🍛",
-      trend: "+12%",
-      category: "Main Course",
-    },
-    {
-      name: "Fried Rice",
-      orders: 76,
-      price: "₦2,200",
-      image: "🍚",
-      trend: "+8%",
-      category: "Main Course",
-    },
-    {
-      name: "Chicken Suya",
-      orders: 64,
-      price: "₦1,800",
-      image: "🍗",
-      trend: "+15%",
-      category: "Grills",
-    },
-    {
-      name: "Pounded Yam",
-      orders: 52,
-      price: "₦3,000",
-      image: "🍲",
-      trend: "+5%",
-      category: "Swallow",
-    },
-  ];
+  // Helper to format time strings
+  const formatTime = (dateStr: string) => {
+    const date = new Date(dateStr);
+    const diff = Math.floor((new Date().getTime() - date.getTime()) / 60000);
+    if (diff < 1) return "Just now";
+    if (diff < 60) return `${diff} min ago`;
+    return date.toLocaleDateString();
+  };
 
-  const recentOrders = [
-    {
-      id: "#4521",
-      customer: "Adebayo O.",
-      item: "Jollof Rice",
-      time: "2 min ago",
-      status: "preparing",
-    },
-    {
-      id: "#4520",
-      customer: "Chioma N.",
-      item: "Fried Rice",
-      time: "8 min ago",
-      status: "ready",
-    },
-    {
-      id: "#4519",
-      customer: "Tunde K.",
-      item: "Chicken Suya",
-      time: "15 min ago",
-      status: "delivered",
-    },
-  ];
-
-  const stats = [
+  const statCards = [
     {
       label: "Total Orders",
-      value: "1,284",
-      change: "+18%",
+      value: stats.totalOrders.toLocaleString(),
+      change: "+5%",
       icon: ShoppingBag,
       color: "from-purple-500 to-purple-600",
     },
     {
       label: "Revenue",
-      value: "₦3.2M",
-      change: "+24%",
+      value: `₦${stats.revenue.toLocaleString()}`,
+      change: "+12%",
       icon: DollarSign,
       color: "from-green-500 to-green-600",
     },
     {
       label: "Customers",
-      value: "892",
-      change: "+12%",
+      value: stats.customers.toLocaleString(),
+      change: "+8%",
       icon: Users,
       color: "from-blue-500 to-blue-600",
     },
     {
       label: "Avg Rating",
-      value: "4.7",
-      change: "+0.3",
+      value: stats.avgRating,
+      change: "+0.1",
       icon: Star,
       color: "from-yellow-500 to-yellow-600",
     },
   ];
 
+  if (loading) return <div className="flex items-center justify-center min-h-screen font-bold text-green-600">Loading Dashboard...</div>;
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
-      {/* Header */}
       <VendorNav />
+      {/* Header */}
       <div className="bg-gradient-to-r from-green-600 to-green-700 text-white px-6 py-4 shadow-lg">
         <div className="flex items-center justify-between max-w-7xl mx-auto">
           <div>
-            <h1 className="text-2xl font-bold">My Dashboard</h1>
+            <h1 className="text-2xl font-bold">{vendorInfo?.business_name || "My Dashboard"}</h1>
             <p className="text-green-100 text-sm mt-1">Welcome back, Chef!</p>
           </div>
-          <Link to="/smsg">
+          <Link to="/notifications">
             <div className="relative">
               <Bell className="w-6 h-6 cursor-pointer hover:scale-110 transition-transform" />
-              <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full text-xs flex items-center justify-center font-bold animate-pulse">
-                3
+              <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full text-xs flex items-center justify-center font-bold">
+                {recentOrders.length}
               </span>
             </div>
           </Link>
@@ -133,30 +164,24 @@ const VendorDashboard = () => {
       <div className="max-w-7xl mx-auto px-6 py-8">
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          {stats.map((stat, index) => {
+          {statCards.map((stat, index) => {
             const Icon = stat.icon;
             return (
               <div
                 key={index}
-                className={`bg-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 ${
-                  animateStats
-                    ? "opacity-100 translate-y-0"
-                    : "opacity-0 translate-y-4"
+                className={`bg-white rounded-2xl p-6 shadow-lg transition-all duration-500 transform ${
+                  animateStats ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
                 }`}
                 style={{ transitionDelay: `${index * 100}ms` }}
               >
                 <div className="flex items-center justify-between mb-4">
-                  <div
-                    className={`w-12 h-12 rounded-xl bg-gradient-to-br ${stat.color} flex items-center justify-center shadow-lg`}
-                  >
+                  <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${stat.color} flex items-center justify-center shadow-lg`}>
                     <Icon className="w-6 h-6 text-white" />
                   </div>
-                  <span className="text-green-600 text-sm font-semibold bg-green-50 px-3 py-1 rounded-full">
-                    {stat.change}
-                  </span>
+                  <span className="text-green-600 text-sm font-semibold bg-green-50 px-2 py-1 rounded-full">{stat.change}</span>
                 </div>
                 <p className="text-gray-600 text-sm mb-1">{stat.label}</p>
-                <p className="text-3xl font-bold text-gray-800">{stat.value}</p>
+                <p className="text-2xl font-bold text-gray-800">{stat.value}</p>
               </div>
             );
           })}
@@ -167,40 +192,33 @@ const VendorDashboard = () => {
           <div className="lg:col-span-2">
             <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
               <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
+                <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
                   <TrendingUp className="w-6 h-6 text-green-600" />
-                  Most Popular Orders
+                  Menu Overview
                 </h2>
-                <button className="text-green-600 font-semibold hover:text-green-700 flex items-center gap-1">
-                  View All <ChevronRight className="w-4 h-4" />
-                </button>
+                <Link to="/menu" className="text-green-600 font-semibold text-sm flex items-center gap-1">
+                  Manage Menu <ChevronRight className="w-4 h-4" />
+                </Link>
               </div>
               <div className="space-y-4">
-                {menuItems.map((item, index) => (
-                  <div
-                    key={index}
-                    className="flex items-center gap-4 p-4 rounded-xl bg-gradient-to-r from-gray-50 to-white hover:from-green-50 hover:to-white transition-all duration-300 group cursor-pointer border border-gray-100 hover:border-green-200 hover:shadow-md"
-                  >
-                    <div className="w-16 h-16 bg-gradient-to-br from-green-100 to-green-200 rounded-xl flex items-center justify-center text-3xl group-hover:scale-110 transition-transform">
-                      {item.image}
+                {popularItems.map((item, index) => (
+                  <div key={index} className="flex items-center gap-4 p-4 rounded-xl bg-gray-50 border border-gray-100">
+                    <div className="w-16 h-16 rounded-xl overflow-hidden bg-white shadow-sm flex items-center justify-center">
+                      {item.image_url?.startsWith("http") ? (
+                        <img src={item.image_url} className="w-full h-full object-cover" />
+                      ) : (
+                        <span className="text-3xl">🍲</span>
+                      )}
                     </div>
                     <div className="flex-1">
-                      <h3 className="font-bold text-gray-800 group-hover:text-green-700 transition-colors">
-                        {item.name}
-                      </h3>
+                      <h3 className="font-bold text-gray-800">{item.name}</h3>
                       <p className="text-sm text-gray-500">{item.category}</p>
-                      <p className="text-sm font-semibold text-green-600 mt-1">
-                        {item.price}
-                      </p>
+                      <p className="text-sm font-semibold text-green-600 mt-1">₦{item.price.toLocaleString()}</p>
                     </div>
                     <div className="text-right">
-                      <p className="text-2xl font-bold text-green-600">
-                        {item.orders}
-                      </p>
-                      <p className="text-xs text-gray-500">orders</p>
-                      <span className="text-xs text-green-600 font-semibold bg-green-50 px-2 py-1 rounded-full mt-1 inline-block">
-                        {item.trend}
-                      </span>
+                       <span className="text-xs font-bold text-orange-500 bg-orange-50 px-2 py-1 rounded-full">
+                         {item.discount}% OFF
+                       </span>
                     </div>
                   </div>
                 ))}
@@ -209,38 +227,25 @@ const VendorDashboard = () => {
 
             {/* Recent Orders */}
             <div className="bg-white rounded-2xl shadow-lg p-6">
-              <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">
+              <h2 className="text-xl font-bold text-gray-800 mb-6 flex items-center gap-2">
                 <Clock className="w-6 h-6 text-green-600" />
-                Recent Orders
+                Recent Activity
               </h2>
               <div className="space-y-3">
                 {recentOrders.map((order, index) => (
-                  <div
-                    key={index}
-                    className="flex items-center justify-between p-4 rounded-xl bg-gradient-to-r from-gray-50 to-white hover:shadow-md transition-all border border-gray-100 cursor-pointer"
-                  >
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-1">
-                        <span className="font-bold text-gray-800">
-                          {order.id}
-                        </span>
-                        <span className="text-gray-600">•</span>
-                        <span className="text-gray-700">{order.customer}</span>
+                  <div key={index} className="flex items-center justify-between p-4 rounded-xl border border-gray-100 bg-white">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-gray-800">{order.id}</span>
+                        <span className="text-gray-400">•</span>
+                        <span className="text-gray-700 font-medium">{order.customer}</span>
                       </div>
-                      <p className="text-sm text-gray-600">{order.item}</p>
                       <p className="text-xs text-gray-500 mt-1">{order.time}</p>
                     </div>
-                    <span
-                      className={`px-4 py-2 rounded-full text-xs font-semibold ${
-                        order.status === "preparing"
-                          ? "bg-yellow-100 text-yellow-700"
-                          : order.status === "ready"
-                          ? "bg-blue-100 text-blue-700"
-                          : "bg-green-100 text-green-700"
-                      }`}
-                    >
-                      {order.status.charAt(0).toUpperCase() +
-                        order.status.slice(1)}
+                    <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase ${
+                      order.status === "pending" ? "bg-yellow-100 text-yellow-700" : "bg-green-100 text-green-700"
+                    }`}>
+                      {order.status}
                     </span>
                   </div>
                 ))}
@@ -248,71 +253,26 @@ const VendorDashboard = () => {
             </div>
           </div>
 
-          {/* Reviews Section */}
-          <div className="lg:col-span-1">
-            <div className="bg-gradient-to-br from-green-600 to-green-700 rounded-2xl shadow-lg p-6 text-white mb-6 hover:shadow-xl transition-shadow">
-              <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
-                <Star className="w-5 h-5" />
-                Customer Reviews
-              </h2>
-              <div className="text-center mb-6">
-                <div className="text-6xl font-bold mb-2">4.7</div>
-                <div className="flex justify-center gap-1 mb-2">
-                  {[1, 2, 3, 4, 5].map((star) => (
-                    <Star
-                      key={star}
-                      className={`w-6 h-6 ${
-                        star <= 4
-                          ? "fill-yellow-400 text-yellow-400"
-                          : "fill-yellow-400/50 text-yellow-400/50"
-                      }`}
-                    />
-                  ))}
-                </div>
-                <p className="text-green-100 text-sm">(578 Reviews)</p>
+          {/* Quick Actions & Rating Sidebar */}
+          <div className="space-y-6">
+            <div className="bg-gradient-to-br from-green-600 to-green-700 rounded-2xl shadow-lg p-6 text-white text-center">
+              <h2 className="text-lg font-bold mb-4">Store Rating</h2>
+              <div className="text-5xl font-bold mb-2">4.8</div>
+              <div className="flex justify-center gap-1 mb-4">
+                {[1, 2, 3, 4, 5].map((s) => <Star key={s} size={16} className="fill-yellow-400 text-yellow-400" />)}
               </div>
-              <div className="space-y-3">
-                {[
-                  { stars: 5, count: 445 },
-                  { stars: 4, count: 87 },
-                  { stars: 3, count: 32 },
-                  { stars: 2, count: 10 },
-                  { stars: 1, count: 4 },
-                ].map((rating) => (
-                  <div key={rating.stars} className="flex items-center gap-3">
-                    <span className="text-sm font-semibold w-8">
-                      {rating.stars}★
-                    </span>
-                    <div className="flex-1 bg-white/20 rounded-full h-2 overflow-hidden">
-                      <div
-                        className="bg-yellow-400 h-full rounded-full transition-all duration-1000"
-                        style={{ width: `${(rating.count / 578) * 100}%` }}
-                      />
-                    </div>
-                    <span className="text-sm text-green-100 w-8">
-                      {rating.count}
-                    </span>
-                  </div>
-                ))}
-              </div>
+              <p className="text-green-100 text-xs">Based on current performance</p>
             </div>
 
-            {/* Quick Actions */}
             <div className="bg-white rounded-2xl shadow-lg p-6">
-              <h2 className="text-xl font-bold text-gray-800 mb-4">
-                Quick Actions
-              </h2>
+              <h2 className="text-lg font-bold text-gray-800 mb-4">Quick Actions</h2>
               <div className="space-y-3">
-                {["New Order", "View Menu", "Analytics", "Settings"].map(
-                  (action, index) => (
-                    <button
-                      key={index}
-                      className="w-full py-3 px-4 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white rounded-xl font-semibold transition-all hover:shadow-lg transform hover:-translate-y-0.5"
-                    >
-                      {action}
-                    </button>
-                  )
-                )}
+                <button onClick={() => window.location.href='/orders'} className="w-full py-3 bg-green-600 text-white rounded-xl font-bold hover:bg-green-700 transition-all">
+                  Active Orders
+                </button>
+                <button onClick={() => window.location.href='/menu'} className="w-full py-3 bg-gray-100 text-gray-700 rounded-xl font-bold hover:bg-gray-200 transition-all">
+                  Edit Menu
+                </button>
               </div>
             </div>
           </div>
