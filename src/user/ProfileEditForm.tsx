@@ -51,7 +51,27 @@ const ProfileEditForm: React.FC = () => {
   const [tempValues, setTempValues] = useState<PersonalInfo>(personalInfo);
   const [serviceOption, setServiceOption] = useState<string>("direct");
   const [riderInstructions, setRiderInstructions] = useState<string>("");
+useEffect(() => {
+  let isMounted = true;
 
+  const loadData = async () => {
+    try {
+      const data = await authService.getCurrentUserProfile();
+      if (isMounted) {
+        setPersonalInfo(data);
+      }
+    } catch (error: any) {
+      // ✅ FIX: Check if the error is an AbortError and ignore it
+      if (error.name === 'AbortError' || error.message?.includes('aborted')) {
+        return; 
+      }
+      console.error("Real Error:", error);
+    }
+  };
+
+  loadData();
+  return () => { isMounted = false; }; // Cleanup
+}, []);
   // Fetch user profile on component mount
   useEffect(() => {
     const fetchUserProfile = async () => {

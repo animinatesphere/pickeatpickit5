@@ -82,6 +82,86 @@ export const uploadMenuImage = async (file: File, vendorId: string) => {
 
   return { data: urlData.publicUrl, error: null };
 };
+
+// Add these to your existing api.ts
+
+// Fetch all users from all three tables
+export const getAllSystemUsers = async () => {
+  // Fetch Clients
+  const { data: clients } = await supabase.from('users').select('*');
+  // Fetch Vendors
+  const { data: vendors } = await supabase.from('vendors').select('*');
+  // Fetch Riders
+  const { data: riders } = await supabase.from('riders').select('*');
+
+  // Combine and format for the UI
+  const combined = [
+    ...(clients || []).map(u => ({ ...u, type: 'Client', name: `${u.firstname} ${u.lastname}` })),
+    ...(vendors || []).map(v => ({ ...v, type: 'Vendor', name: v.business_name || v.firstname })),
+    ...(riders || []).map(r => ({ ...r, type: 'Rider', name: `${r.firstname} ${r.lastname}` }))
+  ];
+
+  return combined;
+};
+// src/services/api.ts
+
+export const riderAcceptOrder = async (orderId: string, riderId: string) => {
+  const { data, error } = await supabase
+    .from("orders")
+    .update({ 
+      status: "accepted", 
+      rider_id: riderId 
+    })
+    .eq("id", orderId)
+    .select();
+    
+  return { data, error };
+};
+
+// Fetch orders available for delivery (Vendor has started cooking)
+// src/services/api.ts
+
+// Ensure this function DOES NOT try to use a variable named 'id' 
+// unless it's passed as an argument.
+// Inside src/services/api.ts
+
+export const getAvailableDeliveries = async () => {
+  const { data, error } = await supabase
+    .from("orders")
+    .select(`
+      *, 
+      vendor_profiles!orders_vendor_id_profile_fkey(
+        business_address, 
+        business_name, 
+        business_phone
+      ),
+      order_items(
+        quantity, 
+        price_at_order, 
+        menu_items!order_items_menu_item_id_fkey(name, image_url)
+      )
+    `) // Added image_url and relationship hints
+    .eq("status", "preparing")
+    .is("rider_id", null);
+    
+  return { data, error };
+};
+// Specifically for approving a Rider
+export const updateRiderStatus = async (riderId: string, status: 'accepted' | 'rejected' | 'pending') => {
+  const { data, error } = await supabase
+    .from('riders')
+    .update({ status })
+    .eq('id', riderId)
+    .select();
+  return { data, error };
+};
+
+// Deactivate/Delete user (generic)
+export const deleteUserFromSystem = async (id: string, type: string) => {
+  const table = type === 'Client' ? 'users' : type === 'Vendor' ? 'vendors' : 'riders';
+  const { error } = await supabase.from(table).delete().eq('id', id);
+  return { error };
+};
 // src/services/api.ts
 
 export const getVendorOrders = async (vendorId: string) => {
@@ -134,15 +214,17 @@ export const updateUserProfile = async (userId: string, updates: any) => {
   return { data, error };
 };
 
-export const getUserById = async (id: string) => {
+// src/services/api.ts
+
+export const getUserById = async (id: string) => { // Make sure 'id' is here
   const { data, error } = await supabase
     .from("users")
     .select("*")
-    .eq("id", id)
-    .single();
+    .eq("id", id) // This uses the 'id' from the argument above
+    .maybeSingle();
+    
   return { data, error };
 };
-
 // Create user profile if it doesn't exist
 export const createUserProfileIfNotExists = async (
   userId: string,
@@ -208,20 +290,20 @@ export const getUserOrders = async (userId: string) => {
 };
 
 // Get order details with items
+// src/services/api.ts
+
 export const getOrderDetails = async (orderId: string) => {
   const { data, error } = await supabase
     .from("orders")
-    .select(
-      `
+    .select(`
       *,
       order_items (
         *,
         menu_items (*)
       )
-    `,
-    )
+    `)
     .eq("id", orderId)
-    .single();
+    .maybeSingle(); // <--- CHANGE THIS from .single()
 
   return { data, error };
 };

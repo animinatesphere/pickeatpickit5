@@ -1,3 +1,5 @@
+
+
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { ChevronLeft, CreditCard, MapPin, Package } from "lucide-react";
@@ -75,71 +77,58 @@ const handlePayment = async () => {
 
   try {
     const { data: { session } } = await supabase.auth.getSession();
-    if (!session?.user) {
-      alert("Please login first");
-      navigate("/login");
-      return;
-    }
+    if (!session?.user) return;
 
-    // 1. Get metadata FIRST
+    // 1. Get the latest metadata
     const authMetadata = session.user.user_metadata;
-    const customerFullName = `${authMetadata?.firstname || ""} ${authMetadata?.lastname || ""}`.trim() || "Customer";
-    const customerPhone = authMetadata?.phone || "No phone";
+    const fullName = `${authMetadata?.firstname || ""} ${authMetadata?.lastname || ""}`.trim() || "Customer";
+    const phoneNum = authMetadata?.phone || "No phone";
 
-    // 2. Get vendor_id from the first menu item
+    // 2. Fetch vendor business name correctly
     const firstItemId = orderData.items[0].id;
-    const { data: menuItem } = await supabase
-      .from("menu_items")
-      .select("vendor_id")
-      .eq("id", firstItemId)
+    
+    // Fetch menu info to get the vendor_id
+    const { data: menuInfo, error: menuErr } = await supabase
+      .from('menu_items')
+      .select('vendor_id')
+      .eq('id', firstItemId)
       .single();
 
-    if (!menuItem?.vendor_id) {
+    if (menuErr || !menuInfo) {
       alert("Unable to find vendor information.");
       setLoading(false);
       return;
     }
 
-    // 3. Get restaurant name
+    // Fetch the restaurant name using vendor_id
     const { data: vendorProfile } = await supabase
-      .from("vendor_profiles")
-      .select("business_name")
-      .eq("vendor_id", menuItem.vendor_id)
+      .from('vendor_profiles')
+      .select('business_name')
+      .eq('vendor_id', menuInfo.vendor_id)
       .single();
 
+    // Define the variables the payload is looking for
     const restaurantName = vendorProfile?.business_name || "Restaurant";
     const { total } = calculateTotal();
 
-    // 4. Upsert User Profile (Requires the UNIQUE constraint from SQL above)
-    await supabase.from("users").upsert(
-      {
-        user_id: session.user.id,
-        firstname: authMetadata?.firstname || "",
-        lastname: authMetadata?.lastname || "",
-        phone: customerPhone,
-        email: session.user.email,
-        updated_at: new Date().toISOString(),
-      },
-      { onConflict: "user_id" }
-    );
-
-    // 5. Create the order payload
+    // 3. Prepare Payload (Keys now match the variables defined above)
     const orderPayload = {
-      vendor_id: menuItem.vendor_id,
-      restaurant_name: restaurantName,
+      vendor_id: menuInfo.vendor_id, // Fixed: used menuInfo instead of menuItem
+      restaurant_name: restaurantName,  
       user_id: session.user.id,
-      customer_name: customerFullName,
-      customer_phone: customerPhone,
+      customer_name: fullName,      
+      customer_phone: phoneNum,     
       delivery_address: deliveryAddress,
-      scheduled_time: new Date().toISOString(),
+      total_amount: total,          
       status: "pending",
-      total_amount: total, // Matches the renamed column in SQL
+      items_count: orderData.items.length,
+      scheduled_time: new Date().toISOString(),
     };
 
-    const orderItems = orderData.items.map((item) => ({
+    const orderItems = orderData.items.map(item => ({
       menu_item_id: item.id,
       quantity: item.quantity,
-      price_at_order: item.price,
+      price_at_order: item.price
     }));
 
     const { data: createdOrder, error: orderError } = await createOrder(orderPayload, orderItems);

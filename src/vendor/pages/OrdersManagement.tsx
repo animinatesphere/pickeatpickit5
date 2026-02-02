@@ -57,22 +57,21 @@ const OrdersManagement = () => {
         setVendorId(vendorData.id);
 
         // Now load orders with the vendor ID
-        const { data, error } = await getVendorOrders(vendorData.id);
-        if (!error && data) {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const formattedOrders = data.map((order: any) => ({
-            id: order.id,
-            // Use the columns we just added to the orders table
-            customerName: order.customer_name || "Customer",
-            phone: order.customer_phone || "No phone",
-
-            address: order.delivery_address,
-            time: new Date(order.scheduled_time).toLocaleString(),
-            image: order.order_items[0]?.menu_items?.image_url || "🍽️",
-            status: order.status,
-          }));
-          setOrders(formattedOrders);
-        }
+     // Inside OrdersManagement.tsx -> initializeOrders
+const { data, error } = await getVendorOrders(vendorData.id);
+if (!error && data) {
+  const formattedOrders = data.map((order: any) => ({
+    id: order.id,
+    customerName: order.customer_name || "Guest", // Read from new column
+    phone: order.customer_phone || "No Phone",     // Read from new column
+    address: order.delivery_address,
+    time: new Date(order.created_at).toLocaleString(),
+    image: order.order_items?.[0]?.menu_items?.image_url || '🍽️',
+    status: order.status,
+    total: order.total_amount || 0 // Added for price display
+  }));
+  setOrders(formattedOrders);
+}
       } catch (error) {
         console.error("Error initializing orders:", error);
       } finally {
@@ -85,7 +84,7 @@ const OrdersManagement = () => {
 
   // Fix the handler types
   const handleAccept = async (orderId: string) => {
-    const { error } = await updateOrderStatus(orderId, "accepted");
+    const { error } = await updateOrderStatus(orderId, "preparing"); 
     if (!error) {
       // Add tracking update
       await addTrackingUpdate(orderId, {

@@ -25,12 +25,26 @@ export class APIError extends Error {
   }
 }
 
+// Add this near the top of authService.ts, after imports
+// Add this AFTER the safeAsync helper
+const safeAsyncRequired = async <T>(operation: () => Promise<T>): Promise<T> => {
+  try {
+    return await operation();
+  } catch (error: any) {
+    if (error.name === 'AbortError') {
+      throw new APIError("Request cancelled", 499);
+    }
+    throw error; // Re-throw other errors
+  }
+};
+
 class AuthService {
   // Add this to your AuthService class in authService.ts
 
   // src/services/authService.ts
 
   async createInitialRiderProfile(
+    
     userId: string,
     email: string,
   ): Promise<string> {
@@ -55,6 +69,7 @@ class AuthService {
   // Update the existing registerRider to handle UPDATES instead of a new SIGNUP
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async updateRiderProfile(riderId: string, data: any): Promise<void> {
+  return safeAsyncRequired(async () => {
     const { error } = await supabase
       .from("riders")
       .update({
@@ -69,11 +84,13 @@ class AuthService {
       .eq("id", riderId);
 
     if (error) throw new APIError(error.message, 400);
+    })
   }
   async sendEmailOTP(
     email: string,
     password?: string,
   ): Promise<{ message: string }> {
+    return safeAsyncRequired(async () => {
     try {
       const { error } = await supabase.auth.signUp({
         email,
@@ -93,6 +110,7 @@ class AuthService {
       }
       throw new APIError("Failed to send OTP. Please try again.", 400);
     }
+  })
   }
 
   // Verify Email OTP (update existing method)
@@ -100,6 +118,7 @@ class AuthService {
     email: string,
     otp: string,
   ): Promise<{ message: string }> {
+   return safeAsyncRequired(async () => {
     try {
       const { error } = await supabase.auth.verifyOtp({
         email,
@@ -118,8 +137,10 @@ class AuthService {
       }
       throw new APIError("OTP verification failed. Please try again.", 400);
     }
+   })
   }
   async registerRider(data: {
+   
     email: string;
     password: string;
     firstName: string;
@@ -157,6 +178,7 @@ class AuthService {
       timeEnd: string;
     };
   }): Promise<RegisterResponse> {
+     return safeAsyncRequired(async () => {
     try {
       // Sign up with Supabase auth
       const { data: authData, error: authError } = await supabase.auth.signUp({
@@ -315,11 +337,13 @@ class AuthService {
       }
       throw new APIError("Registration failed. Please try again.", 400);
     }
+     })
   }
   // Inside class AuthService...
 
   async loginRider(email: string, password: string): Promise<LoginResponse> {
     // 1. Try to log in to Supabase Auth
+    return safeAsyncRequired(async () => {
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
@@ -358,12 +382,14 @@ class AuthService {
       user: riderData,
       token: data.session.access_token,
     };
+  })
   }
   async uploadRiderDocument(
     riderId: string,
     file: File,
     documentType: "drivers_license" | "selfie",
   ): Promise<{ success: boolean; url: string; message: string }> {
+    return safeAsyncRequired(async () => {
     try {
       // Generate unique filename
       const fileExt = file.name.split(".").pop();
@@ -415,9 +441,11 @@ class AuthService {
       if (error instanceof APIError) throw error;
       throw new APIError("Failed to upload document. Please try again.", 400);
     }
+  })
   }
   // Register new vendor
   async register(data: RegisterRequest): Promise<RegisterResponse> {
+    return safeAsyncRequired(async () => {
     try {
       // Sign up with Supabase auth
       const { data: authData, error: authError } = await supabase.auth.signUp({
@@ -492,6 +520,7 @@ class AuthService {
       }
       throw new APIError("Registration failed. Please try again.", 400);
     }
+  })
   }
   // Register new USER (not vendor)
   async registerUser(data: {
@@ -502,7 +531,9 @@ class AuthService {
     phone: string;
     address?: string;
   }): Promise<RegisterResponse> {
+    return safeAsyncRequired(async () => {
     try {
+    
       // Sign up with Supabase auth
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: data.email,
@@ -573,9 +604,11 @@ class AuthService {
       }
       throw new APIError("Registration failed. Please try again.", 400);
     }
+  })
   }
   // Login vendor
   async login(email: string, password: string): Promise<LoginResponse> {
+     return safeAsyncRequired(async () => {
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
@@ -594,7 +627,8 @@ class AuthService {
       const { data: vendorDataArray, error: vendorError } = await supabase
         .from("vendors")
         .select("*")
-        .eq("user_id", data.user.id);
+        .eq("user_id", data.user.id)
+          .maybeSingle(); 
 
       // Check if vendor profile exists - if not, user is not a vendor
       if (vendorError || !vendorDataArray || vendorDataArray.length === 0) {
@@ -624,9 +658,11 @@ class AuthService {
       }
       throw new APIError("Login failed. Please check your credentials.", 401);
     }
+     })
   }
   // Login user (not vendor)
   async loginUser(email: string, password: string): Promise<LoginResponse> {
+     return safeAsyncRequired(async () => {
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
@@ -643,9 +679,10 @@ class AuthService {
 
       // Fetch user profile from users table
       const { data: userDataArray, error: userError } = await supabase
-        .from("users")
-        .select("*")
-        .eq("user_id", data.user.id);
+       .from("riders")
+  .select("*")
+  .eq("user_id", data.user.id)
+  .maybeSingle();
 
       // Check if user profile exists - if not, user is not a customer
       if (userError || !userDataArray || userDataArray.length === 0) {
@@ -675,9 +712,11 @@ class AuthService {
       }
       throw new APIError("Login failed. Please check your credentials.", 401);
     }
+     })
   }
   // Request password reset
   async forgotPassword(email: string): Promise<{ message: string }> {
+  return safeAsyncRequired(async () => {
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: `${window.location.origin}/reset-password`,
@@ -694,10 +733,12 @@ class AuthService {
       }
       throw new APIError("Failed to send reset email. Please try again.", 400);
     }
+  })
   }
 
   // Verify OTP (for email verification)
   async verifyOTP(email: string, otp: string): Promise<{ message: string }> {
+  return safeAsyncRequired(async () => {
     try {
       const { error } = await supabase.auth.verifyOtp({
         email,
@@ -716,10 +757,12 @@ class AuthService {
       }
       throw new APIError("OTP verification failed. Please try again.", 400);
     }
+  })
   }
 
   // Get OTP for phone verification (if using Supabase phone auth)
   async getOTP(phone: string): Promise<GetOTPResponse> {
+   return safeAsyncRequired(async () => {
     try {
       const { error } = await supabase.auth.signInWithOtp({
         phone,
@@ -739,6 +782,7 @@ class AuthService {
       }
       throw new APIError("Failed to send OTP. Please try again.", 400);
     }
+  })
   }
 
   // Reset password with token
@@ -747,6 +791,7 @@ class AuthService {
     _token: string,
     newPassword: string,
   ): Promise<{ message: string }> {
+   return safeAsyncRequired(async () => {
     try {
       const { error } = await supabase.auth.updateUser({
         password: newPassword,
@@ -763,10 +808,12 @@ class AuthService {
       }
       throw new APIError("Password reset failed. Please try again.", 400);
     }
+  })
   }
 
   // Send OTP for password reset - using same method as signup
   async sendPasswordResetOTP(email: string): Promise<{ message: string }> {
+    return safeAsyncRequired(async () => {
     try {
       console.log("Attempting to send OTP to:", email);
 
@@ -806,6 +853,7 @@ class AuthService {
       }
       throw new APIError("Failed to send OTP. Please try again.", 400);
     }
+  })
   }
 
   // Verify OTP for password reset - using same method as signup
@@ -813,6 +861,7 @@ class AuthService {
     email: string,
     otp: string,
   ): Promise<{ message: string; access_token?: string }> {
+   return safeAsyncRequired(async () => {
     try {
       console.log("Verifying OTP for:", email);
       console.log("Provided OTP:", otp);
@@ -847,12 +896,14 @@ class AuthService {
       }
       throw new APIError("OTP verification failed. Please try again.", 400);
     }
+  })
   }
 
   // Reset password after OTP verification
   async resetPasswordWithOTP(
     newPassword: string,
   ): Promise<{ message: string }> {
+  return safeAsyncRequired(async () => {
     try {
       console.log("Attempting to reset password");
 
@@ -889,103 +940,97 @@ class AuthService {
       }
       throw new APIError("Password reset failed. Please try again.", 400);
     }
+  })
   }
 
   // Logout
   async logout(): Promise<void> {
+  return safeAsyncRequired(async () => {
     const { error } = await supabase.auth.signOut();
     if (error) {
       throw new APIError(error.message, 400);
     }
+  })
   }
 
   // Get current user
-  async getCurrentUser() {
-    const {
-      data: { user },
-      error,
-    } = await supabase.auth.getUser();
-    if (error) {
-      throw new APIError(error.message, 400);
-    }
+// Example for any method in authService.ts
+async getCurrentUser() {
+  return safeAsyncRequired(async () => {
+    const { data: { user }, error } = await supabase.auth.getUser();
+    if (error) throw error;
     return user;
-  }
-
+  });
+}
   // Get current user profile (customer/user)
-  async getCurrentUserProfile() {
-    try {
-      const authUser = await this.getCurrentUser();
-      if (!authUser) {
-        throw new APIError("User not authenticated", 401);
-      }
-
-      // First try to fetch by user_id
-      const { data, error } = await supabase
-        .from("users")
-        .select("*")
-        .eq("user_id", authUser.id);
-
-      if (error) {
-        throw new APIError(`Error fetching user: ${error.message}`, 400);
-      }
-
-      // Check if data exists
-      if (!data || data.length === 0) {
-        console.warn(
-          "No user profile found for ID:",
-          authUser.id,
-          "Creating default response",
-        );
-        // Return user data from auth if profile doesn't exist yet
-        return {
-          user_id: authUser.id,
-          email: authUser.email,
-          firstname: authUser.user_metadata?.firstname || "",
-          lastname: authUser.user_metadata?.lastname || "",
-          phone: authUser.user_metadata?.phone || "",
-          address: "",
-          zip: "",
-          city: "",
-          state: "",
-        };
-      }
-
-      return data[0];
-    } catch (error) {
-      if (error instanceof APIError) throw error;
-      throw new APIError("Failed to fetch user profile", 400);
+async getCurrentUserProfile() {
+  return safeAsyncRequired(async () => {
+    const authUser = await this.getCurrentUser();
+    if (!authUser) {
+      throw new APIError("User not authenticated", 401);
     }
-  }
+
+    const { data, error } = await supabase
+      .from("users")
+      .select("*")
+      .eq("user_id", authUser.id);
+
+    if (error) {
+      throw new APIError(`Error fetching user: ${error.message}`, 400);
+    }
+
+    if (!data || data.length === 0) {
+      return {
+        user_id: authUser.id,
+        email: authUser.email,
+        firstname: authUser.user_metadata?.firstname || "",
+        lastname: authUser.user_metadata?.lastname || "",
+        phone: authUser.user_metadata?.phone || "",
+        address: "",
+        zip: "",
+        city: "",
+        state: "",
+      };
+    }
+
+    return data[0];
+  });
+}
 
   // Update current user profile
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  async updateCurrentUserProfile(updates: any) {
-    try {
-      const authUser = await this.getCurrentUser();
-      if (!authUser) {
-        throw new APIError("User not authenticated", 401);
-      }
+async updateCurrentUserProfile(updates: any) {
+ return safeAsyncRequired(async () => {
+  try {
+    const authUser = await this.getCurrentUser();
+    if (!authUser) throw new APIError("User not authenticated", 401);
 
-      const { data, error } = await supabase
-        .from("users")
-        .update(updates)
-        .eq("user_id", authUser.id)
-        .select()
-        .single();
+    // We include authUser.email to ensure that if this is a NEW row (Insert),
+    // the 'email' column is not null.
+    const { data, error } = await supabase
+      .from("users")
+      .upsert({
+        user_id: authUser.id,
+        email: authUser.email, // <--- ADD THIS LINE: Ensures email is never null
+        ...updates,
+        updated_at: new Date().toISOString()
+      }, { onConflict: 'user_id' })
+      .select()
+      .maybeSingle();
 
-      if (error) {
-        throw new APIError(error.message, 400);
-      }
-
-      return data;
-    } catch (error) {
-      if (error instanceof APIError) throw error;
-      throw new APIError("Failed to update user profile", 400);
+    if (error) {
+       console.error("Database Error:", error);
+       throw new APIError(error.message, 400);
     }
-  }
-
+    return data;
+  } catch (error) {
+    if (error instanceof APIError) throw error;
+    throw new APIError("Failed to update user profile", 400);
+  }})
+}
   // Verify vendor exists
   private async verifyVendorExists(vendorId: string): Promise<boolean> {
+ return safeAsyncRequired(async () => {
     try {
       const { data, error } = await supabase
         .from("vendors")
@@ -996,6 +1041,7 @@ class AuthService {
     } catch {
       return false;
     }
+  })
   }
 
   // Save vendor profile details
@@ -1003,6 +1049,7 @@ class AuthService {
     vendorId: string,
     profileData: Record<string, string | number>,
   ): Promise<Record<string, unknown>[] | null> {
+  return safeAsyncRequired(async () => {
     try {
       // Verify vendor exists before attempting to save profile
       const vendorExists = await this.verifyVendorExists(vendorId);
@@ -1046,6 +1093,7 @@ class AuthService {
       if (error instanceof APIError) throw error;
       throw new APIError("Failed to save profile details", 400);
     }
+  })
   }
 
   // Upload vendor photo
@@ -1053,7 +1101,8 @@ class AuthService {
 // Inside class AuthService...
 
 async uploadVendorPhoto(vendorId: string, file: File, photoType: string) {
-    const fileName = `${vendorId}/${Date.now()}`;
+  return safeAsyncRequired(async () => {  
+  const fileName = `${vendorId}/${Date.now()}`;
     
     // 1. Fixed Error: Removed 'data: uploadData' since it was never read
     const { error: uploadError } = await supabase.storage
@@ -1083,6 +1132,7 @@ async uploadVendorPhoto(vendorId: string, file: File, photoType: string) {
     }
 
     return data;
+  })
 }
 
   // Save business details
@@ -1090,6 +1140,7 @@ async uploadVendorPhoto(vendorId: string, file: File, photoType: string) {
     vendorId: string,
     details: { businessDescription: string; additionalInfo: string },
   ): Promise<Record<string, unknown>[] | null> {
+   return safeAsyncRequired(async () => {
     try {
       const { data, error } = await supabase
         .from("vendor_profiles")
@@ -1113,6 +1164,7 @@ async uploadVendorPhoto(vendorId: string, file: File, photoType: string) {
       if (error instanceof APIError) throw error;
       throw new APIError("Failed to save business details", 400);
     }
+  })
   }
 
   // Save availability
@@ -1120,6 +1172,7 @@ async uploadVendorPhoto(vendorId: string, file: File, photoType: string) {
     vendorId: string,
     availability: Record<string, unknown>,
   ): Promise<Record<string, unknown>[] | null> {
+  return safeAsyncRequired(async () => {
     try {
       const { data, error } = await supabase
         .from("vendor_availability")
@@ -1152,13 +1205,14 @@ async uploadVendorPhoto(vendorId: string, file: File, photoType: string) {
     } catch (error) {
       if (error instanceof APIError) throw error;
       throw new APIError("Failed to save availability", 400);
-    }
+    }})
   }
 
   // Fetch vendor profile by vendor ID
   async getVendorProfile(
     vendorId: string,
   ): Promise<Record<string, unknown> | null> {
+   return safeAsyncRequired(async () => {
     try {
       const { data: vendor, error: vendorError } = await supabase
         .from("vendors")
@@ -1192,7 +1246,9 @@ async uploadVendorPhoto(vendorId: string, file: File, photoType: string) {
       if (error instanceof APIError) throw error;
       throw new APIError("Failed to fetch vendor profile", 400);
     }
+  })
   }
+  
 }
 
 // Export a single instance
@@ -1200,6 +1256,7 @@ export const apiService = new AuthService();
 
 // Also create an authService alias for backward compatibility
 export const authService = {
+  
   login: (email: string, password: string) => apiService.login(email, password),
   loginUser: (email: string, password: string) =>
     apiService.loginUser(email, password), // ADD THIS LINE
