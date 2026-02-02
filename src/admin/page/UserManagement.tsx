@@ -13,6 +13,7 @@ import {
   MapPin,
   User as UserIcon
 } from "lucide-react";
+import { useToast } from "../../context/ToastContext";
 
 interface User {
   id: string;
@@ -35,6 +36,7 @@ type ModalType = "details" | "suspend" | "delete" | "suspendSuccess" | "deleteSu
 type ViewType = "list" | "profile";
 
 const UserManagement = () => {
+  const toast = useToast();
   const [activeTab, setActiveTab] = useState<"all" | "client" | "vendor" | "rider">("all");
   // const [showSuspended, setShowSuspended] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
@@ -108,7 +110,7 @@ const UserManagement = () => {
   const handleApproveRider = async (id: string) => {
     const { error } = await updateRiderStatus(id, 'accepted');
     if (!error) {
-      alert("Rider approved!");
+      toast.success("Rider approved successfully!", "Rider Approved");
       fetchUsers(); 
       closeModal();
     }

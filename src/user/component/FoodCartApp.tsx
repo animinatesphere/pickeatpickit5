@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Bell, X, Plus, Minus } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { Navbar } from "../../component/Navbar";
+import { useToast } from "../../context/ToastContext";
 
 interface CartItem {
   id: number;
@@ -16,7 +17,8 @@ interface CartItem {
 }
 const FoodCartApp: React.FC = () => {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
- const navigate=useNavigate()
+  const navigate = useNavigate();
+  const toast = useToast();
   useEffect(() => {
     const savedCart = sessionStorage.getItem('cart');
     if (savedCart) {
@@ -63,7 +65,7 @@ const FoodCartApp: React.FC = () => {
    const handleCheckout = () => {
     const selectedItems = cartItems.filter((item) => item.selected);
     if (selectedItems.length === 0) {
-      alert('Please select items to checkout');
+      toast.warning('Please select items to checkout', 'Selection Required');
       return;
     }
     

@@ -3,9 +3,11 @@ import { ArrowLeft, Camera, MapPin, Edit2, Check, X } from "lucide-react";
 import { VendorNav } from "../component/VendorNav";
 // import { apiService } from "../services/authService";
 import { apiService, supabase } from "../../services/authService";
+import { useToast } from "../../context/ToastContext";
 // import { error } from "console";
 
 const ProfileSetting = () => {
+  const toast = useToast();
   const [isOpen, setIsOpen] = useState(true);
   const [editingField, setEditingField] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -58,7 +60,7 @@ useEffect(() => {
 
       // 2. Check email verification
       if (!session.user.email_confirmed_at) {
-        alert("Please verify your email before accessing your profile.");
+        toast.warning("Please verify your email before accessing your profile.", "Email Verification Required");
         window.location.href = "/vendor-login";
         return;
       }
@@ -145,7 +147,7 @@ useEffect(() => {
 
   // Basic validation
   if (file.size > 1024 * 1024) {
-    alert("File size must be less than 1MB");
+    toast.warning("File size must be less than 1MB", "File Too Large");
     return;
   }
 
@@ -159,11 +161,11 @@ useEffect(() => {
       // Update local UI
       const newUrl = response[0].photo_url as string;
       setProfileImage(newUrl);
-      alert("Profile photo updated!");
+      toast.success("Profile photo updated!", "Photo Updated");
     }
   } catch (error) {
     console.error("Upload error:", error);
-    alert("Failed to upload photo");
+    toast.error("Failed to upload photo", "Upload Error");
   } finally {
     setIsPhotoLoading(false);
   }
@@ -186,10 +188,10 @@ useEffect(() => {
         })
         .eq("vendor_id", vendorId);
 
-      alert("Profile updated successfully!");
+      toast.success("Profile updated successfully!", "Profile Saved");
     } catch (error) {
       console.error("Error saving:", error);
-      alert("Failed to save changes");
+      toast.error("Failed to save changes", "Save Error");
     }
   };
   // / Add this before the main return

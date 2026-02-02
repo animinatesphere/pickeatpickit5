@@ -12,6 +12,7 @@ import HeroFoodCarousel from "../../component/HeroFoodCarousel";
 import { Link, useNavigate } from "react-router-dom"; // Added useNavigate
 import FoodScrollCarousel from "../component/FoodScrollCarouse";
 import { supabase } from "../../services/authService";
+import { useToast } from "../../context/ToastContext";
 
 // Define the interface for the liked state
 interface LikedState {
@@ -22,6 +23,7 @@ interface LikedState {
 
 export default function UserDashboard() {
   const navigate = useNavigate();
+  const toast = useToast();
   
   // States
   const [liked, setLiked] = useState<LikedState>({}); // Added back
@@ -50,7 +52,7 @@ export default function UserDashboard() {
   const toggleLike = async (vendorId: string) => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session?.user) {
-      alert("Please log in to save favorites!");
+      toast.warning("Please log in to save favorites!", "Login Required");
       return;
     }
 

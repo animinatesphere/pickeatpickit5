@@ -14,6 +14,7 @@ import {
   X,
   Upload,
 } from "lucide-react";
+// import { useToast } from "../../context/ToastContext";
 
 type Step = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7;
 
@@ -439,7 +440,8 @@ function StepOTP({
     try {
       // Resend OTP
       await new Promise((resolve) => setTimeout(resolve, 1000));
-      alert("New verification code sent to " + formData.email);
+      // Show success message through error state (temporary workaround)
+      setError(""); 
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (err) {
       setError("Failed to resend code. Please try again.");

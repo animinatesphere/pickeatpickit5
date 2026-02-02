@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { VendorNav } from "../component/VendorNav";
 import { supabase } from "../../services/authService";
+import { useToast } from "../../context/ToastContext";
 
 interface MenuItem {
   id: number;
@@ -25,6 +26,7 @@ type View = "empty" | "menu" | "add-meal";
 type Category = "All" | "Desert" | "Breakfast" | "Add ons";
 
 const RestaurantMenu: React.FC = () => {
+  const toast = useToast();
    const [vendorId, setVendorId] = useState<string | null>(null);
    // Add this near your other form states
 const [mealDiscount, setMealDiscount] = useState("0");
@@ -116,7 +118,7 @@ const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
   };
 const handleAddMeal = async () => {
     if (!vendorId) {
-      alert('Vendor ID not found. Please log in again.');
+      toast.error('Vendor ID not found. Please log in again.', 'Authentication Error');
       return;
     }
     
@@ -147,19 +149,19 @@ const handleAddMeal = async () => {
         setMenuItems(menuItems.map(item => 
           item.id === editingItem.id ? { ...item, ...mealData } : item
         ));
-        alert('Meal updated!');
+        toast.success('Meal updated successfully!', 'Menu Updated');
       } else {
         // FIX: Use optional chaining and a fallback message
-        alert('Update failed: ' + (error?.message || 'An unknown error occurred'));
+        toast.error('Update failed: ' + (error?.message || 'An unknown error occurred'), 'Update Failed');
       }
     } else {
       const { data, error } = await addMenuItem(mealData);
       if (!error && data) {
         setMenuItems([...menuItems, data[0]]);
-        alert('Meal added!');
+        toast.success('Meal added to your menu!', 'Menu Updated');
       } else {
         // FIX: Use optional chaining and a fallback message
-        alert('Add failed: ' + (error?.message || 'An unknown error occurred'));
+        toast.error('Add failed: ' + (error?.message || 'An unknown error occurred'), 'Failed');
       }
     }
     

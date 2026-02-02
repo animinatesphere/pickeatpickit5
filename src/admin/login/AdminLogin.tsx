@@ -2,7 +2,9 @@ import { useState } from "react";
 import { Lock, Mail, Eye, EyeOff } from "lucide-react";
 import { Link } from "react-router-dom";
 import logo from "../../assets/Logo SVG 1.png";
+import { useToast } from "../../context/ToastContext";
 export default function AdminLogin() {
+  const toast = useToast();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -13,14 +15,14 @@ export default function AdminLogin() {
     setIsLoading(true);
 
     // Check against hardcoded credentials
-    if (email === "ogbonnajohn11@gmail.com" && password === "Happyhome2022") {
+    if (email === "ogbonnajohn111@gmail.com" && password === "Happyhome2022") {
       setTimeout(() => {
         setIsLoading(false);
         window.location.href = "/admin-dashboard";
       }, 1500);
     } else {
       setIsLoading(false);
-      alert("Invalid Admin Credentials");
+      toast.error("Invalid Admin Credentials", "Login Failed");
     }
   };
 

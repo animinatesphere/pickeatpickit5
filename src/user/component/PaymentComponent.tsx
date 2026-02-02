@@ -6,6 +6,7 @@ import { ChevronLeft, CreditCard, MapPin, Package } from "lucide-react";
 import { createOrder } from "../../services/api";
 import { supabase } from "../../services/authService";
 import { Navbar } from "../../component/Navbar";
+import { useToast } from "../../context/ToastContext";
 
 interface OrderItem {
   id: number;
@@ -26,6 +27,7 @@ interface PendingOrder {
 
 const PaymentComponent: React.FC = () => {
   const navigate = useNavigate();
+  const toast = useToast();
   const [orderData, setOrderData] = useState<PendingOrder | null>(null);
   const [loading, setLoading] = useState(false);
   const [deliveryAddress, setDeliveryAddress] = useState("");
@@ -48,7 +50,7 @@ const PaymentComponent: React.FC = () => {
         specialInstructions: "",
       });
     } else {
-      alert("No order found. Please add items first.");
+      toast.warning("No order found. Please add items first.", "Cart Empty");
       navigate("/market");
     }
   }, [navigate]);
@@ -69,7 +71,7 @@ const PaymentComponent: React.FC = () => {
 const handlePayment = async () => {
   if (!orderData) return;
   if (!deliveryAddress.trim()) {
-    alert("Please enter delivery address");
+    toast.warning("Please enter delivery address", "Address Required");
     return;
   }
 
@@ -95,7 +97,7 @@ const handlePayment = async () => {
       .single();
 
     if (menuErr || !menuInfo) {
-      alert("Unable to find vendor information.");
+      toast.error("Unable to find vendor information.", "Vendor Error");
       setLoading(false);
       return;
     }
@@ -140,11 +142,11 @@ const handlePayment = async () => {
       setTrackingCode(createdOrder.order.id);
     } else {
       console.error("Order Error:", orderError);
-      alert("Failed to place order. " + (orderError?.message || ""));
+      toast.error("Failed to place order. " + (orderError?.message || ""), "Order Failed");
     }
   } catch (error) {
     console.error("Payment error:", error);
-    alert("An error occurred. Check console for details.");
+    toast.error("An error occurred. Please try again.", "Payment Error");
   } finally {
     setLoading(false);
   }
@@ -208,7 +210,7 @@ const handlePayment = async () => {
                   navigator.clipboard.writeText(
                     trackingCode.slice(0, 8).toUpperCase(),
                   );
-                  alert("Tracking code copied to clipboard!");
+                  toast.success("Tracking code copied to clipboard!", "Copied");
                 }}
                 className="mt-4 text-sm text-green-600 hover:text-green-700 font-semibold transition-colors"
               >

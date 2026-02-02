@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom";
 // import { Link } from "react-router-dom";
 // import { getMenuItems, createOrder } from '../services/api'
 import { getMenuItems } from '../../services/api'
+import { useToast } from "../../context/ToastContext";
 
 type Screen = "kitchen" | "confirm" | "payment" | "success";
 
@@ -31,6 +32,7 @@ export default function MArket() {
   const [spiceLevel, setSpiceLevel] = useState(30);
   const [scheduleOrder, setScheduleOrder] = useState(true);
   const navigate = useNavigate();
+  const toast = useToast();
 useEffect(() => {
   const loadMenu = async () => {
     const { data, error } = await getMenuItems(); 
@@ -67,7 +69,7 @@ const handleOrderNow = (item: MenuItem) => {
 
 const addToCart = (item: MenuItem) => {
   if (item.quantity === 0) {
-    alert('Please select quantity first');
+    toast.warning('Please select quantity first', 'Quantity Required');
     return;
   }
 
@@ -95,13 +97,13 @@ const addToCart = (item: MenuItem) => {
   }
 
   sessionStorage.setItem('cart', JSON.stringify(cart));
-  alert('Item added to cart!');
+  toast.success('Item added to cart!', 'Cart Updated');
 };
 const handleConfirmOrder = async () => {
   const cart = getCart();
   
   if (cart.length === 0) {
-    alert('Please add items to cart first');
+    toast.warning('Please add items to cart first', 'Cart Empty');
     return;
   }
 

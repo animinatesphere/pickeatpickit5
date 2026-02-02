@@ -18,8 +18,10 @@ import {
 import { VendorNav } from "../component/VendorNav";
 import { Link } from "react-router-dom";
 import { apiService, supabase } from "../../services/authService";
+import { useToast } from "../../context/ToastContext";
 
 const Account = () => {
+  const toast = useToast();
   const [isHovering, setIsHovering] = useState<string | null>(null);
     const [, setIsOpen] = useState(true);
   const [, setIsLoading] = useState(true);
@@ -55,8 +57,9 @@ const Account = () => {
 
         // Check if email is confirmed
         if (!session.user.email_confirmed_at) {
-          alert(
+          toast.warning(
             "Please verify your email before accessing your profile. Check your inbox for the verification link.",
+            "Email Verification Required"
           );
           window.location.href = "/vendor-login";
           return;
@@ -146,8 +149,9 @@ const Account = () => {
           error instanceof Error &&
           error.message.includes("Email not confirmed")
         ) {
-          alert(
+          toast.warning(
             "Please verify your email before accessing your profile. Check your inbox.",
+            "Email Verification Required"
           );
           window.location.href = "/vendor-login";
           return;

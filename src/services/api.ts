@@ -66,19 +66,26 @@ export const createOrder = async (orderData: any, orderItems: any[]) => {
 // Upload menu item image
 export const uploadMenuImage = async (file: File, vendorId: string) => {
   const fileExt = file.name.split(".").pop();
-  const fileName = `${vendorId}/${Date.now()}.${fileExt}`;
+  const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+  const filePath = `${vendorId}/${fileName}`; // Clear path structure
 
+  // Upload file
   const { error: uploadError } = await supabase.storage
     .from("menu-images")
-    .upload(fileName, file);
+    .upload(filePath, file, {
+      cacheControl: '3600',
+      upsert: false
+    });
 
   if (uploadError) {
+    console.error("Upload error:", uploadError);
     return { data: null, error: uploadError };
   }
 
+  // Get public URL
   const { data: urlData } = supabase.storage
     .from("menu-images")
-    .getPublicUrl(fileName);
+    .getPublicUrl(filePath);
 
   return { data: urlData.publicUrl, error: null };
 };

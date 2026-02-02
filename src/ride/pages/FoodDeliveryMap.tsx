@@ -1,12 +1,14 @@
 import { useState, useEffect, useRef } from "react";
 import { Navigation, Loader, MapPin, Target, X } from "lucide-react";
 import { RiderNav } from "../component/RiderNav";
+import { useToast } from "../../context/ToastContext";
 
 type GoogleMap = google.maps.Map | null;
 type GoogleMarker = google.maps.Marker | null;
 type GooglePolyline = google.maps.Polyline | null;
 
 const FoodDeliveryMap = () => {
+  const toast = useToast();
   const mapRef = useRef<HTMLDivElement>(null);
   const [map, setMap] = useState<GoogleMap>(null);
   const [currentLocationMarker, setCurrentLocationMarker] =
@@ -238,7 +240,7 @@ const FoodDeliveryMap = () => {
         ) {
           clearInterval(interval);
           setIsNavigating(false);
-          alert("🎉 You have arrived at your destination!");
+          toast.success("🎉 You have arrived at your destination!", "Arrived!");
           return prev;
         }
 
