@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
-import { ArrowLeft, MapPin, Check, Navigation } from "lucide-react";
+import { ArrowLeft, MapPin, Check, Navigation, Edit3, Save, Compass } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import { Navbar } from "../component/Navbar";
 import { useNavigate } from "react-router-dom";
 import { authService } from "../services/authService";
@@ -51,37 +52,14 @@ const ProfileEditForm: React.FC = () => {
   const [tempValues, setTempValues] = useState<PersonalInfo>(personalInfo);
   const [serviceOption, setServiceOption] = useState<string>("direct");
   const [riderInstructions, setRiderInstructions] = useState<string>("");
-useEffect(() => {
-  let isMounted = true;
 
-  const loadData = async () => {
-    try {
-      const data = await authService.getCurrentUserProfile();
-      if (isMounted) {
-        setPersonalInfo(data);
-      }
-    } catch (error: any) {
-      // ✅ FIX: Check if the error is an AbortError and ignore it
-      if (error.name === 'AbortError' || error.message?.includes('aborted')) {
-        return; 
-      }
-      console.error("Real Error:", error);
-    }
-  };
-
-  loadData();
-  return () => { isMounted = false; }; // Cleanup
-}, []);
-  // Fetch user profile on component mount
   useEffect(() => {
     const fetchUserProfile = async () => {
       try {
         setLoading(true);
         const profile = await authService.getCurrentUserProfile();
         if (profile) {
-          const fullName = `${profile.firstname || ""} ${
-            profile.lastname || ""
-          }`.trim();
+          const fullName = `${profile.firstname || ""} ${profile.lastname || ""}`.trim();
           const userInfo: PersonalInfo = {
             fullName: fullName,
             email: profile.email || "",
@@ -96,403 +74,237 @@ useEffect(() => {
         }
       } catch (error) {
         console.error("Failed to fetch user profile:", error);
-        setToastMessage({
-          message: "Failed to load profile",
-          type: "error",
-        });
       } finally {
-        setLoading(false);
+        setTimeout(() => setLoading(false), 600);
       }
     };
 
     fetchUserProfile();
   }, []);
 
-  // Initialize map
   useEffect(() => {
     if (mapRef.current && !mapRef.current.hasChildNodes()) {
       const iframe = document.createElement("iframe");
       iframe.width = "100%";
       iframe.height = "100%";
       iframe.style.border = "0";
-      iframe.style.borderRadius = "12px";
+      iframe.style.borderRadius = "2rem";
       iframe.loading = "lazy";
-      iframe.src =
-        "https://www.openstreetmap.org/export/embed.html?bbox=7.2461%2C8.9806%2C7.2861%2C9.0206&layer=mapnik&marker=9.0006,7.2661";
+      iframe.src = "https://www.openstreetmap.org/export/embed.html?bbox=7.2461%2C8.9806%2C7.2861%2C9.0206&layer=mapnik&marker=9.0006,7.2661";
       mapRef.current.appendChild(iframe);
     }
-  }, []);
-
-  const handleEdit = (field: keyof EditState) => {
-    setEditMode({ ...editMode, [field]: true });
-    setTempValues(personalInfo);
-  };
+  }, [loading]);
 
   const handleUpdate = async (field: keyof EditState) => {
     try {
       setSaving(true);
       const [firstName, lastName] = tempValues.fullName.split(" ");
-
-      // Prepare update data based on field being edited
       let updateData: Record<string, string> = {};
 
       if (field === "fullName") {
-        updateData = {
-          firstname: firstName || "",
-          lastname: lastName || "",
-        };
+        updateData = { firstname: firstName || "", lastname: lastName || "" };
       } else if (field === "email") {
         updateData = { email: tempValues.email };
       } else if (field === "phone") {
         updateData = { phone: tempValues.phone };
       }
 
-      // Call update service
       await authService.updateCurrentUserProfile(updateData);
-
       setPersonalInfo(tempValues);
       setEditMode({ ...editMode, [field]: false });
-      setToastMessage({
-        message: "Profile updated successfully!",
-        type: "success",
-      });
+      setToastMessage({ message: "Update Successful", type: "success" });
+      setTimeout(() => setToastMessage(null), 3000);
     } catch (error) {
-      console.error("Update failed:", error);
-      setToastMessage({
-        message: "Failed to update profile",
-        type: "error",
-      });
+      setToastMessage({ message: "Update Failed", type: "error" });
     } finally {
       setSaving(false);
     }
   };
 
-  const handleChange = (field: keyof PersonalInfo, value: string) => {
-    setTempValues({ ...tempValues, [field]: value });
+  const containerVariants = {
+    hidden: { opacity: 0, y: 30 },
+    show: {
+      opacity: 1,
+      y: 0,
+      transition: { staggerChildren: 0.1 }
+    }
   };
 
-  const handleBackClick = () => {
-    navigate(-1);
+  const itemVariants = {
+    hidden: { opacity: 0, scale: 0.95 },
+    show: { opacity: 1, scale: 1 }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-green-50/30 to-gray-50">
-      {/* Status Bar */}
+    <div className="min-h-screen bg-white dark:bg-gray-950 transition-colors duration-300 font-inter pb-20">
       <Navbar />
-      {/* Show Toast if there's a message */}
-      {toastMessage && (
-        <div
-          className={`fixed top-4 right-4 p-4 rounded-lg shadow-lg text-white z-50 animate-fade-in ${
-            toastMessage.type === "success" ? "bg-green-600" : "bg-red-600"
-          }`}
-        >
-          <div className="flex items-center gap-2">
-            {toastMessage.type === "success" ? (
-              <Check className="w-5 h-5" />
-            ) : (
-              <span>⚠️</span>
-            )}
-            <p>{toastMessage.message}</p>
-          </div>
+      
+      <AnimatePresence>
+        {toastMessage && (
+          <motion.div
+            initial={{ opacity: 0, y: -50, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.9 }}
+            className={`fixed top-10 left-1/2 -translate-x-1/2 px-10 py-5 rounded-3xl shadow-3xl text-white z-[100] font-black italic uppercase tracking-tighter flex items-center gap-4 ${
+              toastMessage.type === "success" ? "bg-green-600" : "bg-red-600"
+            }`}
+          >
+            {toastMessage.type === "success" ? <Check className="w-6 h-6" /> : "⚠️"}
+            {toastMessage.message}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <div className="sticky top-[80px] z-40 bg-white/80 dark:bg-gray-950/80 backdrop-blur-xl border-b border-gray-100 dark:border-gray-800 px-6 py-4">
+        <div className="max-w-4xl mx-auto flex items-center justify-between">
+          <button onClick={() => navigate(-1)} className="w-12 h-12 flex items-center justify-center bg-gray-50 dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 hover:scale-105 transition-all">
+            <ArrowLeft className="w-6 h-6" />
+          </button>
+          <h1 className="text-xl font-black italic tracking-tighter uppercase">Edit Profile</h1>
+          <div className="w-12" />
         </div>
-      )}
-      {/* Header */}
-      <div className="bg-white px-6 py-4 border-b border-gray-100 shadow-sm">
-        <button
-          onClick={handleBackClick}
-          className="p-2 -ml-2 hover:bg-gray-100 rounded-xl transition-all active:scale-95"
-        >
-          <ArrowLeft className="w-6 h-6 text-gray-900" />
-        </button>
       </div>
 
-      {/* Loading State */}
-      {loading ? (
-        <div className="flex items-center justify-center min-h-[60vh]">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto mb-4"></div>
-            <p className="text-gray-600">Loading profile...</p>
-          </div>
-        </div>
-      ) : (
-        <>
-          {/* Main Content */}
-          <div className="px-6 py-6 max-w-4xl mx-auto pb-20">
-            {/* Personal Information Section */}
-            <div className="mb-8">
-              <div className="flex items-center gap-2 mb-6">
-                <div className="h-1 w-12 bg-gradient-to-r from-green-600 to-green-400 rounded-full"></div>
-                <h2 className="text-2xl font-bold bg-gradient-to-r from-green-700 to-green-600 bg-clip-text text-transparent">
-                  Personal information
-                </h2>
-              </div>
+      <div className="max-w-4xl mx-auto px-6 py-12">
+        <AnimatePresence mode="wait">
+          {loading ? (
+            <motion.div key="loader" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-8">
+              {[1, 2, 3].map(i => <div key={i} className="h-32 w-full bg-gray-50 dark:bg-gray-900 rounded-[2.5rem] animate-pulse" />)}
+            </motion.div>
+          ) : (
+            <motion.div variants={containerVariants} initial="hidden" animate="show" className="space-y-12">
+              
+              {/* Profile Overview Section */}
+              <section>
+                <div className="flex items-center gap-4 mb-8">
+                   <div className="w-3 h-8 bg-green-500 rounded-full" />
+                   <h2 className="text-3xl font-black italic tracking-tighter uppercase">Identity</h2>
+                </div>
 
-              {/* Full Name */}
-              <div className="bg-white rounded-2xl p-6 mb-4 shadow-lg shadow-gray-200/50 border border-gray-100 hover:shadow-xl hover:border-green-100 transition-all duration-300">
-                <div className="flex justify-between items-start mb-3">
-                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">
-                    Full Name
-                  </label>
-                  {!editMode.fullName ? (
-                    <button
-                      onClick={() => handleEdit("fullName")}
-                      className="px-5 py-2 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white text-sm font-bold rounded-xl transition-all duration-300 shadow-md shadow-green-600/30 hover:shadow-lg hover:shadow-green-600/40 active:scale-95"
-                    >
-                      Edit
-                    </button>
-                  ) : (
-                    <button
-                      onClick={() => handleUpdate("fullName")}
-                      disabled={saving}
-                      className="px-5 py-2 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white text-sm font-bold rounded-xl transition-all duration-300 shadow-md shadow-green-600/30 hover:shadow-lg hover:shadow-green-600/40 active:scale-95 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      {saving ? (
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                <div className="space-y-6">
+                  {[
+                    { key: 'fullName', label: 'Full Name', value: personalInfo.fullName, temp: tempValues.fullName, type: 'text' },
+                    { key: 'email', label: 'Email Control', value: personalInfo.email, temp: tempValues.email, type: 'email' },
+                    { key: 'phone', label: 'Phone Access', value: personalInfo.phone, temp: tempValues.phone, type: 'tel' },
+                  ].map((field) => (
+                    <motion.div key={field.key} variants={itemVariants} className="bg-white dark:bg-gray-900 p-8 rounded-[2.5rem] border border-gray-50 dark:border-gray-800 shadow-xl relative overflow-hidden group">
+                      <div className="flex justify-between items-start mb-4">
+                        <label className="text-[10px] font-black uppercase italic tracking-widest text-gray-400">{field.label}</label>
+                        {!editMode[field.key as keyof EditState] ? (
+                          <button onClick={() => setEditMode({...editMode, [field.key]: true})} className="w-10 h-10 bg-gray-50 dark:bg-gray-800 rounded-xl flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                            <Edit3 className="w-4 h-4" />
+                          </button>
+                        ) : (
+                          <button onClick={() => handleUpdate(field.key as keyof EditState)} disabled={saving} className="bg-green-600 text-white px-6 py-2 rounded-xl text-[10px] font-black uppercase italic tracking-widest flex items-center gap-2 hover:bg-green-700 transition-all shadow-lg active:scale-95">
+                            {saving ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Save className="w-4 h-4" />}
+                            {saving ? 'Saving' : 'Save'}
+                          </button>
+                        )}
+                      </div>
+                      
+                      {editMode[field.key as keyof EditState] ? (
+                        <input
+                          type={field.type}
+                          value={field.temp}
+                          onChange={(e) => setTempValues({ ...tempValues, [field.key]: e.target.value })}
+                          className="w-full text-2xl font-black italic tracking-tighter uppercase bg-transparent text-green-600 outline-none border-b-4 border-green-600/20 focus:border-green-600 transition-all"
+                          autoFocus
+                        />
                       ) : (
-                        <Check className="w-4 h-4" />
+                        <p className="text-2xl font-black italic tracking-tighter uppercase text-gray-800 dark:text-gray-100 leading-tight">
+                          {field.value}
+                        </p>
                       )}
-                      {saving ? "Saving..." : "Update"}
-                    </button>
-                  )}
+                    </motion.div>
+                  ))}
                 </div>
-                {editMode.fullName ? (
-                  <input
-                    type="text"
-                    value={tempValues.fullName}
-                    onChange={(e) => handleChange("fullName", e.target.value)}
-                    className="w-full text-base font-semibold text-gray-900 border-b-2 border-green-500 focus:outline-none pb-2 bg-transparent"
-                  />
-                ) : (
-                  <p className="text-base font-semibold text-gray-900">
-                    {personalInfo.fullName}
-                  </p>
-                )}
-              </div>
+              </section>
 
-              {/* Email Address */}
-              <div className="bg-white rounded-2xl p-6 mb-4 shadow-lg shadow-gray-200/50 border border-gray-100 hover:shadow-xl hover:border-green-100 transition-all duration-300">
-                <div className="flex justify-between items-start mb-3">
-                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">
-                    Email Address
-                  </label>
-                  {!editMode.email ? (
-                    <button
-                      onClick={() => handleEdit("email")}
-                      className="px-5 py-2 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white text-sm font-bold rounded-xl transition-all duration-300 shadow-md shadow-green-600/30 hover:shadow-lg hover:shadow-green-600/40 active:scale-95"
+              {/* Geographic Section */}
+              <section>
+                <div className="flex items-center gap-4 mb-8">
+                   <div className="w-3 h-8 bg-orange-500 rounded-full" />
+                   <h2 className="text-3xl font-black italic tracking-tighter uppercase">Geography</h2>
+                </div>
+                
+                <div className="bg-white dark:bg-gray-900 p-8 rounded-[3rem] border border-gray-50 dark:border-gray-800 shadow-2xl space-y-8">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase italic tracking-widest text-gray-400">Tactical Address</label>
+                    <input
+                      type="text"
+                      value={tempValues.address}
+                      onChange={(e) => setTempValues({...tempValues, address: e.target.value})}
+                      className="w-full bg-gray-50 dark:bg-gray-800/50 p-6 rounded-[1.5rem] font-bold italic text-lg outline-none border-2 border-transparent focus:border-green-600 transition-all"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-6">
+                    {['city', 'state', 'zip'].map((cityField) => (
+                      <div key={cityField} className="space-y-2">
+                        <label className="text-[10px] font-black uppercase italic tracking-widest text-gray-400">{cityField}</label>
+                        <input
+                          type="text"
+                          value={tempValues[cityField as keyof PersonalInfo]}
+                          onChange={(e) => setTempValues({...tempValues, [cityField]: e.target.value})}
+                          className="w-full bg-gray-50 dark:bg-gray-800/50 p-6 rounded-[1.5rem] font-bold italic outline-none border-2 border-transparent focus:border-green-600 transition-all"
+                        />
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="relative h-72 rounded-[2.5rem] overflow-hidden border-4 border-gray-50 dark:border-gray-800 shadow-inner group">
+                    <div ref={mapRef} className="w-full h-full" />
+                    <button className="absolute top-6 right-6 bg-white dark:bg-gray-900 p-4 rounded-2xl shadow-2xl border border-gray-100 dark:border-gray-800 active:scale-95 transition-all text-green-600">
+                      <Compass className="w-6 h-6 animate-pulse" />
+                    </button>
+                  </div>
+                </div>
+              </section>
+
+              {/* Operational Section */}
+              <section>
+                <div className="flex items-center gap-4 mb-8">
+                   <div className="w-3 h-8 bg-blue-500 rounded-full" />
+                   <h2 className="text-3xl font-black italic tracking-tighter uppercase">Operations</h2>
+                </div>
+
+                <div className="space-y-4 mb-8">
+                  {[
+                    { id: 'direct', label: 'Hand it to me Directly' },
+                    { id: 'available', label: 'Hand to who is available' },
+                    { id: 'door', label: 'Tactical drop at my door' }
+                  ].map((opt) => (
+                    <div 
+                      key={opt.id}
+                      onClick={() => setServiceOption(opt.id)}
+                      className={`p-6 rounded-[1.5rem] border-4 cursor-pointer transition-all flex items-center justify-between ${
+                        serviceOption === opt.id 
+                          ? 'border-green-600 bg-green-500/5' 
+                          : 'border-gray-50 dark:border-gray-800 bg-white dark:bg-gray-900/40'
+                      }`}
                     >
-                      Update
-                    </button>
-                  ) : (
-                    <button
-                      onClick={() => handleUpdate("email")}
-                      className="px-5 py-2 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white text-sm font-bold rounded-xl transition-all duration-300 shadow-md shadow-green-600/30 hover:shadow-lg hover:shadow-green-600/40 active:scale-95 flex items-center gap-2"
-                    >
-                      <Check className="w-4 h-4" />
-                      Update
-                    </button>
-                  )}
+                      <span className={`font-black italic uppercase tracking-tighter text-lg ${serviceOption === opt.id ? 'text-green-600' : 'text-gray-400'}`}>
+                        {opt.label}
+                      </span>
+                      {serviceOption === opt.id && <div className="w-6 h-6 bg-green-600 rounded-full flex items-center justify-center text-white"><Check size={14} strokeWidth={4} /></div>}
+                    </div>
+                  ))}
                 </div>
-                {editMode.email ? (
-                  <input
-                    type="email"
-                    value={tempValues.email}
-                    onChange={(e) => handleChange("email", e.target.value)}
-                    className="w-full text-base font-semibold text-gray-900 border-b-2 border-green-500 focus:outline-none pb-2 bg-transparent"
-                  />
-                ) : (
-                  <p className="text-base font-semibold text-gray-900">
-                    {personalInfo.email}
-                  </p>
-                )}
-              </div>
 
-              {/* Phone Number */}
-              <div className="bg-white rounded-2xl p-6 shadow-lg shadow-gray-200/50 border border-gray-100 hover:shadow-xl hover:border-green-100 transition-all duration-300">
-                <div className="flex justify-between items-start mb-3">
-                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">
-                    Phone Number
-                  </label>
-                  {!editMode.phone ? (
-                    <button
-                      onClick={() => handleEdit("phone")}
-                      className="px-5 py-2 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white text-sm font-bold rounded-xl transition-all duration-300 shadow-md shadow-green-600/30 hover:shadow-lg hover:shadow-green-600/40 active:scale-95"
-                    >
-                      Edit
-                    </button>
-                  ) : (
-                    <button
-                      onClick={() => handleUpdate("phone")}
-                      className="px-5 py-2 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white text-sm font-bold rounded-xl transition-all duration-300 shadow-md shadow-green-600/30 hover:shadow-lg hover:shadow-green-600/40 active:scale-95 flex items-center gap-2"
-                    >
-                      <Check className="w-4 h-4" />
-                      Update
-                    </button>
-                  )}
-                </div>
-                {editMode.phone ? (
-                  <input
-                    type="tel"
-                    value={tempValues.phone}
-                    onChange={(e) => handleChange("phone", e.target.value)}
-                    className="w-full text-base font-semibold text-gray-900 border-b-2 border-green-500 focus:outline-none pb-2 bg-transparent"
-                  />
-                ) : (
-                  <p className="text-base font-semibold text-gray-900">
-                    {personalInfo.phone}
-                  </p>
-                )}
-              </div>
-            </div>
-
-            {/* Address Section */}
-            <div className="mb-8">
-              <div className="flex items-center gap-2 mb-4">
-                <div className="h-1 w-8 bg-gradient-to-r from-green-600 to-green-400 rounded-full"></div>
-                <h3 className="text-lg font-bold text-gray-900">Address</h3>
-              </div>
-              <div className="bg-white rounded-2xl p-6 mb-4 shadow-lg shadow-gray-200/50 border border-gray-100 hover:shadow-xl hover:border-green-100 transition-all duration-300">
-                <input
-                  type="text"
-                  value={personalInfo.address}
-                  onChange={(e) => handleChange("address", e.target.value)}
-                  className="w-full text-base font-semibold text-gray-700 border-b-2 border-gray-200 focus:border-green-500 focus:outline-none pb-3 transition-all bg-transparent"
-                  placeholder="Enter address"
-                />
-              </div>
-
-              {/* Zip, City, State */}
-              <div className="grid grid-cols-3 gap-4">
-                <div className="bg-white rounded-2xl p-4 shadow-lg shadow-gray-200/50 border border-gray-100 hover:shadow-xl hover:border-green-100 transition-all duration-300">
-                  <label className="text-xs font-bold text-gray-500 mb-2 block uppercase tracking-wider">
-                    Zip
-                  </label>
-                  <input
-                    type="text"
-                    value={personalInfo.zip}
-                    onChange={(e) => handleChange("zip", e.target.value)}
-                    className="w-full text-base font-semibold text-gray-700 border-b-2 border-gray-200 focus:border-green-500 focus:outline-none pb-2 transition-all bg-transparent"
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black uppercase italic tracking-widest text-gray-400">Directives for Operatives</label>
+                  <textarea
+                    value={riderInstructions}
+                    onChange={(e) => setRiderInstructions(e.target.value)}
+                    placeholder="Enter deployment notes..."
+                    className="w-full h-40 bg-white dark:bg-gray-900 p-8 rounded-[2.5rem] border-4 border-gray-50 dark:border-gray-800 outline-none focus:border-green-600 transition-all font-bold italic resize-none shadow-xl"
                   />
                 </div>
-                <div className="bg-white rounded-2xl p-4 shadow-lg shadow-gray-200/50 border border-gray-100 hover:shadow-xl hover:border-green-100 transition-all duration-300">
-                  <label className="text-xs font-bold text-gray-500 mb-2 block uppercase tracking-wider">
-                    City
-                  </label>
-                  <input
-                    type="text"
-                    value={personalInfo.city}
-                    onChange={(e) => handleChange("city", e.target.value)}
-                    className="w-full text-base font-semibold text-gray-700 border-b-2 border-gray-200 focus:border-green-500 focus:outline-none pb-2 transition-all bg-transparent"
-                  />
-                </div>
-                <div className="bg-white rounded-2xl p-4 shadow-lg shadow-gray-200/50 border border-gray-100 hover:shadow-xl hover:border-green-100 transition-all duration-300">
-                  <label className="text-xs font-bold text-gray-500 mb-2 block uppercase tracking-wider">
-                    State
-                  </label>
-                  <input
-                    type="text"
-                    value={personalInfo.state}
-                    onChange={(e) => handleChange("state", e.target.value)}
-                    className="w-full text-base font-semibold text-gray-700 border-b-2 border-gray-200 focus:border-green-500 focus:outline-none pb-2 transition-all bg-transparent"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Location Display */}
-            <div className="bg-white rounded-2xl p-6 mb-6 shadow-lg shadow-gray-200/50 border border-gray-100 hover:shadow-xl transition-all duration-300">
-              <div className="flex gap-3 mb-5">
-                <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center shadow-lg shadow-green-600/30 flex-shrink-0">
-                  <MapPin className="w-5 h-5 text-white" />
-                </div>
-                <div>
-                  <h4 className="text-base font-bold text-gray-900 mb-1">
-                    Villa Nova Estate Apu Gudu District Garki Abuja
-                  </h4>
-                  <p className="text-sm text-gray-600">
-                    Apt/House · Block A Second Floor Room 302
-                  </p>
-                </div>
-              </div>
-
-              {/* Real Map */}
-              <div className="relative w-full h-64 rounded-2xl overflow-hidden shadow-lg border-2 border-gray-100">
-                <div ref={mapRef} className="w-full h-full"></div>
-                <button className="absolute top-4 right-4 bg-white p-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 active:scale-95 border border-gray-200">
-                  <Navigation className="w-5 h-5 text-green-600" />
-                </button>
-              </div>
-            </div>
-
-            {/* Service Options */}
-            <div className="mb-8">
-              <h3 className="text-lg font-bold text-gray-900 mb-4">
-                Service Options
-              </h3>
-
-              <div className="space-y-3">
-                <label className="flex items-center gap-3 p-4 bg-white rounded-xl shadow-sm border-2 border-green-600 cursor-pointer transition-all">
-                  <input
-                    type="radio"
-                    name="service"
-                    value="direct"
-                    checked={serviceOption === "direct"}
-                    onChange={(e) => setServiceOption(e.target.value)}
-                    className="w-5 h-5 text-green-600 focus:ring-green-500"
-                  />
-                  <span className="text-base font-medium text-gray-900">
-                    Hand it to me Directly
-                  </span>
-                </label>
-
-                <label className="flex items-center gap-3 p-4 bg-white rounded-xl shadow-sm border-2 border-gray-200 hover:border-gray-300 cursor-pointer transition-all">
-                  <input
-                    type="radio"
-                    name="service"
-                    value="available"
-                    checked={serviceOption === "available"}
-                    onChange={(e) => setServiceOption(e.target.value)}
-                    className="w-5 h-5 text-green-600 focus:ring-green-500"
-                  />
-                  <span className="text-base font-medium text-gray-900">
-                    Hand to me or who's available
-                  </span>
-                </label>
-
-                <label className="flex items-center gap-3 p-4 bg-white rounded-xl shadow-sm border-2 border-gray-200 hover:border-gray-300 cursor-pointer transition-all">
-                  <input
-                    type="radio"
-                    name="service"
-                    value="door"
-                    checked={serviceOption === "door"}
-                    onChange={(e) => setServiceOption(e.target.value)}
-                    className="w-5 h-5 text-green-600 focus:ring-green-500"
-                  />
-                  <span className="text-base font-medium text-gray-900">
-                    Leave it at my door
-                  </span>
-                </label>
-              </div>
-            </div>
-
-            {/* Instruction for Rider */}
-            <div className="mb-8">
-              <h3 className="text-lg font-bold text-gray-900 mb-2">
-                Instruction for Rider
-              </h3>
-              <p className="text-sm text-gray-500 mb-4">
-                e.g enter the main street, its 1st door on the right
-              </p>
-
-              <textarea
-                value={riderInstructions}
-                onChange={(e) => setRiderInstructions(e.target.value)}
-                placeholder="Enter instructions for the rider..."
-                className="w-full h-32 p-4 bg-white rounded-xl border-2 border-gray-200 focus:border-green-500 focus:outline-none resize-none text-base text-gray-900 placeholder-gray-400 shadow-sm transition-colors"
-              />
-            </div>
-          </div>
-        </>
-      )}
+              </section>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
     </div>
   );
 };

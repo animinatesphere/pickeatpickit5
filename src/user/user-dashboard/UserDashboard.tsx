@@ -1,53 +1,38 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useEffect } from "react";
 import {
-  // ChevronLeft,
-  // ChevronRight,
   Bell,
-  Heart, // Added back
+  Heart,
   Star,
   Mail,
+  Search,
+  MapPin,
+  TrendingUp,
+  Award,
+  Clock,
+  ChevronRight
 } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import { Navbar } from "../../component/Navbar";
 import HeroFoodCarousel from "../../component/HeroFoodCarousel";
-import { Link, useNavigate } from "react-router-dom"; // Added useNavigate
+import { Link, useNavigate } from "react-router-dom";
 import FoodScrollCarousel from "../component/FoodScrollCarouse";
 import { supabase } from "../../services/authService";
 import { useToast } from "../../context/ToastContext";
 
-// Define the interface for the liked state
 interface LikedState {
   [key: string]: boolean;
 }
-
-// type ScrollDirection = "left" | "right";
 
 export default function UserDashboard() {
   const navigate = useNavigate();
   const toast = useToast();
   
-  // States
-  const [liked, setLiked] = useState<LikedState>({}); // Added back
+  const [liked, setLiked] = useState<LikedState>({});
   const [foods, setFoods] = useState<any[]>([]);
   const [offers, setOffers] = useState<any[]>([]);
   const [vendors, setVendors] = useState<any[]>([]);
   const [userProfile, setUserProfile] = useState({ name: "Guest", initial: "G" });
   const [loading, setLoading] = useState(true);
-
-  const scrollRefs = {
-    foods: useRef<HTMLDivElement>(null),
-    offers: useRef<HTMLDivElement>(null),
-    sellers: useRef<HTMLDivElement>(null),
-  };
-
-  // const scroll = (ref: React.RefObject<HTMLDivElement | null>, direction: ScrollDirection) => {
-  //   if (ref.current) {
-  //     const scrollAmount = 300;
-  //     ref.current.scrollBy({
-  //       left: direction === "left" ? -scrollAmount : scrollAmount,
-  //       behavior: "smooth",
-  //     });
-  //   }
-  // };
 
   const toggleLike = async (vendorId: string) => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -71,14 +56,12 @@ export default function UserDashboard() {
     }
   };
 
-  // Main Data Fetcher
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
         const { data: { session } } = await supabase.auth.getSession();
         
-        // 1. Handle User Profile
         if (session?.user) {
           const firstName = session.user.user_metadata?.firstname || "User";
           setUserProfile({
@@ -86,7 +69,6 @@ export default function UserDashboard() {
             initial: firstName.charAt(0).toUpperCase()
           });
 
-          // 2. Fetch User Favorites
           const { data: favs } = await supabase
             .from("user_favorites")
             .select("vendor_id")
@@ -99,15 +81,12 @@ export default function UserDashboard() {
           }
         }
 
-        // 3. Fetch Featured Foods
         const { data: menuData } = await supabase.from("menu_items").select("*").limit(10);
         if (menuData) setFoods(menuData);
 
-        // 4. Fetch Vendors
         const { data: profileData } = await supabase.from("vendor_profiles").select("*").limit(8);
         if (profileData) setVendors(profileData);
 
-        // 5. Fetch Offers
         const { data: offerData } = await supabase
           .from("menu_items")
           .select("*, vendor_profiles(business_name)")
@@ -118,221 +97,200 @@ export default function UserDashboard() {
       } catch (error) {
         console.error("Dashboard error:", error);
       } finally {
-        setLoading(false);
+        setTimeout(() => setLoading(false), 800);
       }
     };
 
     fetchData();
   }, []);
 
-  if (loading) {
-  return (
-    <div className="min-h-screen bg-white dark:bg-gray-950 transition-colors duration-300">
-      {/* 1. Header Skeleton */}
-      <div className="px-4 sm:px-6 py-6 border-b dark:border-gray-800">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-full bg-gray-200 dark:bg-gray-800 animate-pulse" />
-            <div className="space-y-2">
-              <div className="h-3 w-24 bg-gray-200 dark:bg-gray-800 rounded animate-pulse" />
-              <div className="h-4 w-32 bg-gray-300 dark:bg-gray-700 rounded animate-pulse" />
-            </div>
-          </div>
-          <div className="flex gap-2">
-            <div className="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-800 animate-pulse" />
-            <div className="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-800 animate-pulse" />
-          </div>
-        </div>
-        <div className="w-full h-12 bg-gray-100 dark:bg-gray-900 rounded-full animate-pulse" />
-      </div>
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    show: {
+      opacity: 1,
+      transition: { staggerChildren: 0.1 }
+    }
+  };
 
-      {/* 2. Hero Carousel Skeleton */}
-      <div className="px-4 sm:px-6 py-8">
-        <div className="w-full h-[400px] rounded-3xl bg-gray-200 dark:bg-gray-800 animate-pulse relative overflow-hidden">
-          {/* Shimmer Effect */}
-          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 dark:via-gray-400/10 to-transparent -translate-x-full animate-[shimmer_2s_infinite]" />
-        </div>
-      </div>
-
-      {/* 3. Horizontal Scroll Skeleton */}
-      <div className="px-4 sm:px-6 py-6">
-        <div className="h-6 w-40 bg-gray-200 dark:bg-gray-800 rounded mb-6 animate-pulse" />
-        <div className="flex gap-4 overflow-hidden">
-          {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="flex-shrink-0 w-40 space-y-3">
-              <div className="w-40 h-40 rounded-2xl bg-gray-200 dark:bg-gray-800 animate-pulse" />
-              <div className="h-3 w-32 bg-gray-200 dark:bg-gray-800 rounded animate-pulse" />
-              <div className="h-3 w-20 bg-gray-100 dark:bg-gray-900 rounded animate-pulse" />
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <style>{`
-        @keyframes shimmer {
-          100% { transform: translateX(100%); }
-        }
-      `}</style>
-    </div>
-  );
-}
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    show: { opacity: 1, y: 0 }
+  };
 
   return (
-    <div className="w-full min-h-screen bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-100 transition-colors duration-300">
+    <div className="w-full min-h-screen bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-100 transition-colors duration-300 font-inter pb-20 overflow-x-hidden">
       <style>{`
-        .hide-scrollbar { scrollbar-width: none; }
         .hide-scrollbar::-webkit-scrollbar { display: none; }
-        @keyframes slideInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-        .animate-slide-in-up { animation: slideInUp 0.6s ease-out backwards; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
       `}</style>
 
-      <div className="w-full pb-24">
-        {/* Header */}
-        <div className="sticky top-0 z-50 bg-white dark:bg-gray-950/80 backdrop-blur-xl shadow-lg border-b dark:border-gray-800 transition-colors duration-300">
-          <Navbar />
-          <div className="px-4 sm:px-6 md:px-8 py-4 sm:py-5">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full flex items-center justify-center text-white font-bold shadow-lg">
-                     {userProfile.initial}
+      <AnimatePresence mode="wait">
+        {loading ? (
+          <motion.div 
+            key="loading"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="min-h-screen flex flex-col"
+          >
+            <div className="px-6 py-6 border-b dark:border-gray-800">
+               <div className="flex items-center justify-between mb-6">
+                 <div className="flex items-center gap-4">
+                   <div className="w-14 h-14 rounded-2xl bg-gray-200 dark:bg-gray-800 animate-pulse" />
+                   <div className="space-y-2">
+                     <div className="h-3 w-24 bg-gray-200 dark:bg-gray-800 rounded animate-pulse" />
+                     <div className="h-5 w-40 bg-gray-300 dark:bg-gray-700 rounded animate-pulse" />
+                   </div>
+                 </div>
+               </div>
+               <div className="w-full h-14 bg-gray-50 dark:bg-gray-900 rounded-[2rem] animate-pulse" />
+            </div>
+            <div className="px-6 py-10">
+               <div className="w-full h-[400px] rounded-[3rem] bg-gray-200 dark:bg-gray-800 animate-pulse" />
+            </div>
+          </motion.div>
+        ) : (
+          <motion.div 
+            key="content"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="w-full"
+          >
+            <div className="sticky top-0 z-50 bg-white/80 dark:bg-gray-950/80 backdrop-blur-2xl border-b border-gray-100 dark:border-gray-800">
+              <Navbar />
+              <div className="max-w-7xl mx-auto px-6 py-6">
+                <div className="flex flex-col md:flex-row gap-6 items-center justify-between">
+                  <div className="flex items-center gap-4 w-full md:w-auto">
+                    <motion.div whileHover={{ scale: 1.05 }} className="w-14 h-14 bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl flex items-center justify-center text-white font-black text-xl shadow-xl shadow-green-500/20">
+                      {userProfile.initial}
+                    </motion.div>
+                    <div>
+                      <p className="text-[10px] font-black uppercase italic tracking-widest text-gray-400 leading-none mb-1">Welcome Back</p>
+                      <h1 className="text-xl font-black italic tracking-tighter uppercase">{userProfile.name}</h1>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-4 w-full md:w-auto">
+                    <div className="relative flex-1 group md:min-w-[400px]">
+                      <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-green-500" />
+                      <input
+                        type="text"
+                        placeholder="Search for available items..."
+                        onClick={() => navigate("/search")}
+                        readOnly
+                        className="w-full pl-14 pr-6 py-4 bg-gray-50 dark:bg-gray-900/50 border border-gray-100 dark:border-gray-800 rounded-3xl text-sm focus:outline-none focus:ring-4 focus:ring-green-500/10 cursor-pointer font-bold"
+                      />
+                    </div>
+                    <div className="flex gap-2">
+                       <Link to="/notification" className="w-14 h-14 bg-gray-50 dark:bg-gray-900 flex items-center justify-center rounded-2xl text-green-600 border border-gray-100 dark:border-gray-800 relative">
+                         <Bell className="w-6 h-6" />
+                         <span className="absolute top-4 right-4 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white dark:border-gray-950"></span>
+                       </Link>
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">Welcome back,</p>
-                  <p className="text-sm sm:text-base font-bold text-green-600 dark:text-green-400">
-                     {userProfile.name}
-                  </p>
-                </div>
-              </div>
-              <div className="flex gap-2">
-                <Link to="/notification" className="p-2 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-full relative">
-                    <Bell className="w-6 h-6 text-green-600 dark:text-green-400" />
-                    <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
-                </Link>
-                <Link to="/inbox" className="p-2 hover:bg-green-100 dark:hover:bg-green-900/30 rounded-full">
-                    <Mail className="w-6 h-6 text-green-600 dark:text-green-400" />
-                </Link>
               </div>
             </div>
 
-            {/* Search Bar */}
-            <div className="relative">
-              <Link to="/search">
-                <input
-                  readOnly
-                  placeholder="Search for foods, restaurants..."
-                  className="w-full pl-12 pr-5 py-3 bg-gray-50 dark:bg-gray-900 border-2 border-gray-200 dark:border-gray-800 rounded-full text-sm dark:text-gray-200 outline-none cursor-pointer focus:border-green-500 dark:focus:border-green-400"
-                />
-              </Link>
-            </div>
-          </div>
-        </div>
+            <div className="max-w-7xl mx-auto px-6 py-10">
+              <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="rounded-[3rem] overflow-hidden shadow-3xl mb-16">
+                <HeroFoodCarousel />
+              </motion.div>
 
-        <HeroFoodCarousel />
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-20">
+                {[
+                  { label: 'Popular', icon: TrendingUp, color: 'text-green-500', bg: 'bg-green-500/10' },
+                  { label: 'Featured', icon: Award, color: 'text-orange-500', bg: 'bg-orange-500/10' },
+                  { label: 'Recent', icon: Clock, color: 'text-blue-500', bg: 'bg-blue-500/10' },
+                  { label: 'Favorite', icon: Heart, color: 'text-pink-500', bg: 'bg-pink-500/10' },
+                ].map((item, i) => (
+                  <motion.div key={i} whileHover={{ y: -5 }} className="bg-white dark:bg-gray-900 p-6 rounded-[2rem] border border-gray-50 dark:border-gray-800 shadow-xl flex flex-col items-center justify-center gap-4 cursor-pointer group">
+                    <div className={`${item.bg} p-4 rounded-2xl group-hover:scale-110 transition-all`}>
+                      <item.icon className={`w-8 h-8 ${item.color}`} />
+                    </div>
+                    <span className="font-black italic uppercase tracking-widest text-[10px] text-gray-500">{item.label}</span>
+                  </motion.div>
+                ))}
+              </div>
 
-        {/* Featured Foods */}
-        <div className="px-4 sm:px-6 md:px-8 py-6">
-          <h2 className="font-bold text-gray-800 dark:text-gray-100 mb-4 flex items-center gap-2">
-            <span className="w-1 h-6 bg-green-500 rounded-full"></span> Featured Foods
-          </h2>
-          <div className="relative group">
-            <div ref={scrollRefs.foods} className="flex gap-4 overflow-x-auto pb-4 hide-scrollbar scroll-smooth">
-              {foods.map((food, _idx) => (
-                <div key={food.id} className="flex-shrink-0 animate-slide-in-up">
-                  <Link to={`/market?item=${food.id}`} className="block">
-                    <div className="relative rounded-2xl w-40 h-40 shadow-lg overflow-hidden">
-                      <img src={food.image_url || "https://via.placeholder.com/300"} alt={food.name} className="w-full h-full object-cover" />
-                      <div className="absolute bottom-0 left-0 right-0 bg-black/40 p-2">
-                        <p className="text-white text-xs font-bold">₦{food.price.toLocaleString()}</p>
+              <div className="mb-20">
+                <div className="flex items-center justify-between mb-10">
+                  <h2 className="text-3xl font-black italic tracking-tighter uppercase flex items-center gap-4">
+                    <span className="w-3 h-8 bg-green-500 rounded-full" /> Featured Foods
+                  </h2>
+                  <Link to="/market" className="text-green-600 font-black text-xs uppercase italic tracking-widest hover:underline flex items-center gap-2">View All <ChevronRight className="w-4 h-4" /></Link>
+                </div>
+
+                <motion.div variants={containerVariants} initial="hidden" animate="show" className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-8">
+                  {foods.map((food) => (
+                    <motion.div key={food.id} variants={itemVariants} whileHover={{ y: -10 }} className="group">
+                      <Link to={`/market?item=${food.id}`}>
+                        <div className="relative aspect-square rounded-[2.5rem] overflow-hidden shadow-2xl mb-4">
+                          <img src={food.image_url || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500"} alt={food.name} className="w-full h-full object-cover transition-all group-hover:scale-110" />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity p-6 flex items-end">
+                             <p className="text-white font-black italic text-xl tracking-tighter uppercase">₦{food.price.toLocaleString()}</p>
+                          </div>
+                        </div>
+                        <h3 className="font-black italic uppercase tracking-tighter text-gray-700 dark:text-gray-300 text-sm truncate">{food.name}</h3>
+                      </Link>
+                    </motion.div>
+                  ))}
+                </motion.div>
+              </div>
+
+              <div className="mb-20">
+                <h2 className="text-3xl font-black italic tracking-tighter uppercase flex items-center gap-4 mb-10">
+                  <span className="w-3 h-8 bg-orange-500 rounded-full" /> Special Offers
+                </h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  {offers.map((offer) => (
+                    <motion.div key={offer.id} whileHover={{ scale: 1.02 }} className="relative h-64 rounded-[2.5rem] overflow-hidden shadow-3xl group cursor-pointer" onClick={() => navigate("/market")}>
+                      <img src={offer.image_url || "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=800"} className="absolute inset-0 w-full h-full object-cover transition-all group-hover:scale-110" alt={offer.name} />
+                      <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/40 to-transparent p-10 flex flex-col justify-center">
+                        <div className="bg-orange-500 text-white w-fit px-4 py-1 rounded-full text-[10px] font-black uppercase italic tracking-widest mb-4">{offer.discount}% DISCOUNT</div>
+                        <h3 className="text-3xl font-black text-white italic tracking-tighter uppercase mb-2">{offer.name}</h3>
+                        <p className="text-white/60 font-bold uppercase italic text-xs tracking-widest">{offer.vendor_profiles?.business_name}</p>
                       </div>
-                    </div>
-                    <p className="text-xs font-semibold text-gray-800 dark:text-gray-200 mt-2">{food.name}</p>
-                  </Link>
+                    </motion.div>
+                  ))}
                 </div>
-              ))}
+              </div>
+
+              <div className="mb-20">
+                <h2 className="text-3xl font-black italic tracking-tighter uppercase flex items-center gap-4 mb-10">
+                  <span className="w-3 h-8 bg-red-500 rounded-full" /> Kitchens Near You
+                </h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+                  {vendors.map((vendor) => (
+                    <motion.div key={vendor.id} whileHover={{ y: -10 }} onClick={() => navigate(`/market?vendor=${vendor.vendor_id}`)} className="bg-white dark:bg-gray-900 p-8 rounded-[2.5rem] border border-gray-50 dark:border-gray-800 shadow-2xl cursor-pointer group hover:border-green-500/30 transition-all">
+                      <div className="flex flex-col gap-6">
+                        <div className="flex items-center justify-between">
+                          <div className="w-20 h-20 rounded-[1.5rem] bg-gray-50 dark:bg-gray-800 flex items-center justify-center text-4xl shadow-inner border border-gray-100 dark:border-gray-700">
+                            {vendor.logo_url ? <img src={vendor.logo_url} className="w-full h-full object-cover" alt="logo" /> : <div className="font-black italic text-green-600">🏪</div>}
+                          </div>
+                          <motion.button whileTap={{ scale: 0.8 }} onClick={(e) => { e.stopPropagation(); toggleLike(vendor.id); }} className={`p-3 rounded-2xl ${liked[vendor.id] ? 'bg-pink-500/10 text-pink-500' : 'bg-gray-50 dark:bg-gray-800 text-gray-300'}`}>
+                            <Heart size={24} fill={liked[vendor.id] ? "currentColor" : "none"} />
+                          </motion.button>
+                        </div>
+                        <div>
+                          <h3 className="text-xl font-black italic tracking-tighter uppercase mb-2 truncate">{vendor.business_name}</h3>
+                          <div className="flex items-center gap-4">
+                            <div className="flex items-center gap-1.5 text-yellow-500"><Star size={16} fill="currentColor" /><span className="text-sm font-black italic">4.5</span></div>
+                            <div className="flex items-center gap-1.5 text-gray-400"><MapPin size={16} /><span className="text-[10px] font-black uppercase italic tracking-widest">2.4km</span></div>
+                          </div>
+                        </div>
+                        <p className="text-xs text-gray-400 line-clamp-2 italic">{vendor.business_description || "Premium kitchen with fresh ingredients."}</p>
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+              </div>
+
+              <FoodScrollCarousel />
             </div>
-          </div>
-        </div>
-
-        {/* Special Offers */}
-        <div className="px-4 sm:px-6 md:px-8 py-6">
-          <h2 className="font-bold text-gray-800 dark:text-gray-100 mb-4 flex items-center gap-2">
-            <span className="w-1 h-6 bg-orange-500 rounded-full"></span> Special Offers
-          </h2>
-          <div ref={scrollRefs.offers} className="flex gap-4 overflow-x-auto pb-4 hide-scrollbar scroll-smooth">
-            {offers.map((offer) => (
-              <div key={offer.id} className="flex-shrink-0 w-80">
-                <Link to="/market" className="block bg-white dark:bg-gray-900 rounded-2xl overflow-hidden shadow-lg border border-gray-100 dark:border-gray-800">
-                  <div className="relative h-40">
-                    <img src={offer.image_url} className="w-full h-full object-cover" />
-                    <div className="absolute top-2 right-2 bg-white dark:bg-gray-800 px-2 py-1 rounded-full text-xs font-bold text-red-500 shadow">{offer.discount}% OFF</div>
-                  </div>
-                  <div className="p-4">
-                    <p className="font-bold text-gray-900 dark:text-gray-100">{offer.name}</p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">{offer.vendor_profiles?.business_name}</p>
-                  </div>
-                </Link>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Featured Sellers */}
-        <div className="px-4 sm:px-6 md:px-8 py-6">
-          <h2 className="font-bold text-gray-800 dark:text-gray-100 mb-4 flex items-center gap-2">
-            <span className="w-1 h-6 bg-blue-500 rounded-full"></span> Featured Sellers
-          </h2>
-          <div ref={scrollRefs.sellers} className="flex gap-4 overflow-x-auto pb-4 hide-scrollbar scroll-smooth">
-            {vendors.map((vendor) => (
-              <div key={vendor.id} className="flex-shrink-0 flex flex-col items-center">
-                <div className="w-20 h-20 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center text-green-600 dark:text-green-400 font-bold text-xl border-4 border-white dark:border-gray-800 shadow-md overflow-hidden">
-                  {vendor.logo_url ? <img src={vendor.logo_url} className="w-full h-full object-cover" /> : vendor.full_name?.charAt(0)}
-                </div>
-                <p className="text-xs font-semibold mt-2 text-gray-800 dark:text-gray-200">{vendor.full_name}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <FoodScrollCarousel />
-
-        {/* Kitchens Near You */}
-        <div className="px-4 sm:px-6 md:px-8 py-6">
-          <h2 className="font-bold text-gray-800 dark:text-gray-100 mb-4 flex items-center gap-2">
-            <span className="w-1 h-6 bg-red-500 rounded-full"></span> Kitchens Near You
-          </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {vendors.map((vendor) => (
-              <div 
-                key={vendor.id} 
-                onClick={() => navigate(`/market?vendor=${vendor.vendor_id}`)}
-                className="bg-white dark:bg-gray-900 p-4 rounded-2xl border-2 border-gray-100 dark:border-gray-800 hover:border-green-200 dark:hover:border-green-800 shadow-sm cursor-pointer transition-all duration-300"
-              >
-                <div className="flex gap-3">
-                  <div className="w-16 h-16 rounded-xl bg-green-50 dark:bg-green-900/20 flex items-center justify-center text-2xl overflow-hidden shadow-inner">
-                    {vendor.logo_url ? <img src={vendor.logo_url} className="w-full h-full object-cover" /> : "🏪"}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex justify-between items-start">
-                      <p className="font-bold text-gray-900 dark:text-gray-100 truncate">{vendor.business_name}</p>
-                      <button 
-                        onClick={(e) => { e.stopPropagation(); toggleLike(vendor.id); }}
-                        className="p-1 hover:bg-pink-50 rounded-full"
-                      >
-                        <Heart size={18} className={liked[vendor.id] ? "text-red-500 fill-red-500" : "text-gray-300"} />
-                      </button>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Star size={12} className="text-yellow-500 fill-yellow-500" />
-                      <span className="text-[10px] font-bold">4.5</span>
-                    </div>
-                    <p className="text-[10px] text-gray-400 mt-1 line-clamp-1">{vendor.business_description}</p>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

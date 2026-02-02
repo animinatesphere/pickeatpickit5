@@ -1,4 +1,3 @@
-// import { useState } from "react";
 import { useState, useEffect } from "react";
 import {
   User,
@@ -9,17 +8,21 @@ import {
   HelpCircle,
   Users,
   LogOut,
+  ChevronRight,
+  ShieldCheck,
+  Bell,
+  Sparkles
 } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import { Navbar } from "../component/Navbar";
 import { Link, useNavigate } from "react-router-dom";
 import { authService } from "../services/authService";
-// import { useNavigate } from "react-router-dom";
 
 interface MenuItem {
   icon: React.ReactNode;
   label: string;
-
   secs: string;
+  description: string;
 }
 
 interface UserProfile {
@@ -37,53 +40,57 @@ const Profile: React.FC = () => {
     email: "",
     phone: "",
   });
+  const [loading, setLoading] = useState(true);
+
   const menuItems: MenuItem[] = [
     {
-      icon: <User className="w-5 h-5 text-green-600" />,
-      label: "Profile",
+      icon: <User className="w-6 h-6" />,
+      label: "Profile Settings",
+      description: "Manage your personal information",
       secs: "/profile-edit",
     },
     {
-      icon: <Clock className="w-5 h-5 text-green-600" />,
+      icon: <Clock className="w-6 h-6" />,
       label: "Booking History",
+      description: "View your past and active orders",
       secs: "/booking",
     },
     {
-      icon: <Wallet className="w-5 h-5 text-green-600" />,
-      label: "Wallet",
+      icon: <Wallet className="w-6 h-6" />,
+      label: "Wallet & Payments",
+      description: "Manage your funds and cards",
       secs: "/wallet",
     },
     {
-      icon: <Moon className="w-5 h-5 text-green-600" />,
-      label: "Dark Theme",
-      secs: "/profile-edit",
+      icon: <Bell className="w-6 h-6" />,
+      label: "Notifications",
+      description: "Control your alerts and messages",
+      secs: "/notification",
     },
     {
-      icon: <Monitor className="w-5 h-5 text-green-600" />,
-      label: "Devices and Session",
+      icon: <ShieldCheck className="w-6 h-6" />,
+      label: "Security",
+      description: "Passwords and two-factor auth",
       secs: "/device",
     },
     {
-      icon: <HelpCircle className="w-5 h-5 text-green-600" />,
-      label: "FAQ",
-      secs: "/profile-edit",
-    },
-    {
-      icon: <Users className="w-5 h-5 text-green-600" />,
-      label: "Support",
+      icon: <HelpCircle className="w-6 h-6" />,
+      label: "Help & Support",
+      description: "Get assistance and read FAQs",
       secs: "/support",
     },
   ];
 
-  // Fetch user profile on component mount
   useEffect(() => {
     const fetchUserProfile = async () => {
       try {
+        setLoading(true);
         const profile = await authService.getCurrentUserProfile();
         setUserProfile(profile);
       } catch (error) {
         console.error("Failed to fetch user profile:", error);
-        // Show error toast or default to empty values
+      } finally {
+        setTimeout(() => setLoading(false), 600);
       }
     };
 
@@ -99,86 +106,118 @@ const Profile: React.FC = () => {
     }
   };
 
-  const fullName = `${userProfile.firstname || ""} ${
-    userProfile.lastname || ""
-  }`.trim();
-  const initials =
-    (userProfile.firstname?.[0] || "U") + (userProfile.lastname?.[0] || "S");
+  const fullName = `${userProfile.firstname || ""} ${userProfile.lastname || ""}`.trim();
+  const initials = (userProfile.firstname?.[0] || "U") + (userProfile.lastname?.[0] || "S");
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex flex-col">
-      {/* Main Content */}
+    <div className="min-h-screen bg-white dark:bg-gray-950 transition-colors duration-300 font-inter">
       <Navbar />
-      <div className="flex-1 overflow-y-auto pb-20">
-        {/* Header */}
-        <div className="bg-white px-6 py-6 text-center border-b border-gray-100">
-          <h1 className="text-xl font-bold text-gray-900">Profile</h1>
-        </div>
+      
+      <AnimatePresence mode="wait">
+        {loading ? (
+          <motion.div 
+            key="loading"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="max-w-3xl mx-auto px-6 py-12 space-y-8"
+          >
+             <div className="h-64 w-full bg-gray-50 dark:bg-gray-900 rounded-[3rem] animate-pulse" />
+             <div className="space-y-4">
+               {[1, 2, 3, 4].map(i => (
+                 <div key={i} className="h-20 w-full bg-gray-50 dark:bg-gray-900 rounded-2xl animate-pulse" />
+               ))}
+             </div>
+          </motion.div>
+        ) : (
+          <motion.div 
+            key="content"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="max-w-4xl mx-auto px-6 py-12 pb-32"
+          >
+            {/* Cinematic Profile Header */}
+            <div className="relative mb-16">
+              <div className="absolute inset-0 bg-gradient-to-r from-green-500/10 to-emerald-500/10 blur-3xl -z-10 rounded-full" />
+              <div className="bg-white dark:bg-gray-900/50 backdrop-blur-2xl rounded-[3rem] p-10 border border-gray-100 dark:border-gray-800 shadow-3xl text-center relative overflow-hidden">
+                <div className="absolute top-0 right-0 p-8 opacity-10">
+                  <Sparkles className="w-24 h-24 text-green-500" />
+                </div>
+                
+                <motion.div 
+                  initial={{ scale: 0.8, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  whileHover={{ scale: 1.05 }}
+                  className="relative inline-block mb-8"
+                >
+                  <div className="w-36 h-36 rounded-[2.5rem] bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center shadow-2xl shadow-green-500/30 transform -rotate-3 hover:rotate-0 transition-transform duration-500">
+                    <span className="text-5xl font-black text-white italic tracking-tighter uppercase">{initials}</span>
+                  </div>
+                  <div className="absolute -bottom-2 -right-2 w-10 h-10 bg-white dark:bg-gray-900 rounded-2xl flex items-center justify-center shadow-xl border-4 border-gray-50 dark:border-gray-800">
+                    <ShieldCheck className="w-5 h-5 text-green-500" />
+                  </div>
+                </motion.div>
 
-        {/* User Info Card */}
-        <div className="px-6 py-8">
-          <div className="bg-white rounded-3xl shadow-lg shadow-gray-200/50 p-8 text-center border border-gray-100">
-            <div className="relative inline-block mb-6">
-              <div className="w-28 h-28 rounded-full bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center shadow-xl">
-                <span className="text-4xl font-bold text-white">
-                  {initials}
-                </span>
+                <h1 className="text-4xl font-black italic tracking-tighter uppercase text-gray-800 dark:text-white mb-2">
+                  {fullName || "Cinematic User"}
+                </h1>
+                <p className="text-gray-400 font-bold uppercase italic tracking-widest text-[10px] mb-6">
+                  {userProfile.email || "premium@pickitpickeat.com"}
+                </p>
+                
+                <div className="flex items-center justify-center gap-6">
+                  <div className="px-6 py-2 bg-green-500/10 rounded-full border border-green-500/20 text-green-600 dark:text-green-400 font-black italic text-xs uppercase tracking-widest">
+                    Verified Global Member
+                  </div>
+                </div>
               </div>
-              <div className="absolute bottom-1 right-1 w-6 h-6 bg-green-500 rounded-full border-4 border-white"></div>
             </div>
 
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">
-              {fullName || "User"}
-            </h2>
-            <p className="text-sm text-gray-500 mb-1">
-              {userProfile.email || "email@example.com"}
-            </p>
-            <p className="text-sm font-semibold text-green-600">
-              {userProfile.phone || "+234 0000 0000 000"}
-            </p>
-          </div>
-        </div>
+            {/* Menu Sections */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
+               {menuItems.map((item, index) => (
+                 <motion.div
+                   key={index}
+                   initial={{ opacity: 0, x: index % 2 === 0 ? -20 : 20 }}
+                   animate={{ opacity: 1, x: 0 }}
+                   transition={{ delay: index * 0.1 }}
+                 >
+                   <Link to={item.secs} className="block group">
+                     <div className="bg-white dark:bg-gray-900/40 p-6 rounded-[2rem] border border-gray-50 dark:border-gray-800 hover:border-green-500/30 shadow-xl hover:shadow-2xl transition-all h-full flex items-center gap-6 relative overflow-hidden">
+                       <div className="w-16 h-16 bg-gray-50 dark:bg-gray-800/80 rounded-2xl flex items-center justify-center text-green-600 dark:text-green-400 shadow-inner group-hover:scale-110 group-hover:bg-green-600 group-hover:text-white transition-all duration-500">
+                         {item.icon}
+                       </div>
+                       <div>
+                         <h3 className="text-lg font-black italic tracking-tighter uppercase text-gray-800 dark:text-white leading-none mb-1">{item.label}</h3>
+                         <p className="text-[10px] text-gray-400 font-bold uppercase italic tracking-widest leading-tight">{item.description}</p>
+                       </div>
+                       <ChevronRight className="absolute right-6 w-5 h-5 text-gray-300 group-hover:text-green-500 group-hover:translate-x-2 transition-all" />
+                     </div>
+                   </Link>
+                 </motion.div>
+               ))}
+            </div>
 
-        {/* Menu Items */}
-        <div className="px-6 space-y-3 mb-6">
-          {menuItems.map((item, index) => (
-            <Link to={item.secs} key={index}>
-              <button className="w-full bg-white rounded-2xl p-4 flex items-center gap-4 shadow-sm hover:shadow-md transition-all duration-300 border border-gray-100 hover:border-green-200 group">
-                <div className="w-12 h-12 bg-green-50 rounded-xl flex items-center justify-center group-hover:bg-green-100 transition-colors">
-                  {item.icon}
-                </div>
-                <span className="text-base font-semibold text-gray-900 group-hover:text-green-600 transition-colors">
-                  {item.label}
+            {/* Logout Section */}
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.8 }}
+              className="flex justify-center"
+            >
+              <button
+                onClick={handleLogout}
+                className="group relative px-12 py-5 bg-black dark:bg-white text-white dark:text-black rounded-3xl font-black italic uppercase tracking-tighter text-xl overflow-hidden active:scale-95 transition-all shadow-2xl"
+              >
+                <div className="absolute inset-0 bg-red-600 translate-y-full group-hover:translate-y-0 transition-transform duration-500" />
+                <span className="relative z-10 flex items-center gap-4">
+                  Log Out Profile <LogOut className="w-6 h-6" />
                 </span>
-                <svg
-                  className="w-5 h-5 ml-auto text-gray-400 group-hover:text-green-600 group-hover:translate-x-1 transition-all"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M9 5l7 7-7 7"
-                  />
-                </svg>
               </button>
-            </Link>
-          ))}
-        </div>
-
-        {/* Logout Button */}
-        <div className="px-6 mb-8">
-          <button
-            onClick={handleLogout}
-            className="w-full bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white font-bold py-4 px-6 rounded-2xl shadow-lg shadow-green-600/30 flex items-center justify-center gap-3 transition-all duration-300 hover:shadow-xl hover:shadow-green-600/40 active:scale-95"
-          >
-            <span className="text-lg">Log out</span>
-            <LogOut className="w-5 h-5" />
-          </button>
-        </div>
-      </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
