@@ -3,7 +3,6 @@ import {
   Bell,
   Heart,
   Star,
-  Mail,
   Search,
   MapPin,
   TrendingUp,

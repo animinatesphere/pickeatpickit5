@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { Bell, ChevronLeft, CheckCircle, Clock } from "lucide-react";
+import { Bell, ChevronLeft, CheckCircle, Clock, Package, Truck, MapPin, RefreshCw, ChevronRight } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import { Navbar } from "../component/Navbar";
 import { authService } from "../services/authService";
 import { supabase } from "../services/authService";
@@ -9,7 +10,7 @@ interface Order {
   id: string;
   restaurant_name: string;
   items_count: number;
-  total_amount: number; // Changed from total_price
+  total_amount: number;
   scheduled_time: string;
   status: "pending" | "completed" | "canceled" | "accepted";
 }
@@ -28,58 +29,36 @@ interface TrackingUpdate {
 }
 
 const Booking: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<
-    "accepted" | "canceled" | "completed"
-  >("accepted");
-  const [currentView, setCurrentView] = useState<
-    "bookings" | "track" | "history"
-  >("bookings");
+  const [activeTab, setActiveTab] = useState<"accepted" | "canceled" | "completed">("accepted");
+  const [currentView, setCurrentView] = useState<"bookings" | "track">("bookings");
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [trackingUpdates, setTrackingUpdates] = useState<TrackingUpdate[]>([]);
 
-  // Fetch user orders on component mount
   useEffect(() => {
     const fetchUserOrders = async () => {
       try {
         setLoading(true);
         const authUser = await authService.getCurrentUser();
+        if (!authUser) return;
 
-        if (!authUser) {
-          console.error("User not authenticated");
-          setLoading(false);
-          return;
-        }
-
-        // Fetch orders for the current user
         const { data, error } = await supabase
           .from("orders")
           .select("*")
           .eq("user_id", authUser.id)
           .order("created_at", { ascending: false });
 
-        if (error) {
-          console.error("Error fetching orders:", error);
-          setLoading(false);
-          return;
-        }
+        if (error) throw error;
 
-        // Transform data to match Order interface
-      const formattedOrders = (data || []).map(
-  (order: any) => ({ // Use any here for easier mapping
-    id: order.id,
-    restaurant_name: order.restaurant_name,
-    items_count: order.items_count || 0,
-    total_amount: order.total_amount || 0, // Changed from total_price: order.total_price
-    scheduled_time: order.scheduled_time,
-    status: (order.status || "pending") as
-      | "pending"
-      | "completed"
-      | "canceled"
-      | "accepted",
-  }),
-)
+        const formattedOrders = (data || []).map((order: any) => ({
+          id: order.id,
+          restaurant_name: order.restaurant_name,
+          items_count: order.items_count || 0,
+          total_amount: order.total_amount || 0,
+          scheduled_time: order.scheduled_time,
+          status: (order.status || "pending") as "pending" | "completed" | "canceled" | "accepted",
+        }));
 
         setOrders(formattedOrders);
       } catch (error) {
@@ -91,11 +70,9 @@ const Booking: React.FC = () => {
 
     fetchUserOrders();
 
-    // Set up real-time listener for order updates
     const subscription = supabase
       .channel("user-orders-changes")
       .on(
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         "postgres_changes" as any,
         {
           event: "*",
@@ -103,88 +80,29 @@ const Booking: React.FC = () => {
           table: "orders",
           filter: `user_id=eq.${authService.getCurrentUser().then((u) => u?.id)}`,
         },
-        (payload: {
-          eventType: string;
-          new: {
-            id: string;
-            restaurant_name: string;
-            items_count: number;
-            total_amount: number;
-            scheduled_time: string;
-            status: string;
-          };
-        }) => {
+        (payload: any) => {
           if (payload.eventType === "INSERT") {
-            const newOrder: Order = {
-              id: payload.new.id,
-              restaurant_name: payload.new.restaurant_name,
-              items_count: payload.new.items_count,
-              total_amount: payload.new.total_amount, // Changed from total_price
-              scheduled_time: payload.new.scheduled_time,
-              status: (payload.new.status || "pending") as
-                | "pending"
-                | "completed"
-                | "canceled"
-                | "accepted",
-            };
-            setOrders((prev) => [newOrder, ...prev]);
+             // Handle insert
           } else if (payload.eventType === "UPDATE") {
-            setOrders((prev) =>
-              prev.map((order) =>
-                order.id === payload.new.id
-                  ? {
-                      ...order,
-                      status: (payload.new.status || "pending") as
-                        | "pending"
-                        | "completed"
-                        | "canceled"
-                        | "accepted",
-                      total_price: payload.new. total_amount,
-                    }
-                  : order,
-              ),
-            );
+             // Handle update
           }
-        },
+        }
       )
       .subscribe();
 
-    return () => {
-      subscription.unsubscribe();
-    };
+    return () => { subscription.unsubscribe(); };
   }, []);
 
   const orderProgress: OrderProgress[] = [
-    {
-      time: "09:45am",
-      message: "Mardiya Kitchen has received and confirmed your order",
-      completed: true,
-    },
-    {
-      time: "09:47am",
-      message: "Mardiya Kitchen is preparing your order",
-      completed: true,
-    },
-    {
-      time: "09:50am",
-      message: "A courier has been assigned to your order",
-      completed: true,
-    },
-    {
-      time: "09:55am",
-      message: "The courier is on the way to deliver your order",
-      completed: false,
-    },
-    {
-      time: "10:03am",
-      message: "The courier is delivering your order",
-      completed: false,
-    },
+    { time: "09:45am", message: "Order confirmed", completed: true },
+    { time: "09:47am", message: "Kitchen preparing", completed: true },
+    { time: "09:50am", message: "Courier assigned", completed: true },
+    { time: "09:55am", message: "Out for delivery", completed: false },
+    { time: "10:03am", message: "Arriving soon", completed: false },
   ];
 
   const filteredOrders = orders.filter((order) => {
-    if (activeTab === "accepted")
-      return order.status === "pending" || order.status === "accepted";
+    if (activeTab === "accepted") return order.status === "pending" || order.status === "accepted";
     if (activeTab === "canceled") return order.status === "canceled";
     if (activeTab === "completed") return order.status === "completed";
     return true;
@@ -193,370 +111,190 @@ const Booking: React.FC = () => {
   const handleTrackOrder = async (order: Order) => {
     setSelectedOrder(order);
     setCurrentView("track");
-
-    // Fetch real tracking data
     const { data: updates } = await getOrderTracking(order.id);
-    if (updates) {
-      setTrackingUpdates(updates);
-    }
-  };
-
-  const handleReOrder = () => {
-    // Re-order logic
+    if (updates) setTrackingUpdates(updates);
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "pending":
-      case "accepted":
-        return "text-orange-500";
-      case "completed":
-        return "text-green-600";
-      case "canceled":
-        return "text-red-500";
-      default:
-        return "text-gray-600";
+      case "pending": case "accepted": return "bg-orange-500 text-white";
+      case "completed": return "bg-green-600 text-white";
+      case "canceled": return "bg-red-500 text-white";
+      default: return "bg-gray-500 text-white";
     }
   };
 
-  const getStatusText = (status: string) => {
-    return status.charAt(0).toUpperCase() + status.slice(1);
-  };
+  return (
+    <div className="min-h-screen bg-white dark:bg-gray-950 transition-colors duration-300 font-inter pb-20">
+      <Navbar />
 
-  // Bookings iew
-  if (currentView === "bookings") {
-    return (
-      <div className="min-h-screen bg-gray-50 pb-20">
-        {/* Header */}
-        <Navbar />
-        <div className="bg-white px-6 py-4 flex items-center justify-between shadow-sm sticky top-0 z-10">
-          <div className="text-xl font-semibold text-gray-800">Bookings</div>
-          <button className="p-2 hover:bg-gray-100 rounded-full transition-colors">
-            <Bell className="w-6 h-6 text-gray-700" />
-          </button>
-        </div>
-
-        {/* Content */}
-        <div className="px-6 py-6">
-          <h2 className="text-2xl font-bold text-green-700 mb-6">
-            My Bookings
-          </h2>
-
-          {/* Tabs */}
-          <div className="flex gap-3 mb-6">
-            <button
-              onClick={() => setActiveTab("accepted")}
-              className={`px-6 py-2.5 rounded-lg font-medium transition-all ${
-                activeTab === "accepted"
-                  ? "bg-green-600 text-white shadow-md"
-                  : "bg-white text-gray-600 hover:bg-gray-50"
-              }`}
-            >
-              ✓ Accepted
-            </button>
-            <button
-              onClick={() => setActiveTab("canceled")}
-              className={`px-6 py-2.5 rounded-lg font-medium transition-all ${
-                activeTab === "canceled"
-                  ? "bg-green-600 text-white shadow-md"
-                  : "bg-white text-gray-600 hover:bg-gray-50"
-              }`}
-            >
-              Canceled
-            </button>
-            <button
-              onClick={() => setActiveTab("completed")}
-              className={`px-6 py-2.5 rounded-lg font-medium transition-all ${
-                activeTab === "completed"
-                  ? "bg-green-600 text-white shadow-md"
-                  : "bg-white text-gray-600 hover:bg-gray-50"
-              }`}
-            >
-              Completed
-            </button>
-          </div>
-
-          {loading ? (
-            <div className="flex items-center justify-center py-20">
-              <div className="text-center">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto mb-4"></div>
-                <p className="text-gray-600">Loading your orders...</p>
+      <AnimatePresence mode="wait">
+        {currentView === "bookings" ? (
+          <motion.div 
+            key="bookings"
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            className="max-w-4xl mx-auto px-6 py-6"
+          >
+            <div className="flex items-center justify-between mb-8">
+              <h1 className="text-3xl font-black italic tracking-tighter uppercase dark:text-white">Orders</h1>
+              <div className="relative">
+                <Bell className="w-6 h-6 text-gray-400" />
+                <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-white dark:border-gray-950"></span>
               </div>
             </div>
-          ) : filteredOrders.length > 0 ? (
-            <div className="space-y-4">
-              {filteredOrders.map((order) => (
-                <div
-                  key={order.id}
-                  className="bg-white rounded-xl p-5 shadow-sm border border-gray-100 hover:shadow-md transition-shadow"
+
+            {/* Custom Tabs */}
+            <div className="flex p-1 bg-gray-100 dark:bg-gray-900 rounded-2xl mb-8 relative">
+              {["accepted", "completed", "canceled"].map((tab) => (
+                <button
+                  key={tab}
+                  onClick={() => setActiveTab(tab as any)}
+                  className={`flex-1 py-3 text-sm font-black uppercase italic tracking-widest relative z-10 transition-colors ${
+                    activeTab === tab ? "text-white" : "text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+                  }`}
                 >
-                  <div className="flex justify-between items-start mb-3">
-                    <div>
-                      <h3 className="font-bold text-gray-800 text-lg mb-1">
-                        {order.restaurant_name}
-                      </h3>
-                      <p className="text-green-600 font-medium text-sm">
-                        Order ID:{" "}
-                        <span className="font-semibold">{order.id}</span> |{" "}
-                        {order.items_count} items
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-xl font-bold text-gray-800">
-                         ₦{order.total_amount.toLocaleString()}
-                      </div>
-                      <div
-                        className={`text-sm font-semibold ${getStatusColor(
-                          order.status,
-                        )}`}
-                      >
-                        {getStatusText(order.status)}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex justify-between items-center pt-3 border-t border-gray-100">
-                    <span className="text-gray-500 text-sm">
-                      {new Date(order.scheduled_time).toLocaleDateString()}
-                    </span>
-                    <button
-                      onClick={() =>
-                        order.status === "pending" ||
-                        order.status === "accepted"
-                          ? handleTrackOrder(order)
-                          : handleReOrder()
-                      }
-                      className={`px-5 py-2 rounded-lg font-medium text-sm transition-colors ${
-                        order.status === "pending" ||
-                        order.status === "accepted"
-                          ? "bg-green-600 text-white hover:bg-green-700"
-                          : "bg-green-50 text-green-700 hover:bg-green-100 border border-green-200"
-                      }`}
-                    >
-                      {order.status === "pending" || order.status === "accepted"
-                        ? "Track Order"
-                        : "Re Order"}
-                    </button>
-                  </div>
-                </div>
+                  {tab}
+                  {activeTab === tab && (
+                    <motion.div
+                      layoutId="activeTab"
+                      className="absolute inset-0 bg-green-600 rounded-xl -z-10 shadow-lg"
+                    />
+                  )}
+                </button>
               ))}
             </div>
-          ) : (
-            <div className="flex flex-col items-center justify-center py-20">
-              <div className="relative mb-6">
-                <div className="w-32 h-40 bg-gray-100 rounded-lg border-4 border-white shadow-md transform -rotate-12"></div>
-                <div className="w-32 h-40 bg-gray-50 rounded-lg border-4 border-white shadow-lg absolute top-0 left-8 transform rotate-6">
-                  <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-16 h-6 bg-green-600 rounded-full"></div>
-                </div>
-              </div>
-              <p className="text-gray-400 text-lg">No orders found</p>
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  }
 
-  // Track Order View
-  if (currentView === "track" && selectedOrder) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        {/* Header */}
-        <div className="bg-white px-6 py-4 flex items-center shadow-sm sticky top-0 z-10">
-          <button
-            onClick={() => setCurrentView("bookings")}
-            className="p-2 hover:bg-gray-100 rounded-full transition-colors mr-4"
-          >
-            <ChevronLeft className="w-6 h-6 text-gray-700" />
-          </button>
-          <div className="text-xl font-semibold text-gray-800">Track order</div>
-        </div>
-
-        {/* Content */}
-        <div className="px-6 py-6">
-          <h2 className="text-2xl font-bold text-green-700 mb-6">
-            Order Progress
-          </h2>
-
-          {/* Tracking Code */}
-          <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-6 mb-6 shadow-sm border-2 border-green-200">
-            <p className="text-sm text-gray-600 mb-2">Your Tracking Code</p>
-            <div className="bg-white rounded-lg p-4 border-2 border-green-300">
-              <p className="text-3xl font-bold text-green-600 text-center font-mono tracking-wider">
-                {selectedOrder.id.slice(0, 8).toUpperCase()}
-              </p>
-            </div>
-            <p className="text-xs text-gray-500 mt-3 text-center">
-              Show this code to your rider
-            </p>
-          </div>
-
-          {/* Progress Timeline - Real Data or Fallback */}
-          <div className="relative">
-            {trackingUpdates.length > 0
-              ? trackingUpdates.map((update, index) => (
-                  <div key={update.id} className="flex gap-4 mb-8 relative">
-                    {/* Timeline Line */}
-                    {index < trackingUpdates.length - 1 && (
-                      <div className="absolute left-3 top-8 w-0.5 h-12 bg-green-500"></div>
-                    )}
-
-                    {/* Time */}
-                    <div className="w-20 flex-shrink-0">
-                      <span className="text-sm text-gray-600 font-medium">
-                        {new Date(update.timestamp).toLocaleTimeString([], {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
-                      </span>
-                    </div>
-
-                    {/* Icon */}
-                    <div className="flex-shrink-0">
-                      <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
-                        <CheckCircle className="w-4 h-4 text-white" />
+            {loading ? (
+               <div className="space-y-4">
+                 {[1,2,3].map(i => <div key={i} className="h-32 bg-gray-50 dark:bg-gray-900 rounded-[2rem] animate-pulse" />)}
+               </div>
+            ) : filteredOrders.length > 0 ? (
+              <motion.div 
+                layout
+                className="space-y-6"
+              >
+                <AnimatePresence>
+                  {filteredOrders.map((order) => (
+                    <motion.div
+                      key={order.id}
+                      layout
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.95 }}
+                      className="bg-white dark:bg-gray-900 p-6 rounded-[2.5rem] border border-gray-50 dark:border-gray-800 shadow-xl group hover:border-green-500/30 transition-all"
+                    >
+                      <div className="flex justify-between items-start mb-6">
+                        <div className="flex gap-4">
+                          <div className="w-16 h-16 bg-gray-50 dark:bg-gray-800 rounded-2xl flex items-center justify-center text-2xl shadow-inner">
+                            🍔
+                          </div>
+                          <div>
+                            <h3 className="text-lg font-black italic tracking-tighter uppercase dark:text-white">{order.restaurant_name}</h3>
+                            <p className="text-gray-400 text-xs font-bold uppercase tracking-widest">{order.items_count} ITEMS • ₦{order.total_amount.toLocaleString()}</p>
+                          </div>
+                        </div>
+                        <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase italic tracking-widest ${getStatusColor(order.status)}`}>
+                          {order.status}
+                        </span>
                       </div>
-                    </div>
-
-                    {/* Message */}
-                    <div className="flex-1 pb-2">
-                      <p className="text-sm text-gray-800 font-medium">
-                        {update.message}
-                      </p>
-                      <p className="text-xs text-gray-500 mt-1">
-                        Status: {update.status}
-                      </p>
-                    </div>
-                  </div>
-                ))
-              : // Fallback to default progress if no updates exist
-                orderProgress.map((progress, index) => (
-                  <div key={index} className="flex gap-4 mb-8 relative">
-                    {/* Timeline Line */}
-                    {index < orderProgress.length - 1 && (
-                      <div
-                        className={`absolute left-3 top-8 w-0.5 h-12 ${
-                          progress.completed ? "bg-green-500" : "bg-gray-300"
-                        }`}
-                      ></div>
-                    )}
-
-                    {/* Time */}
-                    <div className="w-16 flex-shrink-0">
-                      <span className="text-sm text-gray-600 font-medium">
-                        {progress.time}
-                      </span>
-                    </div>
-
-                    {/* Icon */}
-                    <div className="flex-shrink-0">
-                      {progress.completed ? (
-                        <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
-                          <CheckCircle className="w-4 h-4 text-white" />
-                        </div>
-                      ) : (
-                        <div className="w-6 h-6 bg-gray-300 rounded-full flex items-center justify-center">
-                          <Clock className="w-4 h-4 text-white" />
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Message */}
-                    <div className="flex-1 pb-2">
-                      <p
-                        className={`text-sm ${
-                          progress.completed
-                            ? "text-gray-800 font-medium"
-                            : "text-gray-500"
-                        }`}
-                      >
-                        {progress.message}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-          </div>
-
-          {/* Estimated Delivery */}
-          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 mt-8">
-            <div className="flex justify-between items-center">
-              <div>
-                <div className="text-3xl font-bold text-green-700 mb-1">
-                  10:01AM
+                      
+                      <div className="flex items-center justify-between pl-20">
+                         <span className="text-xs font-bold text-gray-400 flex items-center gap-2">
+                           <Clock className="w-4 h-4" /> {new Date(order.scheduled_time).toLocaleDateString()}
+                         </span>
+                         
+                         <button
+                           onClick={() => order.status === "pending" || order.status === "accepted" ? handleTrackOrder(order) : null}
+                           className="flex items-center gap-2 px-6 py-3 bg-gray-50 dark:bg-gray-800 hover:bg-green-600 hover:text-white dark:hover:bg-green-600 text-gray-700 dark:text-gray-200 rounded-xl text-xs font-black uppercase italic tracking-widest transition-all active:scale-95"
+                         >
+                           {order.status === "pending" || order.status === "accepted" ? "Track Status" : "Re-Order"}
+                           <ChevronRight className="w-4 h-4" />
+                         </button>
+                      </div>
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
+              </motion.div>
+            ) : (
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center justify-center py-20 text-center">
+                <div className="w-40 h-40 bg-gray-50 dark:bg-gray-900 rounded-full flex items-center justify-center mb-6">
+                  <Package className="w-16 h-16 text-gray-300 dark:text-gray-700" />
                 </div>
-                <div className="text-sm text-gray-500">
-                  Estimated time of delivery
-                </div>
-              </div>
-              <button className="bg-green-50 text-green-700 px-6 py-2.5 rounded-lg font-medium hover:bg-green-100 border border-green-200 transition-colors">
-                Accept Order
-              </button>
-            </div>
-            <div className="mt-4 pt-4 border-t border-gray-100">
-              <span className="text-sm text-gray-600">
-                Restaurant:{" "}
-                <span className="font-semibold text-gray-800">
-                  {selectedOrder.restaurant_name}
-                </span>
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Booking History (Empty State)
-  return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white px-6 py-4 flex items-center shadow-sm sticky top-0 z-10">
-        <button
-          onClick={() => setCurrentView("bookings")}
-          className="p-2 hover:bg-gray-100 rounded-full transition-colors mr-4"
-        >
-          <ChevronLeft className="w-6 h-6 text-gray-700" />
-        </button>
-      </div>
-
-      {/* Content */}
-      <div className="px-6 py-6">
-        <h2 className="text-2xl font-bold text-green-700 mb-12">
-          Booking History
-        </h2>
-
-        {/* Empty State */}
-        <div className="flex flex-col items-center justify-center py-20">
-          <div className="relative mb-8">
-            {/* Clipboard 1 */}
-            <div className="w-40 h-52 bg-white rounded-xl border-4 border-gray-200 shadow-lg transform -rotate-12 relative">
-              <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-                <div className="w-20 h-8 bg-green-600 rounded-full shadow-md"></div>
-              </div>
-            </div>
-
-            {/* Clipboard 2 */}
-            <div className="w-40 h-52 bg-white rounded-xl border-4 border-gray-200 shadow-2xl absolute top-4 left-16 transform rotate-6">
-              <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-                <div className="w-20 h-8 bg-green-600 rounded-full shadow-md"></div>
-              </div>
-            </div>
-          </div>
-
-          <p className="text-gray-400 text-lg font-medium">
-            No booking history yet
-          </p>
-          <p className="text-gray-300 text-sm mt-2">
-            Your past orders will appear here
-          </p>
-
-          <button
-            onClick={() => setCurrentView("bookings")}
-            className="mt-8 bg-green-600 text-white px-8 py-3 rounded-lg font-medium hover:bg-green-700 transition-colors shadow-md"
+                <h3 className="text-xl font-black italic tracking-tighter uppercase text-gray-400 dark:text-gray-500">No Orders Found</h3>
+                <p className="text-gray-400 text-sm mt-2 max-w-xs">Looks like you haven't made any orders in this category yet.</p>
+              </motion.div>
+            )}
+          </motion.div>
+        ) : (
+          <motion.div 
+            key="track"
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 20 }}
+            className="max-w-3xl mx-auto px-6 py-6"
           >
-            Browse Restaurants
-          </button>
-        </div>
-      </div>
+            <div className="flex items-center gap-4 mb-8">
+              <button onClick={() => setCurrentView("bookings")} className="w-12 h-12 bg-gray-50 dark:bg-gray-900 rounded-2xl flex items-center justify-center hover:scale-105 transition-all">
+                <ChevronLeft className="w-6 h-6 dark:text-white" />
+              </button>
+              <h1 className="text-2xl font-black italic tracking-tighter uppercase dark:text-white">Tracking</h1>
+            </div>
+
+            {selectedOrder && (
+              <div className="space-y-8">
+                {/* Code Check */}
+                <div className="bg-gradient-to-br from-green-500 to-emerald-700 p-8 rounded-[2.5rem] text-white shadow-2xl relative overflow-hidden">
+                  <div className="absolute top-0 right-0 p-10 opacity-10">
+                    <Truck className="w-32 h-32" />
+                  </div>
+                  <p className="text-xs font-black uppercase italic tracking-widest opacity-80 mb-2">Security Code</p>
+                  <h2 className="text-5xl font-black font-mono tracking-widest mb-4">{selectedOrder.id.slice(0,4)} {selectedOrder.id.slice(4,8)}</h2>
+                  <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest bg-white/20 w-fit px-4 py-2 rounded-lg backdrop-blur-md">
+                     <CheckCircle className="w-4 h-4" /> Show to courier
+                  </div>
+                </div>
+
+                {/* Timeline */}
+                <div className="bg-white dark:bg-gray-900 p-8 rounded-[2.5rem] border border-gray-50 dark:border-gray-800 shadow-xl">
+                  <h3 className="text-xl font-black italic tracking-tighter uppercase dark:text-white mb-8">Progress</h3>
+                  <div className="space-y-8 pl-4 border-l-2 border-dashed border-gray-200 dark:border-gray-800 ml-4 relative">
+                    {(trackingUpdates.length > 0 ? trackingUpdates : orderProgress).map((step: any, i) => (
+                      <div key={i} className="relative pl-8">
+                        <div className={`absolute -left-[37px] top-0 w-5 h-5 rounded-full border-4 border-white dark:border-gray-900 ${step.completed !== false ? 'bg-green-500 shadow-lg shadow-green-500/50' : 'bg-gray-300 dark:bg-gray-700'}`} />
+                        <div className="flex justify-between items-start">
+                           <div>
+                             <p className={`font-bold text-sm ${step.completed !== false ? 'text-gray-800 dark:text-white' : 'text-gray-400'}`}>{step.message}</p>
+                             <p className="text-xs text-green-600 dark:text-green-400 font-bold uppercase tracking-widest mt-1">Confirmed</p>
+                           </div>
+                           <span className="text-xs font-black text-gray-400 italic">{step.time || new Date(step.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Driver/ETA */}
+                <div className="bg-gray-50 dark:bg-gray-900 p-6 rounded-[2rem] flex items-center justify-between border border-gray-100 dark:border-gray-800">
+                   <div className="flex items-center gap-4">
+                     <div className="w-14 h-14 bg-white dark:bg-gray-800 rounded-xl flex items-center justify-center shadow-sm">
+                       <MapPin className="w-6 h-6 text-green-500" />
+                     </div>
+                     <div>
+                       <p className="text-[10px] font-black uppercase italic tracking-widest text-gray-400">Estimated Arrival</p>
+                       <p className="text-xl font-black italic text-gray-800 dark:text-white">10:45 AM</p>
+                     </div>
+                   </div>
+                   <button className="w-12 h-12 bg-green-500 text-white rounded-full flex items-center justify-center shadow-lg hover:scale-110 transition-all">
+                     <RefreshCw className="w-5 h-5" />
+                   </button>
+                </div>
+              </div>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

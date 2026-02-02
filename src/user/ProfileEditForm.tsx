@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { ArrowLeft, MapPin, Check, Navigation, Edit3, Save, Compass } from "lucide-react";
+import { ArrowLeft, Check, Edit3, Save, Compass } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Navbar } from "../component/Navbar";
 import { useNavigate } from "react-router-dom";
