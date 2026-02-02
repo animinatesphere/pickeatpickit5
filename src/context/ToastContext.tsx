@@ -1,6 +1,6 @@
 // src/context/ToastContext.tsx
-import React, { createContext, useContext, useState, useCallback, ReactNode } from "react";
-import { CheckCircle, XCircle, AlertCircle, Info, X, Clipboard } from "lucide-react";
+import React, { createContext, useContext, useState, useCallback, type ReactNode } from "react";
+import { CheckCircle, XCircle, AlertCircle, Info, X } from "lucide-react";
 
 export type ToastType = "success" | "error" | "warning" | "info";
 

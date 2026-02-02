@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Camera, MapPin, Edit2, Check, X } from "lucide-react";
 import { VendorNav } from "../component/VendorNav";
 // import { apiService } from "../services/authService";
@@ -7,6 +8,7 @@ import { useToast } from "../../context/ToastContext";
 // import { error } from "console";
 
 const ProfileSetting = () => {
+  const navigate = useNavigate();
   const toast = useToast();
   const [isOpen, setIsOpen] = useState(true);
   const [editingField, setEditingField] = useState<string | null>(null);
