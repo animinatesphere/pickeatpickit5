@@ -1,12 +1,14 @@
-// import { Router } from "react-router-dom";
 import Route from "./AppRoutes";
 import { ToastProvider } from "./context/ToastContext";
+import { ThemeProvider } from "./context/ThemeContext";
 
 const App = () => {
   return (
-    <ToastProvider>
-      <Route />
-    </ToastProvider>
+    <ThemeProvider>
+      <ToastProvider>
+        <Route />
+      </ToastProvider>
+    </ThemeProvider>
   );
 };
 

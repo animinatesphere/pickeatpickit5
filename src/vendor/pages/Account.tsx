@@ -253,27 +253,28 @@ const Account = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 pb-24">
+    <div className="min-h-screen bg-white dark:bg-gray-950 pb-24 transition-colors duration-300">
       <VendorNav />
       {/* Header */}
-      <div className="bg-gradient-to-r from-green-600 to-green-700 text-white px-6 py-4 shadow-lg">
-        <div className="flex items-center justify-center">
-          <h1 className="text-xl font-bold">Profile</h1>
+      <div className="bg-gradient-to-r from-green-600 to-green-700 dark:from-green-700 dark:to-green-800 text-white px-6 py-4 shadow-lg sticky top-0 z-20">
+        <div className="flex items-center justify-between">
+          <div className="w-10"></div>
+          <h1 className="text-xl font-bold font-inter italic tracking-tighter uppercase">Profile</h1>
+          <Link to="/vendor-dashboard/smsg">
+            <button className="p-2 hover:bg-white/20 rounded-full transition-colors relative">
+              <Bell
+                className="w-5 h-5 sm:w-6 sm:h-6 text-white"
+                fill="currentColor"
+              />
+              <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full border-2 border-green-600"></span>
+            </button>
+          </Link>
         </div>
-        <Link to="/vendor-dashboard/smsg">
-          <button className="p-2 hover:bg-green-50 rounded-full transition-colors relative">
-            <Bell
-              className="w-5 h-5 sm:w-6 sm:h-6 text-white hover:text-green-600"
-              fill="currentColor"
-            />
-            <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
-          </button>
-        </Link>
       </div>
 
       <div className="max-w-4xl mx-auto px-4 py-6">
         {/* Profile Card */}
-        <div className="bg-white rounded-3xl shadow-xl p-8 mb-6 relative overflow-hidden">
+        <div className="bg-white dark:bg-gray-900 rounded-3xl shadow-xl p-8 mb-6 relative overflow-hidden border border-transparent dark:border-gray-800 transition-all">
           {/* Decorative background elements */}
           <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-green-100 to-transparent rounded-full -mr-32 -mt-32 opacity-50"></div>
           <div className="absolute bottom-0 left-0 w-48 h-48 bg-gradient-to-tr from-green-100 to-transparent rounded-full -ml-24 -mb-24 opacity-50"></div>
@@ -298,18 +299,18 @@ const Account = () => {
               </div>
 
               {/* Rating Badge */}
-              <div className="absolute right-8 top-0 bg-white rounded-full px-4 py-2 shadow-xl flex items-center gap-2 border-2 border-green-200">
-                <span className="text-2xl font-bold text-gray-800">4.0</span>
+              <div className="absolute right-8 top-0 bg-white dark:bg-gray-800 rounded-full px-4 py-2 shadow-xl flex items-center gap-2 border-2 border-green-200 dark:border-green-900/50">
+                <span className="text-2xl font-bold text-gray-800 dark:text-gray-100 font-inter">4.0</span>
                 <Star className="w-6 h-6 fill-yellow-400 text-yellow-400" />
               </div>
             </div>
 
             {/* Store Info */}
             <div className="text-center mb-6">
-              <h2 className="text-3xl font font-bold text-gray-800 mb-2">
+              <h2 className="text-3xl font-bold text-gray-800 dark:text-gray-100 mb-2 font-inter italic uppercase tracking-tighter">
                 {formData.restaurantName}
               </h2>
-              <p className="text-gray-500 mb-4">
+              <p className="text-gray-500 dark:text-gray-400 mb-4 font-medium transition-colors">
                 {formData.address}, {formData.city}, {formData.state}
               </p>
 
@@ -320,13 +321,13 @@ const Account = () => {
                   return (
                     <div
                       key={index}
-                      className="bg-gradient-to-br from-gray-50 to-white rounded-2xl p-4 shadow-md hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1 cursor-pointer"
+                      className="bg-gradient-to-br from-gray-50 to-white dark:from-gray-800 dark:to-gray-800/50 rounded-2xl p-4 shadow-md hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1 cursor-pointer border border-transparent dark:border-gray-700"
                     >
-                      <Icon className={`w-6 h-6 ${stat.color} mx-auto mb-2`} />
-                      <p className="text-2xl font-bold text-gray-800">
+                      <Icon className={`w-6 h-6 ${stat.color} dark:text-green-400 mx-auto mb-2`} />
+                      <p className="text-2xl font-bold text-gray-800 dark:text-gray-100 font-inter">
                         {stat.value}
                       </p>
-                      <p className="text-xs text-gray-600 mt-1">{stat.label}</p>
+                      <p className="text-xs text-gray-600 dark:text-gray-400 mt-1 font-bold uppercase tracking-widest">{stat.label}</p>
                     </div>
                   );
                 })}
@@ -344,7 +345,7 @@ const Account = () => {
                 key={index}
                 onMouseEnter={() => setIsHovering(item.label)}
                 onMouseLeave={() => setIsHovering(null)}
-                className={`bg-white rounded-2xl shadow-md hover:shadow-xl transition-all duration-300 cursor-pointer transform hover:-translate-y-1 overflow-hidden ${
+                className={`bg-white dark:bg-gray-900 rounded-2xl shadow-md border border-transparent dark:border-gray-800 hover:shadow-xl transition-all duration-300 cursor-pointer transform hover:-translate-y-1 overflow-hidden ${
                   isHovering === item.label ? "scale-[1.02]" : ""
                 }`}
               >
@@ -353,7 +354,7 @@ const Account = () => {
                     {/* Icon */}
                     <div
                       className={`w-14 h-14 rounded-xl ${
-                        item.bgColor
+                        item.bgColor.replace('bg-', 'bg-').replace('-50', '-50/10 dark:bg-gray-800')
                       } flex items-center justify-center flex-shrink-0 transition-all duration-300 ${
                         isHovering === item.label ? "scale-110" : ""
                       }`}
@@ -367,19 +368,19 @@ const Account = () => {
 
                     {/* Text Content */}
                     <div className="flex-1 min-w-0">
-                      <h3 className="font-bold text-gray-800 text-lg mb-0.5">
+                      <h3 className="font-bold text-gray-800 dark:text-gray-100 text-lg mb-0.5 font-inter italic uppercase tracking-tighter">
                         {item.label}
                       </h3>
-                      <p className="text-sm text-gray-500">
+                      <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">
                         {item.description}
                       </p>
                     </div>
 
                     {/* Arrow */}
                     <ChevronRight
-                      className={`w-6 h-6 text-gray-400 transition-all duration-300 ${
+                      className={`w-6 h-6 text-gray-400 dark:text-gray-600 transition-all duration-300 ${
                         isHovering === item.label
-                          ? "text-green-600 translate-x-1"
+                          ? "text-green-600 dark:text-green-400 translate-x-1"
                           : ""
                       }`}
                     />
@@ -391,20 +392,20 @@ const Account = () => {
         </div>
 
         {/* Logout Button */}
-        <button className="w-full mt-6 py-4 px-6 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white rounded-2xl font-bold text-lg shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center gap-3 group transform hover:scale-[1.02]">
+        <button className="w-full mt-6 py-4 px-6 bg-gradient-to-r from-green-600 to-green-700 dark:from-green-700 dark:to-green-800 hover:from-green-700 hover:to-green-800 dark:hover:from-green-800 dark:hover:to-green-900 text-white rounded-2xl font-bold text-lg shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center gap-3 group transform hover:scale-[1.02]">
           <span>Log out</span>
           <LogOut className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
         </button>
 
         {/* Additional Info Card */}
-        <div className="mt-6 bg-gradient-to-br from-green-50 to-green-100 rounded-2xl p-6 border-2 border-green-200">
+        <div className="mt-6 bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-900/10 rounded-2xl p-6 border-2 border-green-200 dark:border-green-900/30 transition-all">
           <div className="flex items-start gap-4">
-            <div className="w-12 h-12 bg-green-600 rounded-full flex items-center justify-center flex-shrink-0">
+            <div className="w-12 h-12 bg-green-600 dark:bg-green-700 rounded-full flex items-center justify-center flex-shrink-0 shadow-lg">
               <Award className="w-6 h-6 text-white" />
             </div>
             <div>
-              <h3 className="font-bold text-green-800 mb-1">Premium Member</h3>
-              <p className="text-sm text-green-700">
+              <h3 className="font-bold text-green-800 dark:text-green-400 mb-1 font-inter italic uppercase tracking-tighter">Premium Member</h3>
+              <p className="text-sm text-green-700 dark:text-green-500 font-medium">
                 You're enjoying all premium features. Keep up the great work!
               </p>
             </div>

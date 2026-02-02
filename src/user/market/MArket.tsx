@@ -146,8 +146,8 @@ const getCart = (): OrderItem[] =>
   };
 
   const Kitchen = () => (
-    <div className="min-h-screen w-full bg-gray-50">
-      <div className="sticky top-0 bg-white z-40 border-b border-gray-200 shadow-sm">
+    <div className="min-h-screen w-full bg-gray-50 dark:bg-gray-950 transition-colors duration-300">
+      <div className="sticky top-0 bg-white dark:bg-gray-950 z-40 border-b border-gray-200 dark:border-gray-800 shadow-sm transition-colors duration-300">
         <Navbar />
         <div className="max-w-7xl mx-auto px-4 py-4">
           <div className="flex gap-2">
@@ -156,10 +156,10 @@ const getCart = (): OrderItem[] =>
               <input
                 type="text"
                 placeholder="Search for available items"
-                className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-green-500"
+                className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-800 rounded-lg text-sm dark:text-gray-100 focus:outline-none focus:border-green-500"
               />
             </div>
-            <button className="flex items-center gap-2 px-4 py-2.5 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+            <button className="flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-800 rounded-lg text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
               <Filter className="w-4 h-4" />
               <span className="text-sm font-medium">Filter</span>
             </button>
@@ -177,10 +177,10 @@ const getCart = (): OrderItem[] =>
             return (
               <div
                 key={item.id}
-                className="bg-white border border-gray-200 rounded-xl overflow-hidden hover:shadow-lg transition-all duration-300 group"
+                className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden hover:shadow-lg transition-all duration-300 group"
               >
                 <div className="flex flex-col h-full">
-                  <div className="relative overflow-hidden h-40 bg-gray-200">
+                  <div className="relative overflow-hidden h-40 bg-gray-200 dark:bg-gray-800">
                  <img
   src={item.image_url} // Changed from item.imageUrl
   alt={item.name}
@@ -191,52 +191,52 @@ const getCart = (): OrderItem[] =>
   }} />
                   </div>
                   <div className="p-4 flex-1 flex flex-col">
-                    <h3 className="font-bold text-lg text-gray-900 mb-1">
+                    <h3 className="font-bold text-lg text-gray-900 dark:text-gray-100 mb-1">
                       {item.name}
                     </h3>
-                    <p className="text-green-600 font-bold text-sm mb-2">
+                    <p className="text-green-600 dark:text-green-400 font-bold text-sm mb-2">
                       {item.discount}% OFF
                     </p>
-                    <p className="text-gray-600 text-sm mb-3">
-                      <span className="line-through text-gray-400">
+                    <p className="text-gray-600 dark:text-gray-400 text-sm mb-3">
+                      <span className="line-through text-gray-400 dark:text-gray-600">
                          ₦{item.price.toLocaleString()}
                       </span>
-                      <span className="ml-2 font-bold text-gray-900">
+                      <span className="ml-2 font-bold text-gray-900 dark:text-gray-100">
                        ₦{discountedPrice}
                       </span>
                     </p>
-                    <p className="text-gray-500 text-xs mb-4 flex-1">
+                    <p className="text-gray-500 dark:text-gray-400 text-xs mb-4 flex-1">
                       {item.description}
                     </p>
 
                     <div className="flex items-center justify-between mt-auto">
-                      <div className="flex items-center gap-2 bg-gray-100 rounded-lg px-2 py-1.5">
+                      <div className="flex items-center gap-2 bg-gray-100 dark:bg-gray-800 rounded-lg px-2 py-1.5 transition-colors">
                         <button
                           onClick={() => updateQuantity(item.id, -1)}
-                          className="p-0.5 hover:bg-gray-200 rounded transition-colors"
+                          className="p-0.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded transition-colors"
                         >
-                          <Minus className="w-4 h-4 text-gray-700" />
+                          <Minus className="w-4 h-4 text-gray-700 dark:text-gray-300" />
                         </button>
-                        <span className="w-6 text-center font-bold text-gray-900">
+                        <span className="w-6 text-center font-bold text-gray-900 dark:text-gray-100">
                           {item.quantity}
                         </span>
                         <button
                           onClick={() => updateQuantity(item.id, 1)}
-                          className="p-0.5 hover:bg-gray-200 rounded transition-colors"
+                          className="p-0.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded transition-colors"
                         >
-                          <Plus className="w-4 h-4 text-gray-700" />
+                          <Plus className="w-4 h-4 text-gray-700 dark:text-gray-300" />
                         </button>
                       </div>
                     <div className="flex items-center gap-2">
   <button
     onClick={() => addToCart(item)}
-    className="text-green-600 font-bold text-sm hover:text-green-700 transition-colors"
+    className="text-green-600 dark:text-green-400 font-bold text-sm hover:text-green-700 dark:hover:text-green-300 transition-colors"
   >
     Add to Cart
   </button>
   <button
   onClick={() => handleOrderNow(item)}
-    className="text-blue-600 font-bold text-sm hover:text-blue-700 transition-colors"
+    className="text-blue-600 dark:text-blue-400 font-bold text-sm hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
   >
     Order Now
   </button>
@@ -253,23 +253,23 @@ const getCart = (): OrderItem[] =>
   );
 
   const Confirm = () => (
-    <div className="min-h-screen w-full bg-gray-50">
-      <div className="sticky top-0 bg-white z-40 border-b border-gray-200 shadow-sm">
+    <div className="min-h-screen w-full bg-gray-50 dark:bg-gray-950 transition-colors duration-300">
+      <div className="sticky top-0 bg-white dark:bg-gray-950 z-40 border-b border-gray-200 dark:border-gray-800 shadow-sm transition-colors duration-300">
         <div className="max-w-3xl mx-auto px-4 py-4 flex items-center gap-4">
       <ChevronLeft
-  className="w-6 h-6 cursor-pointer text-gray-700 hover:text-gray-900"
+  className="w-6 h-6 cursor-pointer text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
   onClick={() => setScreen("kitchen")} // Go back to the menu
 />
-          <h1 className="text-xl font-bold text-gray-900 flex-1">
+          <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100 flex-1">
             Confirm Order
           </h1>
         </div>
       </div>
 
       <div className="max-w-3xl mx-auto px-4 py-6">
-        <div className="bg-white border border-gray-200 rounded-xl p-5 mb-6 hover:shadow-md transition-shadow">
+        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-5 mb-6 hover:shadow-md transition-all">
           <div className="flex gap-4 mb-4">
-            <div className="w-20 h-20 bg-gray-200 rounded-lg overflow-hidden flex-shrink-0">
+            <div className="w-20 h-20 bg-gray-200 dark:bg-gray-800 rounded-lg overflow-hidden flex-shrink-0">
             <img
   src={getCart().length > 0 ? items.find(i => i.id === getCart()[0].id)?.image_url : "https://images.unsplash.com/photo-1555939594-58d7cb561404"}
   alt="Restaurant"
@@ -277,24 +277,24 @@ const getCart = (): OrderItem[] =>
 />
             </div>
             <div className="flex-1">
-              <h2 className="font-bold text-lg text-gray-900">
+              <h2 className="font-bold text-lg text-gray-900 dark:text-gray-100">
                 Mardiya Kitchen
               </h2>
-              <p className="text-gray-600 text-sm">
+              <p className="text-gray-600 dark:text-gray-400 text-sm">
                 Rice and chicken
                 <br />
                 Both fried and Jollof
               </p>
-              <p className="text-green-600 font-bold text-sm mt-2 flex items-center gap-1">
+              <p className="text-green-600 dark:text-green-400 font-bold text-sm mt-2 flex items-center gap-1">
                 <Clock className="w-4 h-4" />
                 15 mins | $23.45/item
               </p>
             </div>
           </div>
-          <p className="text-gray-600 text-sm">
+          <p className="text-gray-600 dark:text-gray-400 text-sm">
             This Kitchen provides both Delivery and self pickup options. By
             default Delivery has been selected
-            <span className="text-green-600 font-semibold cursor-pointer hover:text-green-700">
+            <span className="text-green-600 dark:text-green-400 font-semibold cursor-pointer hover:text-green-700 dark:hover:text-green-300">
               {" "}
               change
             </span>
@@ -302,8 +302,8 @@ const getCart = (): OrderItem[] =>
         </div>
 
         <div className="space-y-6 mb-6">
-          <div className="bg-white rounded-xl p-5">
-            <h3 className="font-bold text-gray-900 mb-4">Spice Level</h3>
+          <div className="bg-white dark:bg-gray-900 rounded-xl p-5 shadow-sm">
+            <h3 className="font-bold text-gray-900 dark:text-gray-100 mb-4">Spice Level</h3>
             <div className="flex items-center gap-4">
               <input
                 type="range"
@@ -311,10 +311,10 @@ const getCart = (): OrderItem[] =>
                 max="100"
                 value={spiceLevel}
                 onChange={(e) => setSpiceLevel(Number(e.target.value))}
-                className="flex-1 h-2 bg-red-200 rounded-lg appearance-none cursor-pointer accent-red-500"
+                className="flex-1 h-2 bg-red-200 dark:bg-red-900/30 rounded-lg appearance-none cursor-pointer accent-red-500"
               />
               <div className="w-24 text-right">
-                <p className="text-sm font-bold text-gray-900">
+                <p className="text-sm font-bold text-gray-900 dark:text-gray-100">
                   {spiceLevel === 0
                     ? "Mild"
                     : spiceLevel > 50
@@ -325,8 +325,9 @@ const getCart = (): OrderItem[] =>
             </div>
           </div>
 
-          <div className="bg-white rounded-xl p-5">
-            <h3 className="font-bold text-gray-900 mb-4">Add Ons</h3>
+ 
+          <div className="bg-white dark:bg-gray-900 rounded-xl p-5 shadow-sm">
+            <h3 className="font-bold text-gray-900 dark:text-gray-100 mb-4">Add Ons</h3>
             <div className="flex gap-3 overflow-x-auto pb-2">
               {[
                 "https://images.unsplash.com/photo-1626082927389-6cd097cdc45e?w=80&h=80&fit=crop",
@@ -338,7 +339,7 @@ const getCart = (): OrderItem[] =>
               ].map((img, i) => (
                 <button
                   key={i}
-                  className="flex-shrink-0 w-20 h-20 bg-gray-100 rounded-lg overflow-hidden hover:shadow-md transition-shadow group"
+                  className="flex-shrink-0 w-20 h-20 bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden hover:shadow-md transition-shadow group"
                 >
                   <img
                     src={img}
@@ -353,10 +354,10 @@ const getCart = (): OrderItem[] =>
           {getCart().map((item, i) => (
             <div
               key={i}
-              className="bg-white rounded-xl p-5 flex justify-between items-center border border-gray-200"
+              className="bg-white dark:bg-gray-900 rounded-xl p-5 flex justify-between items-center border border-gray-200 dark:border-gray-800 shadow-sm"
             >
-              <span className="font-bold text-gray-900">{item.name}</span>
-              <span className="font-bold text-green-600">
+              <span className="font-bold text-gray-900 dark:text-gray-100">{item.name}</span>
+              <span className="font-bold text-green-600 dark:text-green-400">
                 ${item.price.toFixed(2)}
               </span>
             </div>
@@ -364,20 +365,20 @@ const getCart = (): OrderItem[] =>
 
           <textarea
             placeholder="Write instructions for the kitchen such as allergies"
-            className="w-full border border-gray-300 rounded-lg p-4 text-sm h-24 resize-none focus:outline-none focus:border-green-500"
+            className="w-full bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-800 rounded-lg p-4 text-sm dark:text-gray-200 h-24 resize-none focus:outline-none focus:border-green-500 dark:focus:border-green-400 font-inter transition-colors"
           />
 
-          <div className="bg-white rounded-xl p-5">
+          <div className="bg-white dark:bg-gray-900 rounded-xl p-5 shadow-sm">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="font-bold text-gray-900">Schedule Delivery</h3>
+              <h3 className="font-bold text-gray-900 dark:text-gray-100">Schedule Delivery</h3>
               <button
                 onClick={() => setScheduleOrder(!scheduleOrder)}
                 className={`relative w-12 h-7 rounded-full transition-colors ${
-                  scheduleOrder ? "bg-green-600" : "bg-gray-300"
+                  scheduleOrder ? "bg-green-600" : "bg-gray-300 dark:bg-gray-700"
                 }`}
               >
                 <div
-                  className={`absolute top-1 left-1 w-5 h-5 bg-white rounded-full transition-transform ${
+                  className={`absolute top-1 left-1 w-5 h-5 bg-white dark:bg-gray-200 rounded-full transition-transform ${
                     scheduleOrder ? "translate-x-5" : "translate-x-0"
                   }`}
                 ></div>
@@ -385,20 +386,20 @@ const getCart = (): OrderItem[] =>
             </div>
             {scheduleOrder && (
               <div className="grid grid-cols-2 gap-4">
-                <div className="flex items-center gap-3 border border-gray-300 rounded-lg p-3 hover:border-green-500 transition-colors">
-                  <Clock className="w-5 h-5 text-gray-500" />
+                <div className="flex items-center gap-3 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg p-3 hover:border-green-500 dark:hover:border-green-400 transition-colors">
+                  <Clock className="w-5 h-5 text-gray-500 dark:text-gray-400" />
                   <input
                     type="date"
                     defaultValue="2024-05-29"
-                    className="flex-1 outline-none text-sm"
+                    className="flex-1 outline-none text-sm bg-transparent dark:text-gray-100"
                   />
                 </div>
-                <div className="flex items-center gap-3 border border-gray-300 rounded-lg p-3 hover:border-green-500 transition-colors">
-                  <Clock className="w-5 h-5 text-gray-500" />
+                <div className="flex items-center gap-3 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg p-3 hover:border-green-500 dark:hover:border-green-400 transition-colors">
+                  <Clock className="w-5 h-5 text-gray-500 dark:text-gray-400" />
                   <input
                     type="time"
                     defaultValue="10:00"
-                    className="flex-1 outline-none text-sm"
+                    className="flex-1 outline-none text-sm bg-transparent dark:text-gray-100"
                   />
                 </div>
               </div>
@@ -517,7 +518,7 @@ const getCart = (): OrderItem[] =>
   // };
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-white dark:bg-gray-950 transition-colors duration-300">
       {screen === "kitchen" && <Kitchen />}
       {screen === "confirm" && <Confirm />}
     </div>

@@ -169,36 +169,36 @@ const OrderManagement: React.FC = () => {
       : orders.filter((order) => order.status === activeTab);
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-      <div className="w-full max-w-7xl bg-white  overflow-hidden">
+    <div className="min-h-screen bg-white dark:bg-gray-950 transition-colors duration-300">
+      <div className="w-full max-w-2xl mx-auto bg-white dark:bg-gray-950 min-h-screen">
         {/* Main Screen */}
         {currentScreen === "main" && (
           <div className="animate-fadeIn">
             {/* Header */}
-            <div className="bg-gradient-to-r from-green-600 to-green-500 text-white p-6 pb-8">
+            <div className="bg-green-600 dark:bg-green-700 text-white p-6 sticky top-0 z-40 shadow-xl">
               <div className="flex justify-between items-center mb-6">
-                <button className="hover:bg-white/10 p-2 rounded-lg transition-all">
+                <button className="hover:bg-white/20 p-2 rounded-xl transition-all active:scale-95">
                   <Menu size={24} />
                 </button>
-                <h1 className="text-xl font-bold">Order Management</h1>
-                <button className="hover:bg-white/10 p-2 rounded-lg transition-all relative">
+                <h1 className="text-xl font-bold font-inter italic tracking-tighter uppercase whitespace-nowrap">Order Management</h1>
+                <button className="hover:bg-white/20 p-2 rounded-xl transition-all relative active:scale-95">
                   <Bell size={24} />
-                  <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+                  <span className="absolute top-2 right-2 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-green-600 dark:border-green-700 animate-pulse"></span>
                 </button>
               </div>
 
               {/* Status Tabs */}
-              <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+              <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide no-scrollbar">
                 {(
                   ["All", "Pending", "Completed", "Cancelled"] as StatusTab[]
                 ).map((tab) => (
                   <button
                     key={tab}
                     onClick={() => setActiveTab(tab)}
-                    className={`px-6 py-2 rounded-full whitespace-nowrap transition-all transform hover:scale-105 ${
+                    className={`px-6 py-2.5 rounded-2xl whitespace-nowrap transition-all font-bold text-xs uppercase tracking-widest italic ${
                       activeTab === tab
-                        ? "bg-white text-green-600 shadow-lg"
-                        : "bg-white/20 text-white hover:bg-white/30"
+                        ? "bg-white text-green-600 shadow-xl scale-105"
+                        : "bg-white/10 text-white hover:bg-white/20"
                     }`}
                   >
                     {tab}
@@ -212,27 +212,27 @@ const OrderManagement: React.FC = () => {
               {/* Control Buttons */}
               <button
                 onClick={handleStatusControlClick}
-                className="w-full flex justify-between items-center p-4 bg-white border border-gray-200 rounded-xl hover:shadow-lg transition-all transform hover:scale-[1.02] group"
+                className="w-full flex justify-between items-center p-5 bg-white dark:bg-gray-900 border border-transparent dark:border-gray-800 rounded-[2rem] hover:shadow-2xl transition-all transform hover:scale-[1.01] group shadow-xl"
               >
-                <span className="font-semibold text-gray-800">
+                <span className="font-bold text-gray-800 dark:text-gray-100 font-inter italic tracking-tighter uppercase">
                   Order status control
                 </span>
                 <ChevronRight
-                  className="text-gray-400 group-hover:translate-x-1 transition-transform"
-                  size={20}
+                  className="text-green-600 dark:text-green-400 group-hover:translate-x-1 transition-transform"
+                  size={24}
                 />
               </button>
 
-              <button className="w-full flex justify-between items-center p-4 bg-white border border-gray-200 rounded-xl hover:shadow-lg transition-all transform hover:scale-[1.02] group">
+              <button className="w-full flex justify-between items-center p-5 bg-white dark:bg-gray-900 border border-transparent dark:border-gray-800 rounded-[2rem] hover:shadow-2xl transition-all transform hover:scale-[1.01] group shadow-xl">
                 <div>
-                  <span className="font-semibold text-gray-800">
+                  <span className="font-bold text-gray-800 dark:text-gray-100 font-inter italic tracking-tighter uppercase">
                     Order dispute{" "}
                   </span>
-                  <span className="text-green-600 font-semibold">(5)</span>
+                  <span className="text-green-600 dark:text-green-400 font-black ml-2 animate-pulse">(5)</span>
                 </div>
                 <ChevronRight
-                  className="text-gray-400 group-hover:translate-x-1 transition-transform"
-                  size={20}
+                  className="text-green-600 dark:text-green-400 group-hover:translate-x-1 transition-transform"
+                  size={24}
                 />
               </button>
 
@@ -241,43 +241,48 @@ const OrderManagement: React.FC = () => {
                 {filteredOrders.map((order, index) => (
                   <div
                     key={order.id}
-                    className="bg-white border border-gray-200 rounded-xl p-4 hover:shadow-xl transition-all transform hover:scale-[1.02] animate-slideUp"
+                    className="bg-white dark:bg-gray-900 border border-transparent dark:border-gray-800 rounded-[2.5rem] p-5 hover:shadow-2xl transition-all transform hover:scale-[1.01] animate-slideUp shadow-xl overflow-hidden relative"
                     style={{ animationDelay: `${index * 100}ms` }}
                   >
-                    <div className="flex gap-4">
-                      <img
-                        src={order.image}
-                        alt={order.name}
-                        className="w-20 h-20 rounded-xl object-cover shadow-md"
-                      />
+                    <div className="flex gap-5">
+                      <div className="relative">
+                        <img
+                          src={order.image}
+                          alt={order.name}
+                          className="w-24 h-24 rounded-3xl object-cover shadow-2xl"
+                        />
+                        <div className={`absolute -bottom-2 -right-2 w-8 h-8 ${getStatusBgColor(order.status)} rounded-full border-4 border-white dark:border-gray-900 shadow-lg flex items-center justify-center`}>
+                          <span className="text-white text-[10px] font-black">!</span>
+                        </div>
+                      </div>
                       <div className="flex-1">
-                        <div className="flex justify-between items-start mb-2">
+                        <div className="flex justify-between items-start mb-3">
                           <div>
-                            <h3 className="font-bold text-gray-800">
+                            <h3 className="font-black text-gray-800 dark:text-gray-100 font-inter italic tracking-tighter uppercase whitespace-nowrap">
                               {order.name}
                             </h3>
-                            <p className="text-xs text-gray-500">
+                            <p className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest italic mt-1">
                               {order.date}
                             </p>
                           </div>
                           {order.status === "Pending" && (
                             <button
                               onClick={handleCheckClick}
-                              className="px-4 py-1 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 transition-all transform hover:scale-105 shadow-md"
+                              className="px-5 py-2 bg-green-600 dark:bg-green-700 text-white text-[10px] font-black uppercase italic tracking-widest rounded-xl hover:bg-green-700 transition-all transform hover:scale-105 shadow-lg shadow-green-500/20 active:scale-95"
                             >
-                              Check
+                              Details
                             </button>
                           )}
                         </div>
-                        <div className="flex justify-between items-center mt-3">
-                          <p className="text-sm text-gray-600">
-                            Amount:{" "}
-                            <span className="font-bold text-gray-800">
+                        <div className="flex justify-between items-center mt-4 pt-4 border-t border-gray-50 dark:border-gray-800">
+                          <p className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest italic">
+                            Amt:{" "}
+                            <span className="font-black text-gray-800 dark:text-gray-100 text-sm font-inter not-italic">
                               {order.amount}
                             </span>
                           </p>
                           <span
-                            className={`font-bold text-sm ${getStatusColor(
+                            className={`font-black text-[10px] uppercase italic tracking-widest px-3 py-1 bg-opacity-10 rounded-lg ${getStatusColor(
                               order.status
                             )}`}
                           >
@@ -297,18 +302,18 @@ const OrderManagement: React.FC = () => {
         {currentScreen === "details" && selectedOrder && (
           <div className="animate-slideIn h-screen overflow-y-auto">
             {/* Header */}
-            <div className="bg-gradient-to-r from-green-600 to-green-500 text-white p-6 sticky top-0 z-10 shadow-lg">
+            <div className="bg-green-600 dark:bg-green-700 text-white p-6 sticky top-0 z-40 shadow-xl">
               <div className="flex justify-between items-center">
                 <button
                   onClick={handleBackClick}
-                  className="hover:bg-white/10 p-2 rounded-lg transition-all"
+                  className="hover:bg-white/20 p-2 rounded-xl transition-all active:scale-95"
                 >
                   <ArrowLeft size={24} />
                 </button>
-                <h1 className="text-xl font-bold">Order Details</h1>
-                <button className="hover:bg-white/10 p-2 rounded-lg transition-all relative">
+                <h1 className="text-xl font-bold font-inter italic tracking-tighter uppercase">Order Details</h1>
+                <button className="hover:bg-white/20 p-2 rounded-xl transition-all relative">
                   <Bell size={24} />
-                  <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+                  <span className="absolute top-2 right-2 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-green-600 dark:border-green-700 animate-pulse"></span>
                 </button>
               </div>
             </div>
@@ -316,28 +321,28 @@ const OrderManagement: React.FC = () => {
             {/* Content */}
             <div className="p-6 space-y-6">
               {/* Main Item Card */}
-              <div className="bg-white rounded-xl shadow-lg p-4 transform hover:scale-[1.02] transition-all">
-                <div className="flex gap-4 items-center">
+              <div className="bg-white dark:bg-gray-900 rounded-[2.5rem] shadow-2xl p-6 transform hover:scale-[1.01] transition-all border border-transparent dark:border-gray-800">
+                <div className="flex gap-6 items-center">
                   <img
                     src="https://images.unsplash.com/photo-1603133872878-684f208fb84b?w=400&h=400&fit=crop"
                     alt={selectedOrder.title}
-                    className="w-24 h-24 rounded-xl object-cover shadow-md"
+                    className="w-32 h-32 rounded-[2rem] object-cover shadow-2xl rotate-3"
                   />
                   <div className="flex-1">
                     <div className="flex justify-between items-start">
                       <div>
-                        <h2 className="text-xl font-bold text-gray-800">
+                        <h2 className="text-2xl font-black text-gray-800 dark:text-gray-100 font-inter italic tracking-tighter uppercase whitespace-nowrap">
                           {selectedOrder.title}
                         </h2>
-                        <p className="text-2xl font-bold text-green-600 mt-1">
+                        <p className="text-3xl font-black text-green-600 dark:text-green-400 mt-2 font-inter italic tracking-tighter">
                           {selectedOrder.price}
                         </p>
                       </div>
                       <div className="text-right">
-                        <span className="text-lg font-bold text-gray-800">
+                        <span className="text-xl font-black text-gray-800 dark:text-gray-100 font-inter italic">
                           {selectedOrder.quantity}
                         </span>
-                        <div className="mt-1 px-3 py-1 bg-green-600 text-white text-xs rounded-full font-semibold">
+                        <div className="mt-2 px-4 py-1.5 bg-green-600 dark:bg-green-700 text-white text-[10px] rounded-xl font-black uppercase italic tracking-widest shadow-lg shadow-green-500/20">
                           {selectedOrder.status}
                         </div>
                       </div>
@@ -347,31 +352,33 @@ const OrderManagement: React.FC = () => {
               </div>
 
               {/* Order Info */}
-              <div className="bg-white rounded-xl shadow-lg p-6 space-y-4">
-                <div className="flex justify-between items-center pb-4 border-b border-gray-100">
-                  <span className="text-gray-500">Order ID:</span>
-                  <span className="font-bold text-green-600 text-lg">
-                    #{selectedOrder.id}
-                  </span>
-                  <span className="text-green-600 text-sm font-semibold">
-                    just now
+              <div className="bg-white dark:bg-gray-900 rounded-[2.5rem] shadow-2xl p-8 space-y-6 border border-transparent dark:border-gray-800">
+                <div className="flex justify-between items-center pb-6 border-b border-gray-100 dark:border-gray-800">
+                  <div className="flex flex-col">
+                    <span className="text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest italic mb-1">Receipt ID</span>
+                    <span className="font-black text-green-600 dark:text-green-400 text-2xl font-inter italic tracking-tighter">
+                      #{selectedOrder.id}
+                    </span>
+                  </div>
+                  <span className="text-green-600 dark:text-green-500 text-[10px] font-black uppercase italic tracking-widest bg-green-50 dark:bg-green-900/30 px-4 py-2 rounded-full">
+                    order just now
                   </span>
                 </div>
 
                 {/* Items */}
-                <div className="space-y-3">
+                <div className="space-y-4">
                   {selectedOrder.items.map((item, index) => (
                     <div
                       key={index}
-                      className="flex justify-between items-center py-2 hover:bg-gray-50 px-2 rounded-lg transition-colors"
+                      className="flex justify-between items-center py-3 hover:bg-gray-50 dark:hover:bg-gray-800/50 px-4 rounded-2xl transition-all group"
                     >
-                      <div className="flex items-center gap-3">
-                        <span className="text-green-600 font-bold w-8">
+                      <div className="flex items-center gap-4">
+                        <span className="text-green-600 dark:text-green-400 font-black font-inter text-lg group-hover:scale-110 transition-transform">
                           x{item.quantity}
                         </span>
-                        <span className="text-gray-700">{item.name}</span>
+                        <span className="text-gray-700 dark:text-gray-200 font-bold font-inter tracking-tight uppercase text-sm">{item.name}</span>
                       </div>
-                      <span className="font-bold text-gray-800">
+                      <span className="font-black text-gray-800 dark:text-gray-100 font-inter italic tracking-tighter">
                         {item.price}
                       </span>
                     </div>
@@ -379,58 +386,69 @@ const OrderManagement: React.FC = () => {
                 </div>
 
                 {/* Charges */}
-                <div className="space-y-2 pt-4 border-t border-gray-100">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Services Charges:</span>
-                    <span className="font-semibold text-gray-800">
+                <div className="space-y-3 pt-6 border-t border-gray-100 dark:border-gray-800">
+                  <div className="flex justify-between text-xs font-bold uppercase tracking-widest italic">
+                    <span className="text-gray-400 dark:text-gray-500">Services Charges</span>
+                    <span className="text-gray-800 dark:text-gray-100">
                       {selectedOrder.serviceCharges}
                     </span>
                   </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Delivery Charges:</span>
-                    <span className="font-semibold text-gray-800">
+                  <div className="flex justify-between text-xs font-bold uppercase tracking-widest italic">
+                    <span className="text-gray-400 dark:text-gray-500">Delivery Charges</span>
+                    <span className="text-gray-800 dark:text-gray-100">
                       {selectedOrder.deliveryCharges}
                     </span>
                   </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Promo Code</span>
-                    <span className="font-semibold text-red-600">
+                  <div className="flex justify-between text-xs font-bold uppercase tracking-widest italic">
+                    <span className="text-gray-400 dark:text-gray-500">Promo Applied</span>
+                    <span className="text-red-600 font-black">
                       {selectedOrder.promoCode}
                     </span>
                   </div>
                 </div>
 
                 {/* Total */}
-                <div className="flex justify-between items-center pt-4 border-t-2 border-gray-200">
-                  <span className="text-lg font-bold text-gray-800">Total</span>
-                  <span className="text-2xl font-bold text-green-600">
+                <div className="flex justify-between items-center pt-6 border-t-4 border-gray-100 dark:border-gray-800">
+                  <span className="text-xl font-black text-gray-800 dark:text-gray-100 font-inter italic tracking-tighter uppercase">Grand Total</span>
+                  <span className="text-4xl font-black text-green-600 dark:text-green-400 font-inter italic tracking-tighter">
                     {selectedOrder.total}
                   </span>
                 </div>
               </div>
 
               {/* Delivery Info */}
-              <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-xl shadow-lg p-6 space-y-4">
-                <div>
-                  <h3 className="text-sm font-bold text-green-800 mb-2">
-                    DELIVER TO
+              <div className="bg-green-50 dark:bg-green-900/20 rounded-[2.5rem] shadow-2xl p-8 space-y-8 border border-green-100 dark:border-green-800 relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-green-500/10 dark:bg-green-400/10 rounded-bl-full -mr-10 -mt-10 pointer-events-none" />
+                <div className="relative z-10">
+                  <h3 className="text-[10px] font-black text-green-700 dark:text-green-400 uppercase tracking-widest italic mb-4">
+                    DELIVERY LOGISTICS
                   </h3>
-                  <p className="text-gray-700 leading-relaxed">
-                    {selectedOrder.deliverTo}
-                  </p>
-                </div>
-
-                <div className="flex justify-between items-center pt-4">
-                  <div>
-                    <h3 className="text-sm font-bold text-green-800 mb-1">
-                      ASSIGNED RIDER
-                    </h3>
-                    <p className="text-gray-700 font-semibold">
-                      {selectedOrder.assignedRider}
+                  <div className="flex items-start gap-4">
+                    <div className="w-12 h-12 bg-white dark:bg-gray-800 rounded-2xl flex items-center justify-center shadow-lg transform rotate-3 flex-shrink-0">
+                      <span className="text-2xl">📍</span>
+                    </div>
+                    <p className="text-gray-800 dark:text-gray-100 font-bold font-inter leading-relaxed text-sm">
+                      {selectedOrder.deliverTo}
                     </p>
                   </div>
-                  <button className="px-6 py-3 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-all transform hover:scale-105 shadow-lg font-semibold">
-                    Change Rider
+                </div>
+
+                <div className="relative z-10 flex flex-col sm:flex-row justify-between items-center gap-6 pt-6 border-t border-green-200/50 dark:border-green-800/50">
+                  <div className="flex items-center gap-4">
+                    <div className="w-14 h-14 bg-white dark:bg-gray-800 rounded-full flex items-center justify-center shadow-xl border-4 border-green-50 dark:border-gray-900 flex-shrink-0">
+                      <span className="text-2xl">🏍️</span>
+                    </div>
+                    <div>
+                      <h3 className="text-[10px] font-black text-green-700 dark:text-green-400 uppercase tracking-widest italic mb-1">
+                        ASSIGNED RIDER
+                      </h3>
+                      <p className="text-gray-800 dark:text-gray-100 font-black font-inter uppercase text-sm tracking-tight italic">
+                        {selectedOrder.assignedRider}
+                      </p>
+                    </div>
+                  </div>
+                  <button className="w-full sm:w-auto px-8 py-4 bg-green-600 dark:bg-green-700 text-white rounded-2xl hover:bg-green-700 dark:hover:bg-green-600 transition-all transform hover:scale-105 shadow-xl shadow-green-500/20 font-black text-xs uppercase italic tracking-widest active:scale-95">
+                    Reassign Rider
                   </button>
                 </div>
               </div>
@@ -442,69 +460,69 @@ const OrderManagement: React.FC = () => {
         {currentScreen === "status-control" && (
           <div className="animate-slideIn h-screen overflow-y-auto">
             {/* Header */}
-            <div className="bg-gradient-to-r from-green-600 to-green-500 text-white p-6 sticky top-0 z-10 shadow-lg">
+            <div className="bg-green-600 dark:bg-green-700 text-white p-6 sticky top-0 z-40 shadow-xl">
               <div className="flex justify-between items-center">
                 <button
                   onClick={handleBackClick}
-                  className="hover:bg-white/10 p-2 rounded-lg transition-all"
+                  className="hover:bg-white/20 p-2 rounded-xl transition-all active:scale-95"
                 >
                   <ArrowLeft size={24} />
                 </button>
-                <h1 className="text-xl font-bold">Order Status Control</h1>
-                <button className="hover:bg-white/10 p-2 rounded-lg transition-all relative">
+                <h1 className="text-xl font-bold font-inter italic tracking-tighter uppercase whitespace-nowrap">Status Control</h1>
+                <button className="hover:bg-white/20 p-2 rounded-xl transition-all relative active:scale-95">
                   <Bell size={24} />
-                  <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+                  <span className="absolute top-2 right-2 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-green-600 dark:border-green-700 animate-pulse"></span>
                 </button>
               </div>
             </div>
 
             {/* Content */}
-            <div className="p-6 space-y-4">
+            <div className="p-6 space-y-6">
               {statusOrders.map((order, index) => (
                 <div
                   key={order.id}
-                  className="bg-white rounded-xl shadow-lg p-4 hover:shadow-2xl transition-all transform hover:scale-[1.02] animate-slideUp"
+                  className="bg-white dark:bg-gray-900 rounded-[2.5rem] shadow-2xl p-6 hover:shadow-[0_20px_60px_rgba(0,0,0,0.15)] transition-all transform hover:scale-[1.01] animate-slideUp border border-transparent dark:border-gray-800"
                   style={{ animationDelay: `${index * 100}ms` }}
                 >
-                  <div className="flex gap-4">
+                  <div className="flex gap-5">
                     <img
                       src={order.image}
                       alt={order.name}
-                      className="w-20 h-20 rounded-xl object-cover shadow-md"
+                      className="w-24 h-24 rounded-[2rem] object-cover shadow-2xl rotate-2"
                     />
                     <div className="flex-1">
-                      <div className="flex justify-between items-start mb-3">
-                        <div>
-                          <h3 className="font-bold text-gray-800">
+                      <div className="flex justify-between items-start mb-4">
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-black text-gray-800 dark:text-gray-100 font-inter italic tracking-tighter uppercase text-lg border-b border-gray-100 dark:border-gray-800 pb-2 mb-2">
                             {order.name}
                           </h3>
-                          <p className="text-xs text-gray-500 mt-1 flex items-center gap-1">
-                            <span className="text-green-600">📍</span>
+                          <p className="text-[10px] text-gray-500 dark:text-gray-400 font-bold uppercase tracking-widest italic flex items-center gap-2 truncate">
+                            <span className="text-green-600 dark:text-green-500">📍</span>
                             {order.location}
                           </p>
-                          <p className="text-xs text-gray-600 mt-2 font-semibold">
-                            Time:{" "}
-                            <span className="text-green-600">{order.time}</span>
+                          <p className="text-[10px] text-gray-500 dark:text-gray-400 font-black uppercase italic tracking-widest mt-3">
+                            TIMESTAMP:{" "}
+                            <span className="text-green-600 dark:text-green-500 font-inter not-italic tracking-tighter">{order.time}</span>
                           </p>
                         </div>
                         <span
-                          className={`px-3 py-1 ${getStatusBgColor(
+                          className={`px-4 py-1.5 ${getStatusBgColor(
                             order.status
-                          )} text-white text-xs rounded-full font-semibold shadow-md`}
+                          )} text-white text-[10px] rounded-xl font-black uppercase italic tracking-widest shadow-lg shadow-green-500/10 ml-2`}
                         >
                           {order.status}
                         </span>
                       </div>
 
-                      <div className="flex gap-2 mt-3">
+                      <div className="flex gap-3 mt-6">
                         {order.showCheckout && (
-                          <button className="flex-1 px-4 py-2 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 transition-all transform hover:scale-105 shadow-md font-semibold">
+                          <button className="flex-1 px-5 py-3 bg-green-600 dark:bg-green-700 text-white text-[10px] font-black uppercase italic tracking-widest rounded-xl hover:bg-green-700 transition-all transform hover:scale-105 shadow-xl shadow-green-500/20">
                             Check Out
                           </button>
                         )}
                         {order.status === "Completed" && (
-                          <button className="flex-1 px-4 py-2 border-2 border-green-600 text-green-600 text-sm rounded-lg hover:bg-green-50 transition-all transform hover:scale-105 font-semibold">
-                            Mark uncompleted
+                          <button className="flex-1 px-5 py-3 border-2 border-green-600 dark:border-green-700 text-green-600 dark:text-green-400 text-[10px] font-black uppercase italic tracking-widest rounded-xl hover:bg-green-50 dark:hover:bg-green-900/10 transition-all transform hover:scale-105">
+                            Undo Complete
                           </button>
                         )}
                       </div>

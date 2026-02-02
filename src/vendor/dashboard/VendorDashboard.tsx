@@ -138,22 +138,29 @@ const VendorDashboard = () => {
     },
   ];
 
-  if (loading) return <div className="flex items-center justify-center min-h-screen font-bold text-green-600">Loading Dashboard...</div>;
+  if (loading) return (
+    <div className="flex items-center justify-center min-h-screen bg-white dark:bg-gray-950 transition-colors duration-300">
+      <div className="text-center">
+        <div className="w-16 h-16 border-4 border-green-600 dark:border-green-400 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+        <p className="text-gray-600 dark:text-gray-400 font-bold font-inter italic uppercase tracking-widest italic">Loading Dashboard...</p>
+      </div>
+    </div>
+  );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+    <div className="min-h-screen bg-white dark:bg-gray-950 pb-20 transition-colors duration-300">
       <VendorNav />
       {/* Header */}
-      <div className="bg-gradient-to-r from-green-600 to-green-700 text-white px-6 py-4 shadow-lg">
+      <div className="bg-gradient-to-r from-green-600 to-green-700 dark:from-green-700 dark:to-green-800 text-white px-6 py-4 shadow-lg sticky top-0 z-20">
         <div className="flex items-center justify-between max-w-7xl mx-auto">
-          <div>
-            <h1 className="text-2xl font-bold">{vendorInfo?.business_name || "My Dashboard"}</h1>
-            <p className="text-green-100 text-sm mt-1">Welcome back, Chef!</p>
+          <div className="transition-all">
+            <h1 className="text-2xl font-bold font-inter italic tracking-tighter uppercase">{vendorInfo?.business_name || "My Dashboard"}</h1>
+            <p className="text-green-100 dark:text-green-200 text-sm mt-1 font-medium">Welcome back, Chef!</p>
           </div>
           <Link to="/notifications">
-            <div className="relative">
-              <Bell className="w-6 h-6 cursor-pointer hover:scale-110 transition-transform" />
-              <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full text-xs flex items-center justify-center font-bold">
+            <div className="relative group">
+              <Bell className="w-6 h-6 cursor-pointer group-hover:scale-110 transition-transform" />
+              <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 border-2 border-green-600 rounded-full text-[10px] flex items-center justify-center font-bold">
                 {recentOrders.length}
               </span>
             </div>
@@ -169,7 +176,7 @@ const VendorDashboard = () => {
             return (
               <div
                 key={index}
-                className={`bg-white rounded-2xl p-6 shadow-lg transition-all duration-500 transform ${
+                className={`bg-white dark:bg-gray-900 rounded-2xl p-6 shadow-lg border border-transparent dark:border-gray-800 transition-all duration-500 transform ${
                   animateStats ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
                 }`}
                 style={{ transitionDelay: `${index * 100}ms` }}
@@ -178,10 +185,10 @@ const VendorDashboard = () => {
                   <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${stat.color} flex items-center justify-center shadow-lg`}>
                     <Icon className="w-6 h-6 text-white" />
                   </div>
-                  <span className="text-green-600 text-sm font-semibold bg-green-50 px-2 py-1 rounded-full">{stat.change}</span>
+                  <span className="text-green-600 dark:text-green-400 text-xs font-bold bg-green-50 dark:bg-green-900/30 px-2 py-1 rounded-full uppercase italic tracking-widest">{stat.change}</span>
                 </div>
-                <p className="text-gray-600 text-sm mb-1">{stat.label}</p>
-                <p className="text-2xl font-bold text-gray-800">{stat.value}</p>
+                <p className="text-gray-600 dark:text-gray-400 text-xs font-bold uppercase tracking-widest mb-1">{stat.label}</p>
+                <p className="text-2xl font-bold text-gray-800 dark:text-gray-100 font-inter">{stat.value}</p>
               </div>
             );
           })}
@@ -189,21 +196,21 @@ const VendorDashboard = () => {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Most Popular Orders */}
-          <div className="lg:col-span-2">
-            <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
+          <div className="lg:col-span-2 space-y-6">
+            <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-lg p-6 border border-transparent dark:border-gray-800 transition-all">
               <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
-                  <TrendingUp className="w-6 h-6 text-green-600" />
+                <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100 flex items-center gap-2 font-inter italic uppercase tracking-tighter">
+                  <TrendingUp className="w-6 h-6 text-green-600 dark:text-green-400" />
                   Menu Overview
                 </h2>
-                <Link to="/menu" className="text-green-600 font-semibold text-sm flex items-center gap-1">
+                <Link to="/menu" className="text-green-600 dark:text-green-400 font-bold text-sm flex items-center gap-1 uppercase italic tracking-widest">
                   Manage Menu <ChevronRight className="w-4 h-4" />
                 </Link>
               </div>
               <div className="space-y-4">
                 {popularItems.map((item, index) => (
-                  <div key={index} className="flex items-center gap-4 p-4 rounded-xl bg-gray-50 border border-gray-100">
-                    <div className="w-16 h-16 rounded-xl overflow-hidden bg-white shadow-sm flex items-center justify-center">
+                  <div key={index} className="flex items-center gap-4 p-4 rounded-2xl bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-800 transition-all">
+                    <div className="w-16 h-16 rounded-xl overflow-hidden bg-white dark:bg-gray-800 shadow-sm flex items-center justify-center">
                       {item.image_url?.startsWith("http") ? (
                         <img src={item.image_url} className="w-full h-full object-cover" />
                       ) : (
@@ -211,12 +218,12 @@ const VendorDashboard = () => {
                       )}
                     </div>
                     <div className="flex-1">
-                      <h3 className="font-bold text-gray-800">{item.name}</h3>
-                      <p className="text-sm text-gray-500">{item.category}</p>
-                      <p className="text-sm font-semibold text-green-600 mt-1">₦{item.price.toLocaleString()}</p>
+                      <h3 className="font-bold text-gray-800 dark:text-gray-100 font-inter tracking-tight">{item.name}</h3>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">{item.category}</p>
+                      <p className="text-sm font-bold text-green-600 dark:text-green-400 mt-1 font-inter">₦{item.price.toLocaleString()}</p>
                     </div>
                     <div className="text-right">
-                       <span className="text-xs font-bold text-orange-500 bg-orange-50 px-2 py-1 rounded-full">
+                       <span className="text-xs font-bold text-orange-500 dark:text-orange-400 bg-orange-50 dark:bg-orange-900/30 px-2 py-1 rounded-full uppercase italic tracking-widest">
                          {item.discount}% OFF
                        </span>
                     </div>
@@ -226,24 +233,24 @@ const VendorDashboard = () => {
             </div>
 
             {/* Recent Orders */}
-            <div className="bg-white rounded-2xl shadow-lg p-6">
-              <h2 className="text-xl font-bold text-gray-800 mb-6 flex items-center gap-2">
-                <Clock className="w-6 h-6 text-green-600" />
+            <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-lg p-6 border border-transparent dark:border-gray-800 transition-all">
+              <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100 mb-6 flex items-center gap-2 font-inter italic uppercase tracking-tighter">
+                <Clock className="w-6 h-6 text-green-600 dark:text-green-400" />
                 Recent Activity
               </h2>
               <div className="space-y-3">
                 {recentOrders.map((order, index) => (
-                  <div key={index} className="flex items-center justify-between p-4 rounded-xl border border-gray-100 bg-white">
+                  <div key={index} className="flex items-center justify-between p-4 rounded-xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-800/30 transition-all">
                     <div>
                       <div className="flex items-center gap-2">
-                        <span className="font-bold text-gray-800">{order.id}</span>
+                        <span className="font-bold text-gray-800 dark:text-gray-100 font-inter">{order.id}</span>
                         <span className="text-gray-400">•</span>
-                        <span className="text-gray-700 font-medium">{order.customer}</span>
+                        <span className="text-gray-700 dark:text-gray-300 font-medium font-inter">{order.customer}</span>
                       </div>
-                      <p className="text-xs text-gray-500 mt-1">{order.time}</p>
+                      <p className="text-[10px] text-gray-500 dark:text-gray-500 mt-1 font-bold uppercase tracking-widest">{order.time}</p>
                     </div>
-                    <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase ${
-                      order.status === "pending" ? "bg-yellow-100 text-yellow-700" : "bg-green-100 text-green-700"
+                    <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase italic tracking-widest ${
+                      order.status === "pending" ? "bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400" : "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400"
                     }`}>
                       {order.status}
                     </span>
@@ -255,22 +262,23 @@ const VendorDashboard = () => {
 
           {/* Quick Actions & Rating Sidebar */}
           <div className="space-y-6">
-            <div className="bg-gradient-to-br from-green-600 to-green-700 rounded-2xl shadow-lg p-6 text-white text-center">
-              <h2 className="text-lg font-bold mb-4">Store Rating</h2>
-              <div className="text-5xl font-bold mb-2">4.8</div>
-              <div className="flex justify-center gap-1 mb-4">
-                {[1, 2, 3, 4, 5].map((s) => <Star key={s} size={16} className="fill-yellow-400 text-yellow-400" />)}
+            <div className="bg-gradient-to-br from-green-600 to-green-700 dark:from-green-700 dark:to-green-800 rounded-3xl shadow-lg p-8 text-white text-center border-4 border-white/10 relative overflow-hidden group">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 transition-transform group-hover:scale-150"></div>
+              <h2 className="text-lg font-bold mb-4 font-inter italic uppercase tracking-tighter relative z-10">Store Rating</h2>
+              <div className="text-6xl font-bold mb-2 font-inter italic relative z-10">4.8</div>
+              <div className="flex justify-center gap-1 mb-4 relative z-10">
+                {[1, 2, 3, 4, 5].map((s) => <Star key={s} size={20} className="fill-yellow-400 text-yellow-400" />)}
               </div>
-              <p className="text-green-100 text-xs">Based on current performance</p>
+              <p className="text-green-100 dark:text-green-200 text-xs font-medium relative z-10">Based on current performance</p>
             </div>
 
-            <div className="bg-white rounded-2xl shadow-lg p-6">
-              <h2 className="text-lg font-bold text-gray-800 mb-4">Quick Actions</h2>
-              <div className="space-y-3">
-                <button onClick={() => window.location.href='/orders'} className="w-full py-3 bg-green-600 text-white rounded-xl font-bold hover:bg-green-700 transition-all">
+            <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-lg p-6 border border-transparent dark:border-gray-800 transition-all">
+              <h2 className="text-lg font-bold text-gray-800 dark:text-gray-100 mb-4 font-inter italic uppercase tracking-tighter">Quick Actions</h2>
+              <div className="space-y-3 font-inter">
+                <button onClick={() => window.location.href='/orders'} className="w-full py-4 bg-green-600 dark:bg-green-700 text-white rounded-xl font-bold hover:bg-green-700 dark:hover:bg-green-800 transition-all shadow-lg active:scale-95 uppercase italic tracking-widest text-xs">
                   Active Orders
                 </button>
-                <button onClick={() => window.location.href='/menu'} className="w-full py-3 bg-gray-100 text-gray-700 rounded-xl font-bold hover:bg-gray-200 transition-all">
+                <button onClick={() => window.location.href='/menu'} className="w-full py-4 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-xl font-bold hover:bg-gray-200 dark:hover:bg-gray-700 transition-all active:scale-95 uppercase italic tracking-widest text-xs">
                   Edit Menu
                 </button>
               </div>

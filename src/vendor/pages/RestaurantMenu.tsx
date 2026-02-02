@@ -212,10 +212,10 @@ const handleRemove = async (id: number) => {
   });
 if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-emerald-50 flex items-center justify-center">
+      <div className="min-h-screen bg-white dark:bg-gray-950 flex items-center justify-center transition-colors duration-300">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-green-600 mx-auto mb-4"></div>
-          <p className="text-gray-600 font-semibold">Loading...</p>
+          <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-green-600 dark:border-green-400 mx-auto mb-4"></div>
+          <p className="text-gray-600 dark:text-gray-400 font-semibold font-inter uppercase tracking-widest italic">Loading...</p>
         </div>
       </div>
     );
@@ -223,19 +223,19 @@ if (loading) {
 
   if (!vendorId) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-emerald-50 flex items-center justify-center">
+      <div className="min-h-screen bg-white dark:bg-gray-950 flex items-center justify-center transition-colors duration-300">
         <div className="text-center">
-          <p className="text-red-600 font-semibold text-lg mb-4">Vendor not found</p>
-          <p className="text-gray-600">Please log in again</p>
+          <p className="text-red-600 dark:text-red-400 font-bold text-lg mb-4 font-inter uppercase italic tracking-tighter">Vendor not found</p>
+          <p className="text-gray-600 dark:text-gray-400 font-medium">Please log in again</p>
         </div>
       </div>
     );
   }
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-emerald-50">
+    <div className="min-h-screen bg-white dark:bg-gray-950 transition-colors duration-300">
       {/* Header */}
       <VendorNav />
-      <div className="bg-gradient-to-r from-green-600 to-emerald-600 shadow-lg sticky top-0 z-20">
+      <div className="bg-gradient-to-r from-green-600 to-emerald-600 dark:from-green-700 dark:to-emerald-800 shadow-lg sticky top-0 z-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16 sm:h-20">
             <button
@@ -252,7 +252,7 @@ if (loading) {
               <ArrowLeft className="w-5 h-5 sm:w-6 sm:h-6" />
             </button>
 
-            <h1 className="text-white text-lg sm:text-xl font-bold">Menu</h1>
+            <h1 className="text-white text-lg sm:text-xl font-bold font-inter italic tracking-tighter uppercase">Menu</h1>
 
             <button
               onClick={() => {
@@ -281,7 +281,7 @@ if (loading) {
               <input
                 type="text"
                 placeholder="Search through your menu"
-                className="w-full pl-12 pr-4 py-4 rounded-2xl border-2 border-gray-200 focus:border-green-500 focus:ring-4 focus:ring-green-100 transition-all outline-none"
+                className="w-full pl-12 pr-4 py-4 bg-white dark:bg-gray-900 rounded-2xl border-2 border-gray-200 dark:border-gray-800 text-gray-900 dark:text-gray-100 focus:border-green-500 dark:focus:border-green-400 focus:ring-4 focus:ring-green-100 dark:focus:ring-green-900/20 transition-all outline-none font-inter"
               />
             </div>
           </div>
@@ -291,10 +291,10 @@ if (loading) {
             {categories.map((cat) => (
               <button
                 key={cat}
-                className={`px-6 py-2.5 rounded-full font-semibold whitespace-nowrap transition-all duration-300 ${
+                className={`px-6 py-2.5 rounded-full font-bold whitespace-nowrap transition-all duration-300 font-inter uppercase italic tracking-tighter text-xs transform hover:scale-105 ${
                   selectedCategory === cat
                     ? "bg-green-600 text-white shadow-lg"
-                    : "bg-white text-gray-600 hover:bg-gray-50"
+                    : "bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 border dark:border-gray-800"
                 }`}
               >
                 {cat === "All" && <Check className="inline w-4 h-4 mr-1" />}
@@ -311,10 +311,10 @@ if (loading) {
                 ✨
               </div>
             </div>
-            <h2 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-3 text-center">
+            <h2 className="text-2xl sm:text-3xl font-bold text-gray-800 dark:text-gray-100 mb-3 text-center font-inter italic uppercase tracking-tighter">
               No Menu Items Yet
             </h2>
-            <p className="text-gray-600 text-center mb-8 max-w-md">
+            <p className="text-gray-600 dark:text-gray-400 text-center mb-8 max-w-md font-medium">
               Start building your menu by adding delicious meals
             </p>
             <button
@@ -346,7 +346,7 @@ if (loading) {
                 placeholder="Search through your menu"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-12 pr-4 py-4 rounded-2xl border-2 border-gray-200 focus:border-green-500 focus:ring-4 focus:ring-green-100 transition-all outline-none text-sm sm:text-base"
+                className="w-full pl-12 pr-4 py-4 bg-white dark:bg-gray-900 rounded-2xl border-2 border-gray-200 dark:border-gray-800 text-gray-900 dark:text-gray-100 focus:border-green-500 dark:focus:border-green-400 focus:ring-4 focus:ring-green-100 dark:focus:ring-green-900/20 transition-all outline-none text-sm sm:text-base font-inter"
               />
             </div>
           </div>
@@ -363,10 +363,10 @@ if (loading) {
               <button
                 key={cat}
                 onClick={() => setSelectedCategory(cat)}
-                className={`px-5 py-2.5 rounded-full font-semibold whitespace-nowrap transition-all duration-300 text-sm sm:text-base ${
+                className={`px-5 py-2.5 rounded-full font-bold whitespace-nowrap transition-all duration-300 text-sm sm:text-base font-inter uppercase italic tracking-tighter transform hover:scale-105 ${
                   selectedCategory === cat
                     ? "bg-green-600 text-white shadow-lg scale-105"
-                    : "bg-white text-gray-600 hover:bg-gray-50 hover:scale-105"
+                    : "bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 border dark:border-gray-800"
                 }`}
               >
                 {cat === "All" && selectedCategory === cat && (
@@ -380,7 +380,7 @@ if (loading) {
           {/* Add Ons Section */}
           {selectedCategory === "Add ons" && (
             <div className="mb-8 transform transition-all duration-500 delay-200">
-              <h2 className="text-xl font-bold text-gray-800 mb-4">Add Ons</h2>
+              <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100 mb-4 font-inter italic uppercase tracking-tighter">Add Ons</h2>
               <div className="flex gap-4 overflow-x-auto pb-2">
                 {addOnItems.map((item, idx) => (
                   <div
@@ -393,10 +393,10 @@ if (loading) {
                     style={{ transitionDelay: `${300 + idx * 100}ms` }}
                   >
                     <div className="flex flex-col items-center">
-                      <div className="w-20 h-20 rounded-full bg-white shadow-lg flex items-center justify-center text-4xl mb-2 hover:scale-110 transition-transform cursor-pointer">
+                      <div className="w-20 h-20 rounded-full bg-white dark:bg-gray-900 shadow-lg flex items-center justify-center text-4xl mb-2 hover:scale-110 transition-transform cursor-pointer border-2 border-transparent dark:border-gray-800">
                         {item.image}
                       </div>
-                      <span className="text-sm font-medium text-gray-700">
+                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300 font-inter">
                         {item.name}
                       </span>
                     </div>
@@ -407,10 +407,10 @@ if (loading) {
                     onClick={() => setCurrentView("add-meal")}
                     className="flex flex-col items-center cursor-pointer"
                   >
-                    <div className="w-20 h-20 rounded-full bg-gradient-to-br from-green-100 to-emerald-100 shadow-lg flex items-center justify-center mb-2 hover:scale-110 transition-transform border-2 border-dashed border-green-300">
-                      <Plus className="w-8 h-8 text-green-600" />
+                    <div className="w-20 h-20 rounded-full bg-gradient-to-br from-green-100 to-emerald-100 dark:from-green-900/30 dark:to-emerald-900/30 shadow-lg flex items-center justify-center mb-2 hover:scale-110 transition-transform border-2 border-dashed border-green-300 dark:border-green-800">
+                      <Plus className="w-8 h-8 text-green-600 dark:text-green-400" />
                     </div>
-                    <span className="text-sm font-medium text-green-600">
+                    <span className="text-sm font-bold text-green-600 dark:text-green-400 font-inter italic uppercase tracking-tighter">
                       Add
                     </span>
                   </div>
@@ -424,7 +424,7 @@ if (loading) {
             {filteredItems.map((item, idx) => (
               <div
                 key={item.id}
-                className={`bg-white rounded-3xl shadow-lg hover:shadow-2xl transition-all duration-500 overflow-hidden transform ${
+                className={`bg-white dark:bg-gray-900 rounded-3xl shadow-lg border border-transparent dark:border-gray-800 hover:shadow-2xl transition-all duration-500 overflow-hidden transform ${
                   isVisible
                     ? "opacity-100 translate-y-0"
                     : "opacity-0 translate-y-8"
@@ -444,19 +444,19 @@ if (loading) {
 </div>
 
                   {/* Item Details */}
-                  <div className="flex-1 w-full sm:min-w-0 text-center sm:text-left">
-                    <h3 className="text-lg sm:text-xl font-bold text-gray-800 mb-1 sm:truncate">
+                  <div className="flex-1 w-full sm:min-w-0 text-center sm:text-left transition-all">
+                    <h3 className="text-lg sm:text-xl font-bold text-gray-800 dark:text-gray-100 mb-1 sm:truncate font-inter italic uppercase tracking-tighter">
                       {item.name}
                     </h3>
                     <div className="flex items-center justify-center sm:justify-start gap-2 mb-2 flex-wrap">
-                      <span className="text-sm font-semibold text-green-600 bg-green-50 px-3 py-1 rounded-full">
+                      <span className="text-xs font-bold text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/30 px-3 py-1 rounded-full uppercase italic tracking-widest font-inter">
                         {item.category}
                       </span>
-                      <span className="text-lg sm:text-xl font-bold text-gray-800">
+                      <span className="text-lg sm:text-xl font-bold text-gray-800 dark:text-gray-100 font-inter">
                         ₦{item.price.toLocaleString()}
                       </span>
                     </div>
-                    <p className="text-sm text-gray-500 line-clamp-2">
+                    <p className="text-sm text-gray-500 dark:text-gray-400 line-clamp-2 font-medium">
                       {item.description}
                     </p>
                   </div>
@@ -465,13 +465,13 @@ if (loading) {
                   <div className="flex sm:flex-col gap-2 w-full sm:w-auto sm:flex-shrink-0">
                     <button
                       onClick={() => handleEdit(item)}
-                      className="flex-1 sm:flex-none bg-green-600 text-white px-6 py-2 rounded-xl font-semibold hover:bg-green-700 transition-all active:scale-95 shadow-md text-sm sm:text-base"
+                      className="flex-1 sm:flex-none bg-green-600 dark:bg-green-700 text-white px-6 py-2 rounded-xl font-bold hover:bg-green-700 dark:hover:bg-green-800 transition-all active:scale-95 shadow-md text-sm sm:text-base font-inter uppercase italic tracking-widest"
                     >
                       Edit
                     </button>
                     <button
                       onClick={() => handleRemove(item.id)}
-                      className="flex-1 sm:flex-none bg-green-50 text-green-600 px-6 py-2 rounded-xl font-semibold hover:bg-green-100 transition-all active:scale-95 text-sm sm:text-base"
+                      className="flex-1 sm:flex-none bg-green-50 dark:bg-gray-800 text-green-600 dark:text-green-400 px-6 py-2 rounded-xl font-bold hover:bg-green-100 dark:hover:bg-gray-700 transition-all active:scale-95 text-sm sm:text-base font-inter uppercase italic tracking-widest border border-transparent dark:border-gray-700"
                     >
                       Remove
                     </button>
@@ -494,18 +494,18 @@ if (loading) {
             }`}
           >
             {/* Stock Toggle */}
-            <div className="bg-white rounded-3xl shadow-lg p-6 mb-6 flex items-center justify-between">
-              <span className="text-lg font-bold text-green-600">
+            <div className="bg-white dark:bg-gray-900 rounded-3xl shadow-lg p-6 mb-6 flex items-center justify-between border border-transparent dark:border-gray-800">
+              <span className="text-lg font-bold text-green-600 dark:text-green-400 font-inter italic uppercase tracking-tighter">
                 Currently In-Stock
               </span>
               <button
                 onClick={() => setInStock(!inStock)}
                 className={`w-16 h-8 rounded-full transition-all duration-300 relative ${
-                  inStock ? "bg-green-600" : "bg-gray-300"
+                  inStock ? "bg-green-600" : "bg-gray-300 dark:bg-gray-800"
                 }`}
               >
                 <div
-                  className={`w-6 h-6 bg-white rounded-full absolute top-1 transition-all duration-300 shadow-md ${
+                  className={`w-6 h-6 bg-white dark:bg-gray-100 rounded-full absolute top-1 transition-all duration-300 shadow-md ${
                     inStock ? "left-9" : "left-1"
                   }`}
                 ></div>
@@ -513,7 +513,7 @@ if (loading) {
             </div>
 
           {/* Upload Image */}
-<div className="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-3xl shadow-lg p-8 mb-6 text-center">
+<div className="bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-900/10 dark:to-cyan-900/10 rounded-3xl shadow-lg p-8 mb-6 text-center border-2 border-dashed border-blue-200 dark:border-blue-900/50">
   <input
     type="file"
     id="imageUpload"
@@ -523,33 +523,31 @@ if (loading) {
   />
   
   {imagePreview ? (
-    <div className="relative">
+    <div className="relative group overflow-hidden rounded-2xl shadow-xl">
       <img 
         src={imagePreview} 
         alt="Preview" 
-        className="w-full h-48 object-cover rounded-2xl mb-4"
+        className="w-full h-48 sm:h-64 object-cover transition-transform duration-500 group-hover:scale-105"
       />
       <button
         onClick={() => {
           setSelectedImage(null);
           setImagePreview("");
         }}
-        className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-2 hover:bg-red-600"
+        className="absolute top-4 right-4 bg-red-500/80 backdrop-blur-md text-white rounded-full p-2.5 hover:bg-red-600 transition-all z-10"
       >
         ✕
       </button>
     </div>
   ) : (
-    <label htmlFor="imageUpload" className="cursor-pointer">
-      <div className="w-24 h-24 mx-auto bg-white rounded-3xl flex items-center justify-center mb-4 shadow-md">
-        <Upload className="w-12 h-12 text-green-600" />
+    <label htmlFor="imageUpload" className="cursor-pointer group flex flex-col items-center">
+      <div className="w-24 h-24 mx-auto bg-white dark:bg-gray-800 rounded-3xl flex items-center justify-center mb-4 shadow-md group-hover:scale-110 transition-transform">
+        <Upload className="w-12 h-12 text-green-600 dark:text-green-400" />
       </div>
-      <h3 className="text-green-600 font-bold text-lg mb-2">
+      <h3 className="text-green-600 dark:text-green-400 font-bold text-lg mb-2 font-inter italic uppercase tracking-tighter">
         Upload Cover Image
       </h3>
-      <p className="text-sm text-gray-600 mb-1">Allowed formats:</p>
-      <p className="text-xs text-gray-500">• Jpeg • Jpg • Png</p>
-      <p className="text-xs text-gray-500 mt-2">Less than 1mb</p>
+      <p className="text-xs text-gray-500 dark:text-gray-400 mt-2 font-medium">Allowed formats: Jpeg, Jpg, Png (Max 1MB)</p>
     </label>
   )}
 </div>
@@ -569,7 +567,7 @@ if (loading) {
                 placeholder="Meal Name*"
                 value={mealName}
                 onChange={(e) => setMealName(e.target.value)}
-                className="w-full px-5 py-4 rounded-2xl border-2 border-gray-200 focus:border-green-500 focus:ring-4 focus:ring-green-100 transition-all outline-none text-base"
+                className="w-full px-5 py-4 bg-white dark:bg-gray-900 rounded-2xl border-2 border-gray-200 dark:border-gray-800 text-gray-900 dark:text-gray-100 focus:border-green-500 dark:focus:border-green-400 focus:ring-4 focus:ring-green-100 dark:focus:ring-green-900/20 transition-all outline-none text-base font-inter"
               />
 
               <input
@@ -577,7 +575,7 @@ if (loading) {
                 placeholder="Enter Meal Price*"
                 value={mealPrice}
                 onChange={(e) => setMealPrice(e.target.value)}
-                className="w-full px-5 py-4 rounded-2xl border-2 border-gray-200 focus:border-green-500 focus:ring-4 focus:ring-green-100 transition-all outline-none text-base"
+                className="w-full px-5 py-4 bg-white dark:bg-gray-900 rounded-2xl border-2 border-gray-200 dark:border-gray-800 text-gray-900 dark:text-gray-100 focus:border-green-500 dark:focus:border-green-400 focus:ring-4 focus:ring-green-100 dark:focus:ring-green-900/20 transition-all outline-none text-base font-inter"
               />
 
               <input
@@ -585,10 +583,10 @@ if (loading) {
                 placeholder="Price Description | e.g per plate"
                 value={priceDescription}
                 onChange={(e) => setPriceDescription(e.target.value)}
-                className="w-full px-5 py-4 rounded-2xl border-2 border-gray-200 focus:border-green-500 focus:ring-4 focus:ring-green-100 transition-all outline-none text-base"
+                className="w-full px-5 py-4 bg-white dark:bg-gray-900 rounded-2xl border-2 border-gray-200 dark:border-gray-800 text-gray-900 dark:text-gray-100 focus:border-green-500 dark:focus:border-green-400 focus:ring-4 focus:ring-green-100 dark:focus:ring-green-900/20 transition-all outline-none text-base font-inter"
               />
  <div>
-    <label className="block text-green-600 font-bold mb-2 text-sm">
+    <label className="block text-green-600 dark:text-green-400 font-bold mb-2 text-sm font-inter italic uppercase tracking-tighter">
       Discount Percentage (%)
     </label>
     <input
@@ -596,7 +594,7 @@ if (loading) {
       placeholder="e.g. 10"
       value={mealDiscount}
       onChange={(e) => setMealDiscount(e.target.value)}
-      className="w-full px-5 py-4 rounded-2xl border-2 border-gray-200 focus:border-green-500 focus:ring-4 focus:ring-green-100 transition-all outline-none text-base"
+      className="w-full px-5 py-4 bg-white dark:bg-gray-900 rounded-2xl border-2 border-gray-200 dark:border-gray-800 text-gray-900 dark:text-gray-100 focus:border-green-500 dark:focus:border-green-400 focus:ring-4 focus:ring-green-100 dark:focus:ring-green-900/20 transition-all outline-none text-base font-inter"
       min="0"
       max="100"
     />
@@ -605,23 +603,23 @@ if (loading) {
                 <select
                   value={mealCategory}
                   onChange={(e) => setMealCategory(e.target.value)}
-                  className="w-full px-5 py-4 rounded-2xl border-2 border-gray-200 focus:border-green-500 focus:ring-4 focus:ring-green-100 transition-all outline-none appearance-none text-base bg-white"
+                  className="w-full px-5 py-4 bg-white dark:bg-gray-900 rounded-2xl border-2 border-gray-200 dark:border-gray-800 text-gray-900 dark:text-gray-100 focus:border-green-500 dark:focus:border-green-400 focus:ring-4 focus:ring-green-100 dark:focus:ring-green-900/20 transition-all outline-none appearance-none text-base font-inter font-bold"
                 >
                   <option value="Desert">Desert</option>
                   <option value="Breakfast">Breakfast</option>
                   <option value="Add ons">Add ons</option>
                 </select>
                 <ChevronDown className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none" />
-                <span className="absolute left-5 -top-2 bg-white px-2 text-xs text-gray-600">
+                <span className="absolute left-5 -top-2 bg-white dark:bg-gray-900 px-2 text-xs text-gray-600 dark:text-gray-400 font-bold uppercase tracking-widest italic">
                   Category -{" "}
-                  <span className="text-green-600 font-semibold">
+                  <span className="text-green-600 dark:text-green-400 font-bold">
                     {mealCategory}
                   </span>
                 </span>
               </div>
 
               <div>
-                <label className="block text-green-600 font-bold mb-2 text-sm sm:text-base">
+                <label className="block text-green-600 dark:text-green-400 font-bold mb-2 text-sm sm:text-base font-inter italic uppercase tracking-tighter">
                   Meal Description
                 </label>
                 <textarea
@@ -629,7 +627,7 @@ if (loading) {
                   value={mealDescription}
                   onChange={(e) => setMealDescription(e.target.value)}
                   rows={4}
-                  className="w-full px-5 py-4 rounded-2xl border-2 border-gray-200 focus:border-green-500 focus:ring-4 focus:ring-green-100 transition-all outline-none resize-none text-base"
+                  className="w-full px-5 py-4 bg-white dark:bg-gray-900 rounded-2xl border-2 border-gray-200 dark:border-gray-800 text-gray-900 dark:text-gray-100 focus:border-green-500 dark:focus:border-green-400 focus:ring-4 focus:ring-green-100 dark:focus:ring-green-900/20 transition-all outline-none resize-none text-base font-inter"
                 ></textarea>
               </div>
             </div>

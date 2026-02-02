@@ -14,6 +14,8 @@ import {
   CheckCircle,
   XCircle,
   Clock,
+  Sun,
+  Moon,
 } from "lucide-react";
 import {
   LineChart,
@@ -31,6 +33,7 @@ import Content from "../page/Content";
 import OrderManagement from "../page/OrderManagent";
 import Restrict from "../page/Restrict";
 import Help from "../page/Help";
+import { useTheme } from "../../context/ThemeContext";
 
 // Types
 type MenuItem = {
@@ -67,6 +70,7 @@ const chartData = [
 const AdminDashboard: React.FC = () => {
   const [isOpen, setIsOpen] = useState(true);
   const [activeMenu, setActiveMenu] = useState("dashboard");
+  const { theme, toggleTheme } = useTheme();
 
   const menuItems: MenuItem[] = [
     {
@@ -99,21 +103,21 @@ const AdminDashboard: React.FC = () => {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-800">Dashboard</h1>
+        <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100 font-inter italic tracking-tighter uppercase">Dashboard</h1>
         <Bell
-          className="text-gray-600 cursor-pointer hover:text-gray-800"
+          className="text-gray-600 dark:text-gray-400 cursor-pointer hover:text-gray-800 dark:hover:text-gray-200 transition-colors"
           size={24}
         />
       </div>
 
       {/* Today's Orders Card */}
-      <div className="bg-white rounded-lg shadow-sm p-6">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-green-600 font-semibold">Todays Orders</h2>
-          <span className="text-gray-500 text-sm">02 Nov, 2023</span>
+      <div className="bg-white dark:bg-gray-900 rounded-[2rem] shadow-xl p-8 border border-transparent dark:border-gray-800 transition-all">
+        <div className="flex items-center justify-between mb-8">
+          <h2 className="text-green-600 dark:text-green-400 font-black font-inter italic tracking-tighter uppercase">Todays Orders</h2>
+          <span className="text-gray-400 dark:text-gray-500 text-xs font-bold uppercase tracking-widest italic">02 Nov, 2023</span>
         </div>
 
-        <div className="grid md:grid-cols-2 gap-8">
+        <div className="grid md:grid-cols-2 gap-12">
           {/* Circular Progress */}
           <div className="flex items-center justify-center">
             <div className="relative w-48 h-48">
@@ -122,114 +126,129 @@ const AdminDashboard: React.FC = () => {
                   cx="96"
                   cy="96"
                   r="80"
-                  stroke="#E5E7EB"
+                  stroke="currentColor"
                   strokeWidth="16"
                   fill="none"
+                  className="text-gray-100 dark:text-gray-800"
                 />
                 <circle
                   cx="96"
                   cy="96"
                   r="80"
-                  stroke="#3B82F6"
+                  stroke="currentColor"
                   strokeWidth="16"
                   fill="none"
                   strokeDasharray="502.4"
                   strokeDashoffset="125.6"
                   strokeLinecap="round"
+                  className="text-blue-600 dark:text-blue-500 shadow-[0_0_15px_rgba(37,99,235,0.3)]"
                 />
               </svg>
               <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <span className="text-3xl font-bold text-blue-600">
-                  5,824,213
+                <span className="text-3xl font-black text-blue-600 dark:text-blue-400 font-inter italic tracking-tighter">
+                  5,824
                 </span>
-                <span className="text-gray-400 text-sm">1/3 Goal</span>
+                <span className="text-gray-400 dark:text-gray-500 text-[10px] font-bold uppercase tracking-widest italic">1/3 Goal</span>
               </div>
             </div>
           </div>
 
           {/* Order Stats */}
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 bg-blue-400 rounded-full"></div>
-                <span className="text-gray-600">Active Orders</span>
+          <div className="space-y-5">
+            {[
+              { label: "Active Orders", value: "5 Orders", color: "bg-blue-400" },
+              { label: "Completed Orders", value: "45 Orders", color: "bg-blue-600" },
+              { label: "Canceled Orders", value: "10 Orders", color: "bg-blue-200 dark:bg-blue-900" }
+            ].map((stat) => (
+              <div key={stat.label} className="flex items-center justify-between p-3 rounded-2xl hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-all">
+                <div className="flex items-center gap-3">
+                  <div className={`w-3 h-3 ${stat.color} rounded-full shadow-sm`}></div>
+                  <span className="text-gray-600 dark:text-gray-400 font-bold text-xs uppercase italic tracking-widest">{stat.label}</span>
+                </div>
+                <span className="font-black text-gray-800 dark:text-gray-100 font-inter italic">{stat.value}</span>
               </div>
-              <span className="font-semibold">5 Orders</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 bg-blue-600 rounded-full"></div>
-                <span className="text-gray-600">Completed Orders</span>
-              </div>
-              <span className="font-semibold">45 Orders</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 bg-blue-200 rounded-full"></div>
-                <span className="text-gray-600">Canceled Orders</span>
-              </div>
-              <span className="font-semibold">10 Orders</span>
-            </div>
+            ))}
           </div>
         </div>
       </div>
 
       {/* Today's Earning */}
-      <div className="bg-white rounded-lg shadow-sm p-6">
-        <span className="text-gray-500 text-sm">Todays Earning</span>
-        <div className="flex items-center justify-between mt-2">
-          <h3 className="text-3xl font-bold text-gray-800">₦ 3,027.87</h3>
-          <div className="text-green-600 text-sm">↑</div>
+      <div className="bg-white dark:bg-gray-900 rounded-[2rem] shadow-xl p-8 border border-transparent dark:border-gray-800 transition-all">
+        <span className="text-gray-400 dark:text-gray-500 text-[10px] font-bold uppercase tracking-widest italic mb-2 block">Todays Earning</span>
+        <div className="flex items-center justify-between">
+          <h3 className="text-4xl font-black text-gray-800 dark:text-gray-100 font-inter italic tracking-tighter">₦ 3,027.87</h3>
+          <div className="bg-green-100 dark:bg-green-900/30 p-2 rounded-xl">
+             <span className="text-green-600 dark:text-green-400 text-lg font-black">↑</span>
+          </div>
         </div>
       </div>
 
       {/* Pending Approvals */}
-      <div className="bg-white rounded-lg shadow-sm p-6">
+      <div className="bg-white dark:bg-gray-900 rounded-[2rem] shadow-xl p-8 border border-transparent dark:border-gray-800 transition-all hover:border-green-500 dark:hover:border-green-500/50 group cursor-pointer">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="bg-gray-100 p-3 rounded-lg">
-              <Clock className="text-gray-600" size={24} />
+          <div className="flex items-center gap-6">
+            <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-2xl shadow-inner group-hover:rotate-6 transition-transform">
+              <Clock className="text-gray-600 dark:text-gray-400" size={24} />
             </div>
             <div>
-              <h3 className="text-gray-600 font-medium">Pending approvals</h3>
-              <span className="text-3xl font-bold text-green-600">5</span>
+              <h3 className="text-gray-400 dark:text-gray-500 text-[10px] font-bold uppercase tracking-widest italic mb-1">Pending approvals</h3>
+              <span className="text-4xl font-black text-green-600 dark:text-green-400 font-inter italic tracking-tighter">5</span>
             </div>
           </div>
-          <button className="text-green-600 hover:text-green-700">→</button>
+          <button className="text-green-600 dark:text-green-400 hover:translate-x-1 transition-transform">
+             <CheckCircle size={24} />
+          </button>
         </div>
       </div>
 
       {/* Order Stats Chart */}
-      <div className="bg-white rounded-lg shadow-sm p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="font-semibold text-gray-800">Order Stat</h3>
-          <div className="flex gap-2">
-            <button className="px-3 py-1 text-sm bg-gray-100 rounded">D</button>
-            <button className="px-3 py-1 text-sm bg-gray-100 rounded">W</button>
-            <button className="px-3 py-1 text-sm bg-green-600 text-white rounded">
-              M
-            </button>
-            <button className="px-3 py-1 text-sm bg-gray-100 rounded">Y</button>
+      <div className="bg-white dark:bg-gray-900 rounded-[2.5rem] shadow-xl p-8 border border-transparent dark:border-gray-800 transition-all">
+        <div className="flex items-center justify-between mb-8">
+          <h3 className="text-xl font-black text-gray-800 dark:text-gray-100 font-inter italic tracking-tighter uppercase">Order Stat</h3>
+          <div className="flex gap-2 bg-gray-50 dark:bg-gray-800/50 p-1.5 rounded-2xl border border-gray-100 dark:border-gray-800">
+            {["D", "W", "M", "Y"].map((t) => (
+              <button key={t} className={`px-5 py-2 rounded-xl text-xs font-bold uppercase italic tracking-widest transition-all ${t === 'M' ? "bg-green-600 dark:bg-green-700 text-white shadow-lg shadow-green-500/20" : "text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"}`}>
+                {t}
+              </button>
+            ))}
           </div>
         </div>
-        <div className="text-xs text-gray-500 mb-4">August 2023</div>
+        <div className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em] italic mb-6">August 2023</div>
 
-        <ResponsiveContainer width="100%" height={200}>
+        <ResponsiveContainer width="100%" height={250}>
           <LineChart data={chartData}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+            <CartesianGrid strokeDasharray="3 3" stroke="currentColor" className="text-gray-100 dark:text-gray-800" vertical={false} />
             <XAxis
               dataKey="day"
-              stroke="#9CA3AF"
-              style={{ fontSize: "12px" }}
+              axisLine={false}
+              tickLine={false}
+              tick={{ fill: "currentColor", fontSize: 10, fontWeight: 700 }}
+              className="text-gray-400 dark:text-gray-600"
             />
-            <YAxis stroke="#9CA3AF" style={{ fontSize: "12px" }} />
-            <Tooltip />
+            <YAxis 
+               axisLine={false}
+               tickLine={false}
+               tick={{ fill: "currentColor", fontSize: 10, fontWeight: 700 }}
+               className="text-gray-400 dark:text-gray-600"
+            />
+            <Tooltip 
+              contentStyle={{ 
+                backgroundColor: 'rgba(255, 255, 255, 0.9)', 
+                backdropFilter: 'blur(8px)',
+                border: 'none', 
+                borderRadius: '20px', 
+                boxShadow: '0 20px 50px rgba(0,0,0,0.1)',
+                fontWeight: 'bold'
+              }} 
+            />
             <Line
               type="monotone"
               dataKey="value"
               stroke="#22C55E"
-              strokeWidth={2}
-              dot={false}
+              strokeWidth={4}
+              dot={{ fill: '#22C55E', strokeWidth: 2, r: 4, stroke: '#fff' }}
+              activeDot={{ r: 8, strokeWidth: 0 }}
+              animationDuration={2000}
             />
           </LineChart>
         </ResponsiveContainer>
@@ -291,33 +310,31 @@ const AdminDashboard: React.FC = () => {
       </div>
 
       {/* Active Users */}
-      <div className="bg-white rounded-lg shadow-sm p-6">
-        <div className="flex items-center gap-2 mb-4">
-          <h3 className="font-semibold text-green-600">Active Users</h3>
-          <HelpCircle className="text-gray-400" size={16} />
+      <div className="bg-white dark:bg-gray-900 rounded-[2.5rem] shadow-xl p-8 border border-transparent dark:border-gray-800 transition-all">
+        <div className="flex items-center gap-2 mb-6">
+          <h3 className="text-xl font-black text-green-600 dark:text-green-400 font-inter italic tracking-tighter uppercase">Active Users</h3>
+          <HelpCircle className="text-gray-300 dark:text-gray-700" size={16} />
         </div>
-        <div className="text-4xl font-bold text-gray-800 mb-2">
-          594 <span className="text-base font-normal text-gray-500">Users</span>
+        <div className="text-5xl font-black text-gray-800 dark:text-gray-100 font-inter tracking-tighter mb-4 italic">
+          594 <span className="text-sm font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest ml-2">Users</span>
         </div>
-        <div className="w-full bg-gray-200 rounded-full h-2 mb-4">
+        <div className="w-full bg-gray-100 dark:bg-gray-800 rounded-full h-4 overflow-hidden p-1 border border-gray-200 dark:border-gray-700 shadow-inner mb-8">
           <div
-            className="bg-green-600 h-2 rounded-full"
+            className="bg-gradient-to-r from-green-500 to-green-600 dark:from-green-600 dark:to-green-700 h-full rounded-full transition-all duration-1000 ease-out shadow-[0_0_15px_rgba(34,197,94,0.3)]"
             style={{ width: "75%" }}
           ></div>
         </div>
-        <div className="flex gap-4 text-sm">
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-1 bg-green-600 rounded"></div>
-            <span className="text-gray-600">Clients</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-1 bg-gray-300 rounded"></div>
-            <span className="text-gray-400">Vendors</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-1 bg-gray-300 rounded"></div>
-            <span className="text-gray-400">Riders</span>
-          </div>
+        <div className="grid grid-cols-3 gap-4">
+          {[
+            { label: "Clients", color: "bg-green-600" },
+            { label: "Vendors", color: "bg-gray-300 dark:bg-gray-700" },
+            { label: "Riders", color: "bg-gray-300 dark:bg-gray-700" }
+          ].map((item) => (
+            <div key={item.label} className="flex items-center gap-2 bg-gray-50 dark:bg-gray-800/50 p-3 rounded-xl border border-gray-100 dark:border-gray-800">
+              <div className={`w-3 h-1 ${item.color} rounded-full`}></div>
+              <span className="text-gray-600 dark:text-gray-400 text-[10px] font-bold uppercase tracking-widest italic">{item.label}</span>
+            </div>
+          ))}
         </div>
       </div>
     </div>
@@ -347,26 +364,26 @@ const AdminDashboard: React.FC = () => {
   };
 
   return (
-    <div className="flex h-screen bg-gray-50 overflow-hidden">
+    <div className="flex h-screen bg-gray-50 dark:bg-gray-950 transition-colors duration-300 overflow-hidden">
       {/* Sidebar */}
       <div
         className={`${
-          isOpen ? "w-64" : "w-20"
-        } bg-white shadow-lg transition-all duration-300 ease-in-out flex flex-col`}
+          isOpen ? "w-64" : "w-24"
+        } bg-white dark:bg-gray-900 border-r border-gray-100 dark:border-gray-800 shadow-2xl transition-all duration-500 ease-in-out flex flex-col z-50`}
       >
         {/* Logo and Toggle */}
-        <div className="h-16 flex items-center justify-between px-4 border-b border-gray-200">
+        <div className="h-20 flex items-center justify-between px-6 border-b border-gray-50 dark:border-gray-800">
           {isOpen ? (
             <>
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 bg-green-600 rounded flex items-center justify-center">
-                  <span className="text-white font-bold">M</span>
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-green-600 rounded-xl flex items-center justify-center shadow-lg shadow-green-500/30 rotate-3 transition-transform hover:rotate-0">
+                  <span className="text-white font-black text-xl italic tracking-tighter font-inter uppercase">M</span>
                 </div>
-                <span className="font-semibold text-gray-800">Dashboard</span>
+                <span className="font-black text-gray-800 dark:text-gray-100 font-inter italic tracking-tighter uppercase whitespace-nowrap">Dashboard</span>
               </div>
               <button
                 onClick={() => setIsOpen(false)}
-                className="text-gray-500 hover:text-gray-700 transition-colors"
+                className="text-gray-400 hover:text-green-600 dark:hover:text-green-400 transition-all p-2 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-xl"
               >
                 <X size={20} />
               </button>
@@ -374,34 +391,70 @@ const AdminDashboard: React.FC = () => {
           ) : (
             <button
               onClick={() => setIsOpen(true)}
-              className="text-gray-500 hover:text-gray-700 transition-colors mx-auto"
+              className="text-gray-400 hover:text-green-600 dark:hover:text-green-400 transition-all mx-auto p-3 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-xl"
             >
-              <Menu size={20} />
+              <Menu size={24} />
             </button>
           )}
         </div>
 
         {/* Menu Items */}
-        <nav className="flex-1 overflow-y-auto py-4">
+        <nav className="flex-1 overflow-y-auto py-8 px-3 space-y-2 no-scrollbar">
           {menuItems.map((item) => (
             <button
               key={item.id}
               onClick={() => setActiveMenu(item.id)}
-              className={`w-full flex items-center gap-3 px-4 py-3 transition-all ${
+              className={`w-full flex items-center gap-4 px-4 py-4 rounded-2xl transition-all duration-300 group ${
                 activeMenu === item.id
-                  ? "bg-green-50 text-green-600 border-r-4 border-green-600"
-                  : "text-gray-600 hover:bg-gray-50"
+                  ? "bg-green-600 text-white shadow-xl shadow-green-500/30 active:scale-95"
+                  : "text-gray-500 dark:text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-green-600 dark:hover:text-green-400"
               }`}
             >
-              <span className="flex-shrink-0">{item.icon}</span>
+              <span className={`flex-shrink-0 transition-transform group-hover:scale-110 ${activeMenu === item.id ? "rotate-3" : ""}`}>
+                 {item.icon}
+              </span>
               {isOpen && (
-                <span className="text-sm font-medium whitespace-nowrap overflow-hidden">
+                <span className="text-xs font-black uppercase italic tracking-widest whitespace-nowrap overflow-hidden">
                   {item.label}
                 </span>
+              )}
+              {!isOpen && activeMenu === item.id && (
+                <div className="absolute left-0 w-1.5 h-8 bg-white rounded-r-full shadow-lg"></div>
               )}
             </button>
           ))}
         </nav>
+
+        {/* Theme Toggle & User Profile */}
+        <div className="mt-auto px-3 py-6 border-t border-gray-50 dark:border-gray-800 space-y-4">
+          <button
+            onClick={toggleTheme}
+            className={`w-full flex items-center gap-4 px-4 py-4 rounded-2xl transition-all duration-300 group hover:bg-gray-50 dark:hover:bg-gray-800 ${
+              theme === "dark" ? "text-amber-400" : "text-indigo-600"
+            }`}
+          >
+            <span className="flex-shrink-0 transition-transform group-hover:rotate-12">
+              {theme === "dark" ? <Sun size={20} /> : <Moon size={20} />}
+            </span>
+            {isOpen && (
+              <span className="text-xs font-black uppercase italic tracking-widest whitespace-nowrap overflow-hidden text-gray-500 dark:text-gray-400">
+                {theme === "dark" ? "Light Mode" : "Dark Mode"}
+              </span>
+            )}
+          </button>
+          
+          <div className={`flex items-center gap-4 px-4 py-2 transition-all duration-300 ${!isOpen && "justify-center"}`}>
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-green-500 to-green-600 flex items-center justify-center text-white font-black italic shadow-lg">
+              JS
+            </div>
+            {isOpen && (
+              <div className="flex flex-col">
+                <span className="text-xs font-black text-gray-800 dark:text-gray-100 uppercase italic tracking-tighter">John Simon</span>
+                <span className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest italic">Super Admin</span>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* Main Content */}

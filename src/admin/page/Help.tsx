@@ -36,19 +36,19 @@ const Help: React.FC = () => {
   const selectedCountry = countryCodes.find((c) => c.code === countryCode);
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-      <div className="w-full max-w-7xl bg-white  overflow-hidden">
+    <div className="min-h-screen bg-white dark:bg-gray-950 transition-colors duration-300 flex items-center justify-center p-4">
+      <div className="w-full max-w-2xl bg-white dark:bg-gray-950 rounded-[2.5rem] shadow-2xl overflow-hidden border border-transparent dark:border-gray-800">
         <div className="animate-fadeIn min-h-screen">
           {/* Header */}
-          <div className="bg-gradient-to-r from-green-600 to-green-500 text-white p-6">
+          <div className="bg-green-600 dark:bg-green-700 text-white p-6 sticky top-0 z-40 shadow-lg">
             <div className="flex justify-between items-center">
-              <button className="hover:bg-white/10 p-2 rounded-lg transition-all">
+              <button className="hover:bg-white/20 p-2 rounded-xl transition-all active:scale-95">
                 <Menu size={24} />
               </button>
-              <h1 className="text-xl font-bold">Help & Support</h1>
-              <button className="hover:bg-white/10 p-2 rounded-lg transition-all relative">
+              <h1 className="text-xl font-bold font-inter italic tracking-tighter uppercase">Help & Support</h1>
+              <button className="hover:bg-white/20 p-2 rounded-xl transition-all relative active:scale-95">
                 <Bell size={24} />
-                <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+                <span className="absolute top-2 right-2 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-green-600 dark:border-green-700 animate-pulse"></span>
               </button>
             </div>
           </div>
@@ -56,64 +56,67 @@ const Help: React.FC = () => {
           {/* Content */}
           <div className="p-6 space-y-6">
             {/* Info Banner */}
-            <div className="bg-green-50 border-l-4 border-green-500 p-4 rounded-lg flex gap-3 items-start animate-slideDown shadow-sm">
-              <AlertCircle
-                className="text-green-600 flex-shrink-0 mt-0.5"
-                size={20}
-              />
-              <p className="text-green-800 text-sm font-medium leading-relaxed">
+            <div className="bg-green-50 dark:bg-green-900/20 border-l-4 border-green-600 dark:border-green-500 p-5 rounded-3xl flex gap-4 items-center animate-slideDown shadow-inner border dark:border-green-800/30">
+              <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-xl">
+                <AlertCircle
+                  className="text-green-600 dark:text-green-400 flex-shrink-0"
+                  size={24}
+                />
+              </div>
+              <p className="text-green-800 dark:text-green-300 text-sm font-bold font-inter italic tracking-tight uppercase">
                 update support mail address and whatsapp contact
               </p>
             </div>
 
             {/* Success Message */}
             {showSuccess && (
-              <div className="bg-green-100 border border-green-400 text-green-800 px-4 py-3 rounded-lg animate-slideDown shadow-md">
-                <p className="font-semibold">✓ Successfully saved!</p>
-                <p className="text-sm">
-                  Your contact information has been updated.
-                </p>
+              <div className="bg-green-100 dark:bg-green-900/30 border border-green-400 dark:border-green-500 text-green-800 dark:text-green-300 px-6 py-4 rounded-[2rem] animate-slideDown shadow-xl flex items-center gap-4">
+                <div className="w-10 h-10 bg-green-500 text-white rounded-full flex items-center justify-center shadow-lg">✓</div>
+                <div>
+                  <p className="font-black font-inter tracking-tighter uppercase italic">Successfully saved!</p>
+                  <p className="text-xs font-bold uppercase tracking-widest opacity-70">Contact information updated.</p>
+                </div>
               </div>
             )}
 
             {/* Email Input */}
             <div
-              className="space-y-2 animate-slideUp"
+              className="space-y-3 animate-slideUp"
               style={{ animationDelay: "100ms" }}
             >
-              <label className="block text-sm font-semibold text-gray-700">
-                Email Address
+              <label className="block text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-[0.2em] ml-1 italic">
+                Support Email Address
               </label>
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="Enter email address"
-                className="w-full px-4 py-3.5 bg-white border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all hover:border-gray-300 text-gray-800 font-medium shadow-sm"
+                className="w-full px-5 py-4.5 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-800 rounded-2xl focus:outline-none focus:ring-4 focus:ring-green-500/10 focus:border-green-500 transition-all text-gray-800 dark:text-gray-100 font-bold font-inter italic shadow-inner"
               />
             </div>
 
             {/* Phone Number Input */}
             <div
-              className="space-y-2 animate-slideUp"
+              className="space-y-3 animate-slideUp"
               style={{ animationDelay: "200ms" }}
             >
-              <label className="block text-sm font-semibold text-gray-700">
+              <label className="block text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-[0.2em] ml-1 italic">
                 WhatsApp Contact
               </label>
-              <div className="flex gap-3">
+              <div className="flex gap-4">
                 {/* Country Code Dropdown */}
                 <div className="relative">
                   <button
                     onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                    className="flex items-center justify-between gap-2 px-4 py-3.5 bg-white border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 transition-all hover:border-gray-300 shadow-sm min-w-[100px]"
+                    className="flex items-center justify-between gap-3 px-5 py-4.5 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-800 rounded-2xl focus:outline-none focus:ring-4 focus:ring-green-500/10 transition-all text-gray-800 dark:text-gray-100 font-bold font-inter italic shadow-inner min-w-[120px]"
                   >
-                    <span className="font-medium text-gray-800">
+                    <span>
                       {selectedCountry?.flag} {countryCode}
                     </span>
                     <ChevronDown
                       size={18}
-                      className={`text-gray-600 transition-transform ${
+                      className={`text-gray-500 transition-transform ${
                         isDropdownOpen ? "rotate-180" : ""
                       }`}
                     />
@@ -121,8 +124,8 @@ const Help: React.FC = () => {
 
                   {/* Dropdown Menu */}
                   {isDropdownOpen && (
-                    <div className="absolute top-full left-0 mt-2 w-64 bg-white border-2 border-gray-200 rounded-xl shadow-2xl z-50 animate-slideDown overflow-hidden">
-                      <div className="max-h-64 overflow-y-auto">
+                    <div className="absolute top-full left-0 mt-3 w-72 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-[2rem] shadow-[0_20px_60px_rgba(0,0,0,0.3)] z-50 animate-slideDown overflow-hidden">
+                      <div className="max-h-80 overflow-y-auto no-scrollbar p-2">
                         {countryCodes.map((item) => (
                           <button
                             key={item.code}
@@ -130,15 +133,15 @@ const Help: React.FC = () => {
                               setCountryCode(item.code);
                               setIsDropdownOpen(false);
                             }}
-                            className={`w-full px-4 py-3 text-left hover:bg-green-50 transition-colors flex items-center gap-3 ${
+                            className={`w-full px-5 py-4 text-left hover:bg-green-50 dark:hover:bg-green-900/20 transition-all rounded-2xl flex items-center gap-4 group ${
                               countryCode === item.code
-                                ? "bg-green-50 text-green-700 font-semibold"
-                                : "text-gray-700"
+                                ? "bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-400"
+                                : "text-gray-700 dark:text-gray-300"
                             }`}
                           >
-                            <span className="text-xl">{item.flag}</span>
-                            <span className="flex-1">{item.country}</span>
-                            <span className="font-mono text-sm">
+                            <span className="text-2xl group-hover:scale-125 transition-transform">{item.flag}</span>
+                            <span className="flex-1 font-bold font-inter tracking-tight">{item.country}</span>
+                            <span className="font-mono text-sm font-black text-green-600 dark:text-green-500">
                               {item.code}
                             </span>
                           </button>
@@ -156,7 +159,7 @@ const Help: React.FC = () => {
                     setPhoneNumber(e.target.value.replace(/\D/g, ""))
                   }
                   placeholder="Enter phone number"
-                  className="flex-1 px-4 py-3.5 bg-white border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all hover:border-gray-300 text-gray-800 font-medium shadow-sm"
+                  className="flex-1 px-5 py-4.5 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-800 rounded-2xl focus:outline-none focus:ring-4 focus:ring-green-500/10 focus:border-green-500 transition-all text-gray-800 dark:text-gray-100 font-bold font-inter italic shadow-inner"
                 />
               </div>
             </div>
@@ -165,30 +168,29 @@ const Help: React.FC = () => {
             <button
               onClick={handleSave}
               disabled={isSaving}
-              className={`w-full py-4 rounded-xl font-bold text-lg shadow-lg transition-all transform hover:scale-[1.02] active:scale-[0.98] animate-slideUp ${
+              className={`w-full py-5 rounded-2xl font-black text-xl shadow-2xl transition-all transform hover:scale-[1.02] active:scale-[0.98] animate-slideUp shadow-green-500/20 font-inter italic tracking-tighter uppercase ${
                 isSaving
-                  ? "bg-green-400 cursor-not-allowed"
-                  : "bg-gradient-to-r from-green-600 to-green-500 hover:from-green-700 hover:to-green-600"
+                  ? "bg-green-400 dark:bg-green-800 cursor-not-allowed"
+                  : "bg-green-600 dark:bg-green-700 hover:bg-green-700 dark:hover:bg-green-600"
               } text-white`}
               style={{ animationDelay: "300ms" }}
             >
               {isSaving ? (
-                <div className="flex items-center justify-center gap-2">
-                  <div className="w-5 h-5 border-3 border-white border-t-transparent rounded-full animate-spin"></div>
-                  <span>Saving...</span>
+                <div className="flex items-center justify-center gap-3">
+                  <div className="w-6 h-6 border-4 border-white/30 border-t-white rounded-full animate-spin"></div>
+                  <span>Saving Changes...</span>
                 </div>
               ) : (
-                "Save"
+                "Save Information"
               )}
             </button>
 
             {/* Info Text */}
             <p
-              className="text-center text-sm text-gray-500 animate-slideUp"
+              className="text-center text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest italic animate-slideUp"
               style={{ animationDelay: "400ms" }}
             >
-              Make sure your contact information is accurate to receive support
-              updates
+              Make sure your contact information is accurate to receive premium support updating
             </p>
           </div>
         </div>
@@ -258,21 +260,21 @@ const Help: React.FC = () => {
         }
 
         /* Custom scrollbar for dropdown */
+        .no-scrollbar::-webkit-scrollbar {
+          display: none;
+        }
+
         .overflow-y-auto::-webkit-scrollbar {
-          width: 6px;
+          width: 5px;
         }
 
         .overflow-y-auto::-webkit-scrollbar-track {
-          background: #f1f1f1;
+          background: transparent;
         }
 
         .overflow-y-auto::-webkit-scrollbar-thumb {
           background: #16a34a;
-          border-radius: 3px;
-        }
-
-        .overflow-y-auto::-webkit-scrollbar-thumb:hover {
-          background: #15803d;
+          border-radius: 10px;
         }
       `}</style>
     </div>

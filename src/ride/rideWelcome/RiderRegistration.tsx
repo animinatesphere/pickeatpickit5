@@ -207,7 +207,7 @@ export default function RiderRegistration() {
     }
   };
 
-  return <div className="min-h-screen bg-gray-50">{renderStep()}</div>;
+  return <div className="min-h-screen bg-white dark:bg-gray-950 transition-colors duration-300">{renderStep()}</div>;
 }
 
 // Step 0: Email & Password Registration
@@ -264,25 +264,25 @@ function Step0({
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-50 animate-fadeIn">
-      <div className="max-w-2xl mx-auto px-4 py-6">
+    <div className="min-h-screen bg-white dark:bg-gray-950 animate-fadeIn transition-colors duration-300">
+      <div className="max-w-2xl mx-auto px-4 py-12">
         {/* Header */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-green-600 rounded-full mb-4">
-            <Mail className="w-8 h-8 text-white" />
+        <div className="text-center mb-12">
+          <div className="inline-flex items-center justify-center w-20 h-20 bg-green-600 dark:bg-green-700 rounded-3xl mb-6 shadow-xl shadow-green-500/20 transform rotate-3 transition-transform hover:rotate-0">
+            <Mail className="w-10 h-10 text-white" />
           </div>
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">
+          <h1 className="text-4xl font-bold text-gray-800 dark:text-gray-100 mb-3 font-inter italic tracking-tighter uppercase">
             Create Rider Account
           </h1>
-          <p className="text-gray-600">
+          <p className="text-gray-600 dark:text-gray-400 font-medium font-inter">
             Enter your email and password to get started
           </p>
         </div>
 
         {/* Error Message */}
         {error && (
-          <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-6">
-            <p className="text-red-700 text-sm">{error}</p>
+          <div className="bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-800/50 rounded-2xl p-4 mb-8 animate-shake">
+            <p className="text-red-700 dark:text-red-400 text-sm font-semibold">{error}</p>
           </div>
         )}
 
@@ -291,14 +291,14 @@ function Step0({
           {/* Email Input */}
           <div className="relative group">
             <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-              <Mail className="w-5 h-5 text-gray-400 group-focus-within:text-green-600 transition-colors" />
+              <Mail className="w-5 h-5 text-gray-400 dark:text-gray-600 group-focus-within:text-green-600 dark:group-focus-within:text-green-400 transition-colors" />
             </div>
             <input
               type="email"
               placeholder="Email address*"
               value={formData.email}
               onChange={(e) => onChange("email", e.target.value)}
-              className="w-full pl-12 pr-4 py-4 bg-white border-2 border-gray-200 rounded-xl focus:outline-none focus:border-green-500 transition-all"
+              className="w-full pl-12 pr-4 py-4 bg-white dark:bg-gray-900 border-2 border-gray-200 dark:border-gray-800 rounded-2xl focus:outline-none focus:border-green-500 dark:focus:border-green-400 dark:text-white transition-all font-inter"
             />
           </div>
 
@@ -451,7 +451,7 @@ function StepOTP({
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-50 animate-fadeIn">
+    <div className="min-h-screen bg-white dark:bg-gray-950 animate-fadeIn transition-colors duration-300">
       <div className="max-w-2xl mx-auto px-4 py-6">
         {/* Header */}
         <div className="flex items-center mb-8">
@@ -528,18 +528,18 @@ function StepOTP({
 // Step 1: Personal Information (same as before but updated step number)
 function Step1({ formData, onChange, onNext, onBack }: StepProps) {
   return (
-    <div className="min-h-screen bg-gray-50 animate-fadeIn">
-      <div className="max-w-2xl mx-auto px-4 py-6">
-        <div className="flex justify-between items-center mb-6">
-          <div className="flex items-center gap-3">
-            <button onClick={onBack} className="text-gray-600">
+    <div className="min-h-screen bg-white dark:bg-gray-950 animate-fadeIn transition-colors duration-300">
+      <div className="max-w-2xl mx-auto px-4 py-12">
+        <div className="flex justify-between items-center mb-12">
+          <div className="flex items-center gap-4">
+            <button onClick={onBack} className="p-3 bg-gray-100 dark:bg-gray-800 rounded-full text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 transition-all active:scale-95 shadow-md">
               <ArrowLeft className="w-6 h-6" />
             </button>
-            <h1 className="text-xl font-semibold text-gray-800">
+            <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100 font-inter italic tracking-tighter uppercase">
               Personal Information
             </h1>
           </div>
-          <button className="text-green-600 font-medium">Skip</button>
+          <button className="text-green-600 dark:text-green-400 font-bold uppercase italic tracking-widest text-xs">Skip</button>
         </div>
 
         <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 mb-6 flex items-start gap-3">
