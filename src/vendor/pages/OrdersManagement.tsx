@@ -58,21 +58,34 @@ const OrdersManagement = () => {
 
         // Now load orders with the vendor ID
      // Inside OrdersManagement.tsx -> initializeOrders
+// Inside OrdersManagement.tsx -> initializeOrders
 const { data, error } = await getVendorOrders(vendorData.id);
+
+console.log("📦 Raw Orders Data:", data); // Debug log
+
 if (!error && data) {
-  const formattedOrders = data.map((order: any) => ({
-    id: order.id,
-    customerName: order.customer_name || "Guest", // Read from new column
-    phone: order.customer_phone || "No Phone",     // Read from new column
-    address: order.delivery_address,
-    time: new Date(order.created_at).toLocaleString(),
-    image: order.order_items?.[0]?.menu_items?.image_url || '🍽️',
-    status: order.status,
-    total: order.total_amount || 0 // Added for price display
-  }));
+  const formattedOrders = data.map((order: any) => {
+    // Use the data directly from the order object, NOT from order.user
+    const customerName = order.customer_name || 'Guest';
+    const customerPhone = order.customer_phone || 'No Phone';
+
+    console.log(`Order ${order.id}:`, { customerName, customerPhone }); // Debug log
+
+    return {
+      id: order.id,
+      customerName: customerName,
+      phone: customerPhone,
+      address: order.delivery_address || 'No address',
+      time: new Date(order.created_at).toLocaleString(),
+      image: order.order_items?.[0]?.menu_items?.image_url || '🍽️',
+      status: order.status,
+      total: order.total_amount || 0
+    };
+  });
+  
+  console.log("✅ Formatted Orders:", formattedOrders); // Debug log
   setOrders(formattedOrders);
-}
-      } catch (error) {
+}      } catch (error) {
         console.error("Error initializing orders:", error);
       } finally {
         setLoading(false);

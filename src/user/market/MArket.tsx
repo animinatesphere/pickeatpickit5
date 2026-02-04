@@ -17,19 +17,20 @@ import { Navbar } from "../../component/Navbar";
 import { useNavigate } from "react-router-dom";
 import { getMenuItems } from '../../services/api'
 import { useToast } from "../../context/ToastContext";
+import { supabase } from "../../services/authService";
 
 type Screen = "kitchen" | "confirm";
 
 interface MenuItem {
   id: number;
-  name: string;
+  name: string; // menu item name
+  businessName: string; // vendor business name
   price: number;
   discount: number;
   image_url: string;
   description: string;
   quantity: number;
 }
-
 interface OrderItem {
   id: number;
   name: string;
@@ -42,24 +43,119 @@ export default function Market() {
   const [items, setItems] = useState<MenuItem[]>([]);
   const [spiceLevel, setSpiceLevel] = useState(30);
   const [scheduleOrder, setScheduleOrder] = useState(true);
+    // Add these new states
+     const firstItem = items.find(item => item.quantity > 0);
+  const [vendorInfo, setVendorInfo] = useState<{
+    businessName: string;
+    image_url: string;
+  } | null>(null);
+  
   const navigate = useNavigate();
   const toast = useToast();
+const fetchVendorDetails = async (menuItemId: number) => {
+  try {
+    // Fetch menu info to get vendor_id
+    const { data: menuInfo, error: menuErr } = await supabase
+      .from('menu_items')
+      .select('vendor_id')
+      .eq('id', menuItemId)
+      .single();
 
-  useEffect(() => {
-    const loadMenu = async () => {
-      const { data, error } = await getMenuItems();
-      if (!error && data) {
-        const formattedItems = data.map((item: any) => ({
-          ...item,
-          quantity: 0,
-          image_url: item.image_url || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500",
-          discount: item.discount || 15
-        }));
-        setItems(formattedItems);
-      }
-    };
-    loadMenu();
-  }, []);
+    if (menuErr || !menuInfo) {
+      console.error("Error fetching menu info:", menuErr);
+      return;
+    }
+
+    // Fetch vendor profile using vendor_id
+    const { data: vendorProfile, error: vendorErr } = await supabase
+      .from('vendor_profiles')
+      .select('business_name, image_url')
+      .eq('vendor_id', menuInfo.vendor_id)
+      .single();
+
+    if (!vendorErr && vendorProfile) {
+      setVendorInfo({
+        businessName: vendorProfile.business_name,
+        image_url: vendorProfile.image_url || "https://images.unsplash.com/photo-1555939594-58d7cb561404?w=400"
+      });
+    }
+  } catch (error) {
+    console.error("Error fetching vendor details:", error);
+  }
+};
+useEffect(() => {
+  const loadMenu = async () => {
+    const { data, error } = await getMenuItems();
+    if (!error && data) {
+      const formattedItems = data.map((item: any) => ({
+        ...item,
+        quantity: 0,
+        businessName: item.vendor_profiles?.business_name || "Unknown Vendor",
+        // keep original name for menu item
+        image_url: item.image_url || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500",
+        discount: item.discount || 15
+      }));
+      setItems(formattedItems);
+    }
+  };
+  loadMenu();
+}, []);
+// const formattedItems = data.map((item: any) => ({
+//   ...item,
+//   quantity: 0,
+//   businessName: item.vendor_profiles?.business_name || "Unknown Vendor",
+//   // keep original name for menu item
+//   image_url: item.image_url || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500",
+//   discount: item.discount || 15
+// }))
+  //  useEffect(() => {
+  //   const fetchData = async () => {
+  //     try {
+  //       setLoading(true);
+  //       const { data: { session } } = await supabase.auth.getSession();
+        
+  //       if (session?.user) {
+  //         const firstName = session.user.user_metadata?.email || "User";
+  //         setUserProfile({
+  //           name: firstName,
+  //           initial: firstName.charAt(0).toUpperCase()
+  //         });
+
+  //         const { data: favs } = await supabase
+  //           .from("user_favorites")
+  //           .select("vendor_id")
+  //           .eq("user_id", session.user.id);
+
+  //         if (favs) {
+  //           const likedMap: LikedState = {};
+  //           favs.forEach(f => { likedMap[f.vendor_id] = true; });
+  //           setLiked(likedMap);
+  //         }
+  //       }
+
+  //       const { data: menuData } = await supabase.from("menu_items").select("*").limit(10);
+  //       if (menuData) setFoods(menuData);
+
+  //       const { data: profileData } = await supabase.from("vendor_profiles").select("*").limit(8);
+  //       if (profileData) setVendors(profileData);
+
+  //       const { data: offerData } = await supabase
+  //         .from("menu_items")
+  //         .select("*, vendor_profiles(business_name)")
+  //         .gt("discount", 0)
+  //         .limit(5);
+  //       if (offerData) setOffers(offerData);
+
+  //     } catch (error) {
+  //       console.error("Dashboard error:", error);
+  //     } finally {
+  //       setTimeout(() => setLoading(false), 800);
+  //     }
+  //   };
+
+  //   fetchData();
+  // }, []);
+
 
   const handleOrderNow = (item: MenuItem) => {
     if (item.quantity === 0) return;
@@ -206,7 +302,8 @@ export default function Market() {
                 <span>Trending Now</span>
               </div>
               <h2 className="text-5xl md:text-6xl font-black text-white font-inter italic tracking-tighter uppercase leading-none mb-6">
-                Mardiya <span className="text-green-500">Kitchen</span>
+                {/* Mardiya <span className="text-green-500">Kitchen</span> */}
+                  {items[0]?.businessName || "Mardiya"} <span className="text-green-500">Kitchen</span>
               </h2>
               <p className="text-white/70 max-w-md font-medium text-lg italic mb-8">
                 Experience the finest culinary treasures delivered with cinematic speed.
@@ -291,7 +388,19 @@ export default function Market() {
                   <p className="text-green-400 font-bold text-xs uppercase italic animate-pulse">Total: ₦{getCart().reduce((sum, i) => sum + i.price, 0).toLocaleString()}</p>
                 </div>
               </div>
-              <button onClick={() => setScreen("confirm")} className="px-10 py-4 bg-white text-black font-black italic uppercase tracking-tighter rounded-2xl flex items-center gap-3">Checkout <ArrowRight className="w-5 h-5" /></button>
+           <button 
+  onClick={async () => {
+    const cart = getCart();
+    if (cart.length > 0) {
+      // Fetch vendor details for the first item in cart
+      await fetchVendorDetails(cart[0].id);
+      setScreen("confirm");
+    }
+  }} 
+  className="px-10 py-4 bg-white text-black font-black italic uppercase tracking-tighter rounded-2xl flex items-center gap-3"
+>
+  Checkout <ArrowRight className="w-5 h-5" />
+</button>
             </motion.div>
           )}
         </AnimatePresence>
@@ -300,6 +409,7 @@ export default function Market() {
   };
 
   const ConfirmView = () => (
+    
     <div className="min-h-screen w-full bg-white dark:bg-gray-950 transition-colors duration-300 pb-20 font-inter">
       <div className="sticky top-0 bg-white/80 dark:bg-gray-950/80 backdrop-blur-xl z-50 border-b border-gray-100 dark:border-gray-800 px-6 py-6 flex items-center justify-between">
         <button onClick={() => setScreen("kitchen")} className="w-12 h-12 flex items-center justify-center bg-gray-50 dark:bg-gray-900 rounded-2xl active:scale-95 transition-all"><ChevronLeft className="w-6 h-6" /></button>
@@ -308,24 +418,33 @@ export default function Market() {
       </div>
 
       <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} className="max-w-3xl mx-auto px-6 py-12">
-        <div className="bg-white dark:bg-gray-900 border border-transparent dark:border-gray-800 rounded-[2.5rem] shadow-2xl p-10 mb-10 relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-40 h-40 bg-green-500/5 rounded-bl-full pointer-events-none" />
-          <div className="flex gap-10">
-            <div className="w-32 h-32 bg-gray-50 dark:bg-gray-800 rounded-3xl overflow-hidden ring-4 ring-green-600/10 shadow-xl">
-              <img src="https://images.unsplash.com/photo-1555939594-58d7cb561404?w=400" className="w-full h-full object-cover" alt="Kitchen" />
+       <div className="bg-white dark:bg-gray-900 border border-transparent dark:border-gray-800 rounded-[2.5rem] shadow-2xl p-10 mb-10 relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-40 h-40 bg-green-500/5 rounded-bl-full pointer-events-none" />
+        <div className="flex gap-10">
+          <div className="w-32 h-32 bg-gray-50 dark:bg-gray-800 rounded-3xl overflow-hidden ring-4 ring-green-600/10 shadow-xl">
+            <img 
+              src={vendorInfo?.image_url || items[0]?.image_url || "https://images.unsplash.com/photo-1555939594-58d7cb561404?w=400"} 
+              className="w-full h-full object-cover" 
+              alt="Kitchen" 
+            />
+          </div>
+          <div className="flex-1">
+            <div className="flex items-center gap-3 mb-2">
+              <UtensilsCrossed className="w-4 h-4 text-green-600" />
+              <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">Premium Kitchen</span>
             </div>
-            <div className="flex-1">
-              <div className="flex items-center gap-3 mb-2">
-                <UtensilsCrossed className="w-4 h-4 text-green-600" />
-                <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">Premium Kitchen</span>
-              </div>
-              <h2 className="text-4xl font-black italic tracking-tighter uppercase mb-4">Mardiya Kitchen</h2>
-              <div className="flex items-center gap-6">
-                <div className="flex items-center gap-2 text-green-600 font-black text-sm uppercase italic"><Clock className="w-4 h-4" /> 15 Mins</div>
+            <h2 className="text-4xl font-black italic tracking-tighter uppercase mb-4">
+                {firstItem?.businessName || "Mardiya Kitchen"}
+            </h2>
+            <div className="flex items-center gap-6">
+              <div className="flex items-center gap-2 text-green-600 font-black text-sm uppercase italic">
+                <Clock className="w-4 h-4" /> 15 Mins
               </div>
             </div>
           </div>
         </div>
+      </div>
+
 
         <div className="space-y-8">
           <div className="bg-white dark:bg-gray-900 rounded-[2rem] p-8 shadow-xl border border-transparent dark:border-gray-800">

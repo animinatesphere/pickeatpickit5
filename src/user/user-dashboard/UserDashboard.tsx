@@ -22,6 +22,13 @@ interface LikedState {
   [key: string]: boolean;
 }
 
+interface UserProfile {
+  firstname?: string;
+  lastname?: string;
+  email?: string;
+  phone?: string;
+}
+import { authService } from "../../services/authService";
 export default function UserDashboard() {
   const navigate = useNavigate();
   const toast = useToast();
@@ -62,7 +69,7 @@ export default function UserDashboard() {
         const { data: { session } } = await supabase.auth.getSession();
         
         if (session?.user) {
-          const firstName = session.user.user_metadata?.firstname || "User";
+          const firstName = session.user.user_metadata?.email || "User";
           setUserProfile({
             name: firstName,
             initial: firstName.charAt(0).toUpperCase()
@@ -103,6 +110,23 @@ export default function UserDashboard() {
     fetchData();
   }, []);
 
+    useEffect(() => {
+    const fetchUserProfile = async () => {
+      try {
+        setLoading(true);
+        const profile = await authService.getCurrentUserProfile();
+        setUserProfile(profile);
+      } catch (error) {
+        console.error("Failed to fetch user profile:", error);
+      } finally {
+        setTimeout(() => setLoading(false), 600);
+      }
+    };
+
+    fetchUserProfile();
+  }, []);
+  const fullName = `${userProfile.firstname || ""} ${userProfile.lastname || ""}`.trim();
+  const initials = (userProfile.firstname?.[0] || "U") + (userProfile.lastname?.[0] || "S");
   const containerVariants = {
     hidden: { opacity: 0 },
     show: {
@@ -161,11 +185,11 @@ export default function UserDashboard() {
                 <div className="flex flex-col md:flex-row gap-6 items-center justify-between">
                   <div className="flex items-center gap-4 w-full md:w-auto">
                     <motion.div whileHover={{ scale: 1.05 }} className="w-14 h-14 bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl flex items-center justify-center text-white font-black text-xl shadow-xl shadow-green-500/20">
-                      {userProfile.initial}
+                      {initials}
                     </motion.div>
                     <div>
                       <p className="text-[10px] font-black uppercase italic tracking-widest text-gray-400 leading-none mb-1">Welcome Back</p>
-                      <h1 className="text-xl font-black italic tracking-tighter uppercase">{userProfile.name}</h1>
+                      <h1 className="text-xl font-black italic tracking-tighter uppercase">{fullName}</h1>
                     </div>
                   </div>
 

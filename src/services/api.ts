@@ -30,10 +30,17 @@ export const deleteMenuItem = async (id: string) => {
 
 // Update getMenuItems to handle optional vendor filtering
 export const getMenuItems = async (vendorId: string | null = null) => {
-  let query = supabase.from("menu_items").select("*");
+  let query = supabase
+    .from("menu_items")
+    .select(`
+      *,
+      vendor_profiles(business_name)
+    `);
+    
   if (vendorId) {
     query = query.eq("vendor_id", vendorId);
   }
+  
   const { data, error } = await query;
   return { data, error };
 };
@@ -125,12 +132,6 @@ export const riderAcceptOrder = async (orderId: string, riderId: string) => {
   return { data, error };
 };
 
-// Fetch orders available for delivery (Vendor has started cooking)
-// src/services/api.ts
-
-// Ensure this function DOES NOT try to use a variable named 'id' 
-// unless it's passed as an argument.
-// Inside src/services/api.ts
 
 export const getAvailableDeliveries = async () => {
   const { data, error } = await supabase
@@ -170,7 +171,6 @@ export const deleteUserFromSystem = async (id: string, type: string) => {
   return { error };
 };
 // src/services/api.ts
-
 export const getVendorOrders = async (vendorId: string) => {
   const { data, error } = await supabase
     .from("orders")
@@ -178,15 +178,14 @@ export const getVendorOrders = async (vendorId: string) => {
       *,
       order_items (
         *,
-        menu_items!order_items_menu_item_id_fkey (*) 
+        menu_items!order_items_menu_item_id_fkey (*)
       )
-    `) // Notice the !order_items_menu_item_id_fkey added here
+    `)
     .eq("vendor_id", vendorId)
     .order("created_at", { ascending: false });
     
   return { data, error };
 };
-
 export const updateOrderStatus = async (orderId: string, status: string) => {
   const { data, error } = await supabase
     .from("orders")
