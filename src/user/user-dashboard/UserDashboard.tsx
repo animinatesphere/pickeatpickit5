@@ -37,8 +37,12 @@ export default function UserDashboard() {
   const [foods, setFoods] = useState<any[]>([]);
   const [offers, setOffers] = useState<any[]>([]);
   const [vendors, setVendors] = useState<any[]>([]);
-  const [userProfile, setUserProfile] = useState({ name: "Guest", initial: "G" });
-  const [loading, setLoading] = useState(true);
+ const [userProfile, setUserProfile] = useState<UserProfile>({
+    firstname: "",
+    lastname: "",
+    email: "",
+    phone: ""
+  });  const [loading, setLoading] = useState(true);
 
   const toggleLike = async (vendorId: string) => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -62,54 +66,55 @@ export default function UserDashboard() {
     }
   };
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        const { data: { session } } = await supabase.auth.getSession();
-        
-        if (session?.user) {
-          const firstName = session.user.user_metadata?.email || "User";
-          setUserProfile({
-            name: firstName,
-            initial: firstName.charAt(0).toUpperCase()
-          });
+ useEffect(() => {
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (session?.user) {
+        // Update to use the UserProfile structure
+        setUserProfile({
+          firstname: session.user.user_metadata?.firstname || "",
+          lastname: session.user.user_metadata?.lastname || "",
+          email: session.user.user_metadata?.email || session.user.email || "",
+          phone: session.user.user_metadata?.phone || ""
+        });
 
-          const { data: favs } = await supabase
-            .from("user_favorites")
-            .select("vendor_id")
-            .eq("user_id", session.user.id);
+        const { data: favs } = await supabase
+          .from("user_favorites")
+          .select("vendor_id")
+          .eq("user_id", session.user.id);
 
-          if (favs) {
-            const likedMap: LikedState = {};
-            favs.forEach(f => { likedMap[f.vendor_id] = true; });
-            setLiked(likedMap);
-          }
+        if (favs) {
+          const likedMap: LikedState = {};
+          favs.forEach(f => { likedMap[f.vendor_id] = true; });
+          setLiked(likedMap);
         }
-
-        const { data: menuData } = await supabase.from("menu_items").select("*").limit(10);
-        if (menuData) setFoods(menuData);
-
-        const { data: profileData } = await supabase.from("vendor_profiles").select("*").limit(8);
-        if (profileData) setVendors(profileData);
-
-        const { data: offerData } = await supabase
-          .from("menu_items")
-          .select("*, vendor_profiles(business_name)")
-          .gt("discount", 0)
-          .limit(5);
-        if (offerData) setOffers(offerData);
-
-      } catch (error) {
-        console.error("Dashboard error:", error);
-      } finally {
-        setTimeout(() => setLoading(false), 800);
       }
-    };
 
-    fetchData();
-  }, []);
+      const { data: menuData } = await supabase.from("menu_items").select("*").limit(10);
+      if (menuData) setFoods(menuData);
 
+      const { data: profileData } = await supabase.from("vendor_profiles").select("*").limit(8);
+      if (profileData) setVendors(profileData);
+
+      const { data: offerData } = await supabase
+        .from("menu_items")
+        .select("*, vendor_profiles(business_name)")
+        .gt("discount", 0)
+        .limit(5);
+      if (offerData) setOffers(offerData);
+
+    } catch (error) {
+      console.error("Dashboard error:", error);
+    } finally {
+      setTimeout(() => setLoading(false), 800);
+    }
+  };
+
+  fetchData();
+}, []);
     useEffect(() => {
     const fetchUserProfile = async () => {
       try {
@@ -124,8 +129,8 @@ export default function UserDashboard() {
     };
 
     fetchUserProfile();
-  }, []);
-  const fullName = `${userProfile.firstname || ""} ${userProfile.lastname || ""}`.trim();
+  }, []); 
+  const fullName = `${userProfile.firstname || ""} ${userProfile.lastname || ""}`.trim() || "Guest";
   const initials = (userProfile.firstname?.[0] || "U") + (userProfile.lastname?.[0] || "S");
   const containerVariants = {
     hidden: { opacity: 0 },
