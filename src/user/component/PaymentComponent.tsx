@@ -34,6 +34,7 @@ const PaymentComponent: React.FC = () => {
   const [trackingCode, setTrackingCode] = useState<string | null>(null);
 
   useEffect(() => {
+
     const pendingOrder = sessionStorage.getItem("pendingOrder");
     const checkoutItems = sessionStorage.getItem("checkoutItems");
 
@@ -68,6 +69,12 @@ const PaymentComponent: React.FC = () => {
     return { subtotal, delivery, total };
   };
 
+// FIXED handlePayment function
+// Replace your current handlePayment function with this:
+
+// FINAL CORRECTED handlePayment function
+// Replace your current handlePayment function with this:
+
 const handlePayment = async () => {
   if (!orderData) return;
   if (!deliveryAddress.trim()) {
@@ -81,10 +88,24 @@ const handlePayment = async () => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session?.user) return;
 
-    // 1. Get the latest metadata
-    const authMetadata = session.user.user_metadata;
-    const fullName = `${authMetadata?.firstname || ""} ${authMetadata?.lastname || ""}`.trim() || "Customer";
-    const phoneNum = authMetadata?.phone || "No phone";
+    // 1. Fetch user profile data from 'users' table (the correct table name!)
+    const { data: userProfile, error: profileError } = await supabase
+      .from('users')  // ← Changed from 'user_profiles' to 'users'
+      .select('firstname, lastname, phone')
+      .eq('user_id', session.user.id)
+      .single();
+
+    if (profileError) {
+      console.error("Profile fetch error:", profileError);
+    }
+
+    // Build fullName and phoneNum from the fetched profile
+    const fullName = userProfile 
+      ? `${userProfile.firstname || ""} ${userProfile.lastname || ""}`.trim() || "Customer"
+      : "Customer";
+    const phoneNum = userProfile?.phone || "No phone";
+
+    console.log("Customer Info:", { fullName, phoneNum }); // Debug log
 
     // 2. Fetch vendor business name correctly
     const firstItemId = orderData.items[0].id;
@@ -113,19 +134,21 @@ const handlePayment = async () => {
     const restaurantName = vendorProfile?.business_name || "Restaurant";
     const { total } = calculateTotal();
 
-    // 3. Prepare Payload (Keys now match the variables defined above)
+    // 3. Prepare Payload
     const orderPayload = {
-      vendor_id: menuInfo.vendor_id, // Fixed: used menuInfo instead of menuItem
+      vendor_id: menuInfo.vendor_id,
       restaurant_name: restaurantName,  
       user_id: session.user.id,
-      customer_name: fullName,      
-      customer_phone: phoneNum,     
+      customer_name: fullName,      // Now correctly from users table
+      customer_phone: phoneNum,     // Now correctly from users table
       delivery_address: deliveryAddress,
       total_amount: total,          
       status: "pending",
       items_count: orderData.items.length,
       scheduled_time: new Date().toISOString(),
     };
+
+    console.log("Order Payload:", orderPayload); // Debug log
 
     const orderItems = orderData.items.map(item => ({
       menu_item_id: item.id,

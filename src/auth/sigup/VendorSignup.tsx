@@ -1,10 +1,10 @@
 ﻿import logo from "../../assets/Logo SVG 1.png";
 import { useState, useRef } from "react";
-import { Eye, EyeOff, ChevronDown, Camera, ArrowLeft } from "lucide-react";
-import { Link } from "react-router-dom";
-import Button from "../../component/button";
+import { Eye, EyeOff, ChevronDown, Camera, ArrowLeft, Mail, Lock, User, Phone, Briefcase, MapPin, Clock, CreditCard, CheckCircle2, ShieldCheck, ChevronRight, Sparkles } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
 import { useToast, ToastContainer } from "../../component/Toast";
 import { authService, APIError, supabase } from "../../services/authService";
+import { motion, AnimatePresence } from "framer-motion";
 
 type NavigateFunction = (page: string) => void;
 
@@ -12,1138 +12,576 @@ interface PageProps {
   onNavigate: NavigateFunction;
 }
 
-interface AvailabilityState extends Record<string, unknown> {
-  dayFrom: string;
-  dayTo: string;
-  holidaysAvailable: string;
-  timeStart: string;
-  timeEnd: string;
-  workers: string;
+interface UserData {
+  firstname: string;
+  lastname: string;
+  email: string;
+  phone: string;
+  password?: string;
 }
 
+const VendorSignupShell = ({ children, step, totalSteps }: { children: React.ReactNode, step: number, totalSteps: number }) => (
+  <div className="min-h-screen relative bg-black text-white font-inter overflow-hidden">
+    {/* Cinematic Background */}
+    <div className="absolute inset-0 z-0">
+      <motion.img
+        initial={{ scale: 1.1, opacity: 0 }}
+        animate={{ scale: 1, opacity: 0.3 }}
+        transition={{ duration: 1.5 }}
+        src="https://images.unsplash.com/photo-1556910103-1c02745aae4d?q=80&w=2000&auto=format&fit=crop"
+        className="w-full h-full object-cover"
+      />
+      <div className="absolute inset-0 bg-gradient-to-t from-black via-black/80 to-transparent" />
+      <div className="absolute inset-0 bg-gradient-to-r from-black via-transparent to-black" />
+    </div>
+
+    {/* Ambient Lights (Blue/Indigo) */}
+    <div className="absolute top-[-20%] right-[-10%] w-[50%] h-[50%] bg-blue-500/10 blur-[150px] rounded-full" />
+    <div className="absolute bottom-[-20%] left-[-10%] w-[50%] h-[50%] bg-indigo-500/10 blur-[150px] rounded-full" />
+
+    {/* Progress Bar */}
+    <div className="fixed top-0 left-0 right-0 h-1 bg-white/5 z-[100]">
+      <motion.div 
+        className="h-full bg-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.5)]"
+        initial={{ width: "0%" }}
+        animate={{ width: `${(step / totalSteps) * 100}%` }}
+        transition={{ duration: 0.5, ease: "circOut" }}
+      />
+    </div>
+
+    <div className="relative z-10 min-h-screen flex items-center justify-center p-6 lg:p-12">
+      {children}
+    </div>
+  </div>
+);
+
+// Step 1: Personal Info
 const SignUpPage = ({ onNavigate }: PageProps) => {
   const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
-    firstname: "",
-    lastname: "",
-    email: "",
-    phone: "",
-    password: "",
-    confirmPassword: "",
+    firstname: "", lastname: "", email: "", phone: "",
+    password: "", confirmPassword: "",
   });
 
   const toast = useToast();
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-  };
-
   const handleSignUp = async () => {
-    if (formData.password !== formData.confirmPassword) {
-      toast.error("Passwords don't match!");
-      return;
-    }
-
-    if (
-      !formData.firstname ||
-      !formData.lastname ||
-      !formData.email ||
-      !formData.phone ||
-      !formData.password
-    ) {
-      toast.error("Please fill all required fields");
-      return;
-    }
-
-    if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      toast.error("Please enter a valid email address");
-      return;
-    }
-
-    if (formData.phone.length < 10) {
-      toast.error("Please enter a valid phone number");
-      return;
-    }
-
+    if (formData.password !== formData.confirmPassword) return toast.error("Passwords don't match!");
+    if (!formData.firstname || !formData.lastname || !formData.email || !formData.phone || !formData.password) return toast.error("Missing required fields");
+    if (!/\S+@\S+\.\S+/.test(formData.email)) return toast.error("Invalid email");
+    
     setIsLoading(true);
-
     try {
-      // Use Supabase signUp which sends OTP
       const { error } = await supabase.auth.signUp({
-        email: formData.email,
-        password: formData.password,
-        options: {
-          data: {
-            firstname: formData.firstname,
-            lastname: formData.lastname,
-            phone: formData.phone,
-          },
-          emailRedirectTo: undefined, // This ensures OTP mode
-        },
+        email: formData.email, password: formData.password,
+        options: { data: { firstname: formData.firstname, lastname: formData.lastname, phone: formData.phone } },
       });
-
-      if (error) {
-        throw new APIError(error.message, 400);
-      }
-
-      // Store form data temporarily for after OTP verification
+      if (error) throw error;
       localStorage.setItem("tempSignupData", JSON.stringify(formData));
-
-      toast.success("Verification code sent to your email!");
-      toast.info("Please check your email to verify your account.");
-
-      // Navigate to OTP screen
-      setTimeout(() => {
-        onNavigate("confirm-otp");
-      }, 1500);
-    } catch (err) {
-      console.error("Registration error:", err);
-      if (err instanceof APIError) {
-        toast.error(err.message);
-      } else {
-        toast.error("Registration failed. Please try again.");
-      }
-    } finally {
-      setIsLoading(false);
-    }
+      toast.success("Verification Signal Sent");
+      onNavigate("confirm-otp");
+    } catch (err: any) { toast.error(err.message || "Signup failed"); }
+    finally { setIsLoading(false); }
   };
 
   return (
-    <div className="min-h-screen bg-white">
-      <ToastContainer toasts={toast.toasts} onClose={toast.closeToast} />
-      <div className="max-w-md mx-auto px-6 py-8">
-        <div className="flex flex-col items-center mb-8">
-          <img src={logo} alt="Logo" className="h-12 mb-4" />
-          <h1 className="text-green-600 font-bold text-xl">PickEAT PickIT</h1>
-        </div>
+    <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="w-full max-w-xl">
+      <div className="text-center mb-10">
+        <motion.img src={logo} alt="Logo" className="w-20 h-20 mx-auto mb-6 drop-shadow-[0_0_15px_rgba(59,130,246,0.2)]" />
+        <h1 className="text-3xl font-black italic tracking-tighter uppercase mb-2">Onboarding <span className="text-blue-500">Initiated</span></h1>
+        <p className="text-[10px] tracking-[0.3em] uppercase text-gray-500 font-black">Step 01: Partner Credentials</p>
+      </div>
 
-        <div className="mb-6">
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">
-            Personal Info
-          </h2>
-          <p className="text-gray-600 text-sm">
-            Complete the fields below to continue.
-          </p>
-        </div>
-
-        <div className="space-y-4 mb-6">
-          <input
-            type="text"
-            name="firstname"
-            placeholder="First Name"
-            value={formData.firstname}
-            onChange={handleInputChange}
-            className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent"
-          />
-          <input
-            type="text"
-            name="lastname"
-            placeholder="Last Name"
-            value={formData.lastname}
-            onChange={handleInputChange}
-            className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent"
-          />
-          <input
-            type="email"
-            name="email"
-            placeholder="Email Address"
-            value={formData.email}
-            onChange={handleInputChange}
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent"
-          />
-          <input
-            type="tel"
-            name="phone"
-            placeholder="Phone Number"
-            value={formData.phone}
-            onChange={handleInputChange}
-            className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent"
-          />
-
-          <div className="relative">
-            <input
-              type={showPassword ? "text" : "password"}
-              name="password"
-              placeholder="Password"
-              value={formData.password}
-              onChange={handleInputChange}
-              className="w-full pl-4 pr-12 py-3 bg-gray-50 border border-gray-200 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent"
+      <div className="bg-zinc-900/40 backdrop-blur-2xl rounded-[2.5rem] p-8 md:p-12 border border-white/5 shadow-2xl space-y-6">
+        <div className="grid grid-cols-2 gap-6">
+          <div className="space-y-2">
+            <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 ml-4">First Name</label>
+            <input 
+              value={formData.firstname} onChange={e => setFormData({...formData, firstname: e.target.value})}
+              className="w-full px-6 py-4 bg-white/5 border border-white/10 rounded-2xl text-white placeholder-gray-600 focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500/50 transition-all font-bold text-sm"
             />
-            <button
-              type="button"
-              onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400"
-            >
-              {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-            </button>
           </div>
-
-          <div className="relative">
-            <input
-              type={showConfirmPassword ? "text" : "password"}
-              name="confirmPassword"
-              placeholder="Confirm Password"
-              value={formData.confirmPassword}
-              onChange={handleInputChange}
-              className="w-full pl-4 pr-12 py-3 bg-gray-50 border border-gray-200 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent"
+          <div className="space-y-2">
+            <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 ml-4">Last Name</label>
+            <input 
+              value={formData.lastname} onChange={e => setFormData({...formData, lastname: e.target.value})}
+              className="w-full px-6 py-4 bg-white/5 border border-white/10 rounded-2xl text-white placeholder-gray-600 focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500/50 transition-all font-bold text-sm"
             />
-            <button
-              type="button"
-              onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-              className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400"
-            >
-              {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 ml-4">Communication Line</label>
+          <div className="relative">
+             <Phone className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+             <input 
+                type="tel" placeholder="Phone Number"
+                value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})}
+                className="w-full pl-12 pr-6 py-4 bg-white/5 border border-white/10 rounded-2xl text-white placeholder-gray-600 focus:outline-none focus:ring-4 focus:ring-blue-500/10 font-bold text-sm"
+             />
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 ml-4">Corporate Email</label>
+          <div className="relative">
+             <Mail className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+             <input 
+                type="email" placeholder="email@enterprise.com"
+                value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})}
+                className="w-full pl-12 pr-6 py-4 bg-white/5 border border-white/10 rounded-2xl text-white placeholder-gray-600 focus:outline-none focus:ring-4 focus:ring-blue-500/10 font-bold text-sm"
+             />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-6">
+          <div className="relative">
+            <Lock className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+            <input 
+              type={showPassword ? "text" : "password"} placeholder="Access Key"
+              value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})}
+              className="w-full pl-12 pr-6 py-4 bg-white/5 border border-white/10 rounded-2xl text-white placeholder-gray-600 focus:outline-none focus:ring-4 focus:ring-blue-500/10 font-bold text-xs"
+            />
+          </div>
+          <div className="relative">
+            <input 
+              type={showPassword ? "text" : "password"} placeholder="Confirm Key"
+              value={formData.confirmPassword} onChange={e => setFormData({...formData, confirmPassword: e.target.value})}
+              className="w-full px-6 py-4 bg-white/5 border border-white/10 rounded-2xl text-white placeholder-gray-600 focus:outline-none focus:ring-4 focus:ring-blue-500/10 font-bold text-xs"
+            />
+            <button onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500">
+               {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
             </button>
           </div>
         </div>
 
-        <p className="text-center text-gray-600 text-sm mb-6">
-          Already have an account?{" "}
-          <Link
-            to="/vendor-login"
-            className="text-green-600 font-semibold hover:text-green-700"
-          >
-            Sign in
-          </Link>
-        </p>
-
-        <button
+        <motion.button
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
           onClick={handleSignUp}
           disabled={isLoading}
-          className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed mb-4"
+          className="w-full bg-white text-black font-black italic uppercase tracking-widest py-5 rounded-2xl shadow-xl hover:shadow-blue-500/20 transition-all flex items-center justify-center gap-2 group"
         >
-          {isLoading ? "Signing Up..." : "Sign Up"}
-        </button>
-
-        <Link to="/">
-          <Button text="Select Role" />
-        </Link>
+          {isLoading ? "Validating..." : <><Sparkles className="w-5 h-5" /> Initialize Account</>}
+        </motion.button>
+        
+        <p className="text-center text-[10px] text-gray-500 font-bold uppercase tracking-widest">
+          Already a partner? <Link to="/vendor-login" className="text-blue-500 hover:text-white transition-colors">Access Terminal</Link>
+        </p>
       </div>
-    </div>
+    </motion.div>
   );
 };
 
+// Step 2: OTP
 const EmailOTPScreen = ({ onNavigate }: PageProps) => {
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [isLoading, setIsLoading] = useState(false);
   const inputRefs = useRef<HTMLInputElement[]>([]);
   const toast = useToast();
-
   const storedData = localStorage.getItem("tempSignupData");
   const signupData = storedData ? JSON.parse(storedData) : null;
   const email = signupData?.email || "";
-  // Line 239 was here (const password = ...) - I have removed it.
-
-  const handleChange = (index: number, value: string) => {
-    if (value.length > 1) return;
-    if (!/^\d*$/.test(value)) return;
-
-    const newOtp = [...otp];
-    newOtp[index] = value;
-    setOtp(newOtp);
-
-    if (value && index < 5) {
-      inputRefs.current[index + 1]?.focus();
-    }
-  };
-
-  const handleKeyDown = (index: number, e: React.KeyboardEvent) => {
-    if (e.key === "Backspace" && !otp[index] && index > 0) {
-      inputRefs.current[index - 1]?.focus();
-    }
-  };
 
   const handleVerify = async () => {
     const otpCode = otp.join("");
-
-    if (otpCode.length !== 6) {
-      toast.error("Please enter the complete verification code");
-      return;
-    }
-
+    if (otpCode.length !== 6) return toast.error("Incomplete signal");
     setIsLoading(true);
-
     try {
-      // Verify the OTP token
-      const { data, error } = await supabase.auth.verifyOtp({
-        email: email,
-        token: otpCode,
-        type: "email",
-      });
-
-      if (error) {
-        throw new APIError(error.message, 400);
-      }
-
-      // After OTP verification, create vendor profile
+      const { data, error } = await supabase.auth.verifyOtp({ email, token: otpCode, type: "email" });
+      if (error) throw error;
       if (data.user && signupData) {
-        // Insert vendor profile into vendors table
-        const { data: vendorDataArray, error: profileError } = await supabase
-          .from("vendors")
-          .insert([
-            {
-              user_id: data.user.id,
-              email: signupData.email,
-              firstname: signupData.firstname,
-              lastname: signupData.lastname,
-              phone: signupData.phone,
-            },
-          ])
-          .select();
-
-        if (profileError) {
-          if (profileError.code === "23505") {
-            throw new APIError(
-              "Account already exists. Please log in instead.",
-              409,
-            );
-          }
-          throw new APIError("Failed to create vendor profile", 400);
-        }
-
-        // Store vendor ID for profile completion
-        if (vendorDataArray && vendorDataArray.length > 0) {
-          localStorage.setItem("tempVendorId", vendorDataArray[0].id);
-        }
-
-        // Clear temporary signup data
+        const { data: v, error: pe } = await supabase.from("vendors").insert([{
+          user_id: data.user.id, email: signupData.email, 
+          firstname: signupData.firstname, lastname: signupData.lastname, phone: signupData.phone
+        }]).select();
+        if (pe) throw pe;
+        if (v && v.length > 0) localStorage.setItem("tempVendorId", v[0].id);
         localStorage.removeItem("tempSignupData");
-
-        toast.success("Email verified successfully!");
-
-        setTimeout(() => {
-          onNavigate("profile1");
-        }, 1000);
+        toast.success("Identity Verified");
+        onNavigate("profile1");
       }
-    } catch (error) {
-      if (error instanceof APIError) {
-        toast.error(error.message);
-      } else if (error instanceof Error) {
-        toast.error(error.message);
-      } else {
-        toast.error("Failed to verify code. Please try again.");
-      }
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleResendOTP = async () => {
-    try {
-      const { error } = await supabase.auth.resend({
-        type: "signup",
-        email: email,
-        options: {
-          emailRedirectTo: undefined,
-        },
-      });
-
-      if (error) throw new APIError(error.message, 400);
-
-      toast.success("New verification code sent to your email!");
-      setOtp(["", "", "", "", "", ""]);
-      inputRefs.current[0]?.focus();
-    } catch (error) {
-      if (error instanceof APIError) {
-        toast.error(error.message);
-      } else {
-        toast.error("Failed to resend code. Please try again.");
-      }
-    }
+    } catch (e: any) { toast.error(e.message || "Verification failed"); }
+    finally { setIsLoading(false); }
   };
 
   return (
-    <div className="min-h-screen bg-white">
-      <ToastContainer toasts={toast.toasts} onClose={toast.closeToast} />
-      <div className="max-w-md mx-auto px-6 py-8">
-        <div className="mb-6">
-          <button onClick={() => onNavigate("main")} className="p-2 -ml-2">
-            <ArrowLeft className="w-6 h-6" />
-          </button>
-        </div>
-
-        <div className="flex flex-col items-center">
-          <h2 className="text-xl font-semibold mb-8 text-gray-900">
-            Verify your email
-          </h2>
-
-          <div className="w-full mb-8">
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-              <p className="text-sm text-blue-800">
-                <strong>Check your email inbox</strong>
-                <br />
-                We've sent a 6-digit verification code to{" "}
-                <strong>{email}</strong>
-                <br />
-                <br />
-                <span className="text-xs">
-                  Can't find it? Check your spam folder or click "Resend Code"
-                  below.
-                </span>
-              </p>
-            </div>
-
-            <div className="flex gap-2 mb-8 justify-center">
-              {otp.map((digit, index) => (
-                <input
-                  key={index}
-                  ref={(el) => {
-                    if (el) inputRefs.current[index] = el;
-                  }}
-                  type="text"
-                  inputMode="numeric"
-                  maxLength={1}
-                  value={digit}
-                  onChange={(e) => handleChange(index, e.target.value)}
-                  onKeyDown={(e) => handleKeyDown(index, e)}
-                  className="w-12 h-12 text-center text-xl font-semibold border-2 border-gray-200 rounded-lg focus:border-green-700 focus:outline-none bg-white"
-                />
-              ))}
-            </div>
-
-            <button
-              onClick={handleResendOTP}
-              className="w-full text-sm text-green-700 font-semibold mb-6 py-2 hover:underline"
-            >
-              Resend Code
-            </button>
-
-            <button
-              onClick={handleVerify}
-              disabled={isLoading}
-              className="w-full py-4 bg-green-700 text-white font-semibold rounded-lg hover:bg-green-800 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
-            >
-              {isLoading ? "Verifying..." : "Verify Email"}
-            </button>
-          </div>
-        </div>
+    <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="w-full max-w-lg">
+      <div className="text-center mb-10">
+        <h1 className="text-3xl font-black italic tracking-tighter uppercase mb-2">Verify <span className="text-blue-500">Node</span></h1>
+        <p className="text-xs text-gray-500 font-medium">Verification signal sent to <span className="text-white">{email}</span></p>
       </div>
-    </div>
+
+      <div className="bg-zinc-900/40 backdrop-blur-2xl rounded-[2.5rem] p-8 md:p-12 border border-white/5 shadow-2xl space-y-8 text-center">
+        <div className="flex gap-2 justify-center">
+          {otp.map((digit, i) => (
+            <input
+              key={i} ref={el => { if (el) inputRefs.current[i] = el; }}
+              type="text" maxLength={1} value={digit}
+              onChange={e => {
+                const val = e.target.value.replace(/\D/g, "");
+                if (val) {
+                  const newOtp = [...otp]; newOtp[i] = val; setOtp(newOtp);
+                  if (i < 5) inputRefs.current[i+1]?.focus();
+                }
+              }}
+              className="w-12 h-16 bg-white/5 border border-white/10 rounded-xl text-2xl font-black text-blue-500 text-center focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          ))}
+        </div>
+        <motion.button
+           whileHover={{ scale: 1.02 }}
+           onClick={handleVerify}
+           disabled={isLoading}
+           className="w-full bg-white text-black font-black italic uppercase tracking-widest py-5 rounded-2xl shadow-xl"
+        >
+          {isLoading ? "Validating..." : "Confirm Signal"}
+        </motion.button>
+      </div>
+    </motion.div>
   );
 };
 
+// Step 3: Business Basics
 const CreateProfile1 = ({ onNavigate }: PageProps) => {
-  const [isLoading, setIsLoading] = useState(false);
-  const [agreedToTerms, setAgreedToTerms] = useState(false);
-  const toast = useToast();
   const [profileData, setProfileData] = useState({
-    businessName: "",
-    howToAddress: "",
-    fullName: "",
-    yearsOfExperience: "",
-    businessEmail: "",
-    country: "Nigeria",
-    businessPhone: "",
-    businessAddress: "",
-    profession: "",
-    vendorType: "",
-    workAlone: "YES",
-    membershipId: "",
+    businessName: "", howToAddress: "", fullName: "", yearsOfExperience: "",
+    businessEmail: "", country: "Nigeria", businessPhone: "", 
+    businessAddress: "", profession: "", vendorType: "", 
+    workAlone: "YES", membershipId: "",
   });
+  const [agreed, setAgreed] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const toast = useToast();
 
-  const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
-  ) => {
-    const { name, value } = e.target;
-    setProfileData((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const handleSaveProfile = async () => {
-    if (
-      !profileData.businessName ||
-      !profileData.fullName ||
-      !profileData.businessEmail
-    ) {
-      toast.error("Please fill required fields");
-      return;
-    }
-
-    if (!agreedToTerms) {
-      toast.error("Please agree to terms and conditions");
-      return;
-    }
-
+  const handleSave = async () => {
+    if (!profileData.businessName || !profileData.fullName || !profileData.businessEmail || !agreed) return toast.error("Missing requirements");
     setIsLoading(true);
-
     try {
-      const vendorId = localStorage.getItem("tempVendorId");
-      if (!vendorId) {
-        toast.error("Vendor ID not found");
-        return;
-      }
-
-      await authService.saveProfileDetails(vendorId, profileData);
-      toast.success("Profile details saved!");
+      const vId = localStorage.getItem("tempVendorId");
+      if (!vId) throw new Error("Session expired");
+      await authService.saveProfileDetails(vId, profileData);
       onNavigate("profile2");
-    } catch (err) {
-      console.error("Error saving profile:", err);
-      if (err instanceof APIError) {
-        toast.error(err.message);
-      } else {
-        toast.error("Failed to save profile details");
-      }
-    } finally {
-      setIsLoading(false);
-    }
+    } catch (e: any) { toast.error(e.message); }
+    finally { setIsLoading(false); }
   };
-
-  const professions = ["Chef", "Caterer", "Restaurant Owner", "Food Vendor"];
-  const vendorTypes = ["Restaurant", "Delivery Only", "Both"];
-  const experienceOptions = [
-    "Less than 1 year",
-    "1-3 years",
-    "3-5 years",
-    "5+ years",
-  ];
 
   return (
-    <div className="min-h-screen bg-white">
-      <ToastContainer toasts={toast.toasts} onClose={toast.closeToast} />
-      <div className="max-w-md mx-auto px-6 py-8">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-xl font-bold text-gray-900">Create Profile</h2>
-          <button
-            onClick={() => onNavigate("main")}
-            className="text-green-600 font-semibold text-sm"
-          >
-            Skip
-          </button>
-        </div>
-
-        <div className="bg-yellow-50 border-l-4 border-yellow-500 p-3 mb-6">
-          <p className="text-yellow-800 text-sm">
-            Please provide accurate information below.
-          </p>
-        </div>
-
-        <div className="space-y-4 mb-6">
-          <input
-            type="text"
-            name="businessName"
-            value={profileData.businessName}
-            onChange={handleInputChange}
-            placeholder="Business Name*"
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-green-600"
-          />
-          <input
-            type="text"
-            name="howToAddress"
-            value={profileData.howToAddress}
-            onChange={handleInputChange}
-            placeholder="How to address?"
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-green-600"
-          />
-          <input
-            type="text"
-            name="fullName"
-            value={profileData.fullName}
-            onChange={handleInputChange}
-            placeholder="Full Name*"
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-green-600"
-          />
-
-          <div className="relative">
-            <select
-              name="yearsOfExperience"
-              value={profileData.yearsOfExperience}
-              onChange={handleInputChange}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg appearance-none focus:outline-none focus:ring-2 focus:ring-green-600"
-            >
-              <option value="">Years of Experience</option>
-              {experienceOptions.map((opt) => (
-                <option key={opt} value={opt.toLowerCase()}>
-                  {opt}
-                </option>
-              ))}
-            </select>
-            <ChevronDown
-              size={20}
-              className="absolute right-3 top-3.5 text-gray-400 pointer-events-none"
-            />
-          </div>
-
-          <input
-            type="email"
-            name="businessEmail"
-            value={profileData.businessEmail}
-            onChange={handleInputChange}
-            placeholder="Business Email*"
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-green-600"
-          />
-
-          <div className="relative">
-            <select
-              name="country"
-              value={profileData.country}
-              onChange={handleInputChange}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg appearance-none focus:outline-none focus:ring-2 focus:ring-green-600"
-            >
-              <option value="Nigeria">Nigeria</option>
-              <option value="Ghana">Ghana</option>
-              <option value="Kenya">Kenya</option>
-            </select>
-            <ChevronDown
-              size={20}
-              className="absolute right-3 top-3.5 text-gray-400 pointer-events-none"
-            />
-          </div>
-
-          <input
-            type="tel"
-            name="businessPhone"
-            value={profileData.businessPhone}
-            onChange={handleInputChange}
-            placeholder="Business Phone*"
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-green-600"
-          />
-
-          <input
-            type="text"
-            name="businessAddress"
-            value={profileData.businessAddress}
-            onChange={handleInputChange}
-            placeholder="Business Address"
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-green-600"
-          />
-
-          <div className="relative">
-            <select
-              name="profession"
-              value={profileData.profession}
-              onChange={handleInputChange}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg appearance-none focus:outline-none focus:ring-2 focus:ring-green-600"
-            >
-              <option value="">Profession*</option>
-              {professions.map((prof) => (
-                <option key={prof} value={prof.toLowerCase()}>
-                  {prof}
-                </option>
-              ))}
-            </select>
-            <ChevronDown
-              size={20}
-              className="absolute right-3 top-3.5 text-gray-400 pointer-events-none"
-            />
-          </div>
-
-          <div className="relative">
-            <select
-              name="vendorType"
-              value={profileData.vendorType}
-              onChange={handleInputChange}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg appearance-none focus:outline-none focus:ring-2 focus:ring-green-600"
-            >
-              <option value="">Vendor Type*</option>
-              {vendorTypes.map((type) => (
-                <option key={type} value={type.toLowerCase()}>
-                  {type}
-                </option>
-              ))}
-            </select>
-            <ChevronDown
-              size={20}
-              className="absolute right-3 top-3.5 text-gray-400 pointer-events-none"
-            />
-          </div>
-
-          <div className="relative">
-            <select
-              name="workAlone"
-              value={profileData.workAlone}
-              onChange={handleInputChange}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg appearance-none focus:outline-none focus:ring-2 focus:ring-green-600"
-            >
-              <option value="YES">Work Alone</option>
-              <option value="NO">Work with Team</option>
-            </select>
-            <ChevronDown
-              size={20}
-              className="absolute right-3 top-3.5 text-gray-400 pointer-events-none"
-            />
-          </div>
-
-          <input
-            type="text"
-            name="membershipId"
-            value={profileData.membershipId}
-            onChange={handleInputChange}
-            placeholder="Membership ID (optional)"
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-green-600"
-          />
-        </div>
-
-        <div className="flex items-center gap-2 mb-6">
-          <input
-            type="checkbox"
-            id="terms"
-            checked={agreedToTerms}
-            onChange={(e) => setAgreedToTerms(e.target.checked)}
-            className="w-4 h-4 accent-green-600"
-          />
-          <label htmlFor="terms" className="text-sm text-gray-600">
-            I agree to terms and conditions
-          </label>
-        </div>
-
-        <button
-          onClick={handleSaveProfile}
-          disabled={isLoading || !agreedToTerms}
-          className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-4 rounded-lg disabled:opacity-50 mb-4"
-        >
-          {isLoading ? "Saving..." : "Continue"}
-        </button>
-
-        <button
-          onClick={() => onNavigate("main")}
-          className="w-full border border-green-600 text-green-600 font-semibold py-4 rounded-lg hover:bg-green-50"
-        >
-          Back
-        </button>
+    <motion.div initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} className="w-full max-w-4xl">
+       <div className="text-center mb-10">
+        <h1 className="text-3xl font-black italic tracking-tighter uppercase mb-2">Business <span className="text-blue-500">Protocols</span></h1>
+        <p className="text-[10px] tracking-[0.3em] uppercase text-gray-500 font-black">Step 03: Operational Parameters</p>
       </div>
-    </div>
+
+      <div className="bg-zinc-900/40 backdrop-blur-2xl rounded-[3rem] p-8 lg:p-12 border border-white/5 shadow-2xl grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="space-y-4">
+           <div className="space-y-1">
+              <label className="text-[10px] font-black uppercase text-gray-500 ml-4">Establishment Name</label>
+              <input placeholder="Business Name" value={profileData.businessName} onChange={e => setProfileData({...profileData, businessName: e.target.value})} className="w-full px-6 py-4 bg-white/5 border border-white/10 rounded-2xl text-white font-bold text-sm" />
+           </div>
+           <div className="space-y-1">
+              <label className="text-[10px] font-black uppercase text-gray-500 ml-4">Legal Representative</label>
+              <input placeholder="Full Name" value={profileData.fullName} onChange={e => setProfileData({...profileData, fullName: e.target.value})} className="w-full px-6 py-4 bg-white/5 border border-white/10 rounded-2xl text-white font-bold text-sm" />
+           </div>
+           <div className="space-y-1">
+              <label className="text-[10px] font-black uppercase text-gray-500 ml-4">Operational Email</label>
+              <input placeholder="biz@email.com" value={profileData.businessEmail} onChange={e => setProfileData({...profileData, businessEmail: e.target.value})} className="w-full px-6 py-4 bg-white/5 border border-white/10 rounded-2xl text-white font-bold text-sm" />
+           </div>
+        </div>
+
+        <div className="space-y-4">
+           <div className="space-y-1">
+              <label className="text-[10px] font-black uppercase text-gray-500 ml-4">Profession</label>
+              <select value={profileData.profession} onChange={e => setProfileData({...profileData, profession: e.target.value})} className="w-full px-6 py-4 bg-zinc-800 border-white/10 rounded-2xl text-white font-bold text-sm appearance-none cursor-pointer">
+                 <option value="">Select Profession</option>
+                 <option value="chef">Chef</option>
+                 <option value="caterer">Caterer</option>
+                 <option value="restaurant">Restaurant Owner</option>
+              </select>
+           </div>
+           <div className="space-y-1">
+              <label className="text-[10px] font-black uppercase text-gray-500 ml-4">Vendor Type</label>
+              <select value={profileData.vendorType} onChange={e => setProfileData({...profileData, vendorType: e.target.value})} className="w-full px-6 py-4 bg-zinc-800 border-white/10 rounded-2xl text-white font-bold text-sm appearance-none cursor-pointer">
+                 <option value="">Select Category</option>
+                 <option value="restaurant">Restaurant</option>
+                 <option value="delivery">Cloud Kitchen</option>
+              </select>
+           </div>
+           <div className="space-y-1">
+              <label className="text-[10px] font-black uppercase text-gray-500 ml-4">Experience Horizon</label>
+              <select value={profileData.yearsOfExperience} onChange={e => setProfileData({...profileData, yearsOfExperience: e.target.value})} className="w-full px-6 py-4 bg-zinc-800 border-white/10 rounded-2xl text-white font-bold text-sm appearance-none cursor-pointer">
+                 <option value="">Select Years</option>
+                 <option value="1">1-3 Years</option>
+                 <option value="3">3-5 Years</option>
+                 <option value="5">5+ Years</option>
+              </select>
+           </div>
+        </div>
+
+        <div className="space-y-4">
+           <div className="space-y-1">
+              <label className="text-[10px] font-black uppercase text-gray-500 ml-4">Service Line</label>
+              <input placeholder="Phone" value={profileData.businessPhone} onChange={e => setProfileData({...profileData, businessPhone: e.target.value})} className="w-full px-6 py-4 bg-white/5 border border-white/10 rounded-2xl text-white font-bold text-sm" />
+           </div>
+           <div className="space-y-1">
+              <label className="text-[10px] font-black uppercase text-gray-500 ml-4">Physical Base</label>
+              <input placeholder="Full Address" value={profileData.businessAddress} onChange={e => setProfileData({...profileData, businessAddress: e.target.value})} className="w-full px-6 py-4 bg-white/5 border border-white/10 rounded-2xl text-white font-bold text-sm" />
+           </div>
+           <div className="flex items-center gap-4 h-[60px] pt-4">
+              <input type="checkbox" checked={agreed} onChange={e => setAgreed(e.target.checked)} className="w-5 h-5 accent-blue-500" />
+              <span className="text-[10px] font-bold uppercase tracking-widest text-gray-500">I accept corporate terms</span>
+           </div>
+        </div>
+
+        <div className="col-span-1 md:col-span-2 lg:col-span-3 pt-8 flex gap-4">
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            onClick={handleSave}
+            disabled={isLoading || !agreed}
+            className="flex-1 bg-white text-black font-black italic uppercase tracking-widest py-5 rounded-2xl shadow-xl transition-all"
+          >
+            {isLoading ? "Saving Specifications..." : "Confirm Protocols"}
+          </motion.button>
+          <button onClick={() => onNavigate("main")} className="px-8 font-black uppercase italic tracking-widest text-gray-500 hover:text-white transition-colors">Abort</button>
+        </div>
+      </div>
+    </motion.div>
   );
 };
 
+// Step 4: Visuals & Description
 const CreateProfile2 = ({ onNavigate }: PageProps) => {
+  const [desc, setDesc] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [businessDescription, setBusinessDescription] = useState("");
-  const [additionalInfo, setAdditionalInfo] = useState("");
-  const [logoUploaded, setLogoUploaded] = useState(false);
-  const [coverUploaded, setCoverUploaded] = useState(false);
   const toast = useToast();
 
-  const handleFileUpload = async (
-    e: React.ChangeEvent<HTMLInputElement>,
-    photoType: "store_logo" | "store_cover",
-  ) => {
+  const handleSave = async () => {
+    if (!desc.trim()) return toast.error("Description required");
+    setIsLoading(true);
+    try {
+      const vId = localStorage.getItem("tempVendorId");
+      if (!vId) throw new Error("Expired session");
+      await authService.saveBusinessDetails(vId, { businessDescription: desc, additionalInfo: "" });
+      onNavigate("availability");
+    } catch (e: any) { toast.error(e.message); }
+    finally { setIsLoading(false); }
+  };
+
+  const handleUpload = async (e: any, type: any) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
-    if (file.size > 1024 * 1024) {
-      toast.error("File size must be less than 1MB");
-      return;
-    }
-
-    if (!["image/jpeg", "image/png"].includes(file.type)) {
-      toast.error("Only JPEG and PNG allowed");
-      return;
-    }
-
-    setIsLoading(true);
-
     try {
-      const vendorId = localStorage.getItem("tempVendorId");
-      if (!vendorId) {
-        toast.error("Vendor ID not found");
-        return;
-      }
-
-      await authService.uploadVendorPhoto(vendorId, file, photoType);
-      toast.success(
-        `${photoType === "store_logo" ? "Logo" : "Cover photo"} uploaded!`,
-      );
-      if (photoType === "store_logo") {
-        setLogoUploaded(true);
-      } else {
-        setCoverUploaded(true);
-      }
-    } catch (err) {
-      console.error("Upload error:", err);
-      if (err instanceof APIError) {
-        toast.error(err.message);
-      } else {
-        toast.error("Failed to upload photo");
-      }
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleSaveDetails = async () => {
-    if (!businessDescription.trim()) {
-      toast.error("Please add a business description");
-      return;
-    }
-
-    setIsLoading(true);
-
-    try {
-      const vendorId = localStorage.getItem("tempVendorId");
-      if (!vendorId) {
-        toast.error("Vendor ID not found");
-        return;
-      }
-
-      await authService.saveBusinessDetails(vendorId, {
-        businessDescription,
-        additionalInfo,
-      });
-
-      toast.success("Details saved!");
-      onNavigate("availability");
-    } catch (err) {
-      console.error("Error:", err);
-      if (err instanceof APIError) {
-        toast.error(err.message);
-      } else {
-        toast.error("Failed to save details");
-      }
-    } finally {
-      setIsLoading(false);
-    }
+      const vId = localStorage.getItem("tempVendorId");
+      if (!vId) return;
+      await authService.uploadVendorPhoto(vId, file, type);
+      toast.success("Asset Uploaded");
+    } catch (e: any) { toast.error(e.message); }
   };
 
   return (
-    <div className="min-h-screen bg-white">
-      <ToastContainer toasts={toast.toasts} onClose={toast.closeToast} />
-      <div className="max-w-md mx-auto px-6 py-8">
-        <h2 className="text-xl font-bold text-gray-900 mb-2">
-          Business Details
-        </h2>
-        <p className="text-gray-600 text-sm mb-6">
-          Add images and describe your business (images are optional)
-        </p>
+    <motion.div initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} className="w-full max-w-2xl">
+      <div className="text-center mb-10">
+        <h1 className="text-3xl font-black italic tracking-tighter uppercase mb-2">Visual <span className="text-blue-500">Assets</span></h1>
+        <p className="text-[10px] tracking-[0.3em] uppercase text-gray-500 font-black">Step 04: Brand Configuration</p>
+      </div>
 
-        <div className="space-y-6 mb-8">
-          <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-green-500 transition">
-            <label className="cursor-pointer block">
-              <Camera className="w-8 h-8 mx-auto text-gray-400 mb-2" />
-              <p className="text-sm text-gray-600 font-medium">
-                Upload store logo
-              </p>
-              <p className="text-xs text-gray-400 mt-1">
-                {logoUploaded ? "✓ Uploaded" : "Optional"}
-              </p>
-              <input
-                type="file"
-                accept="image/jpeg,image/png"
-                onChange={(e) => handleFileUpload(e, "store_logo")}
-                className="hidden"
-                disabled={isLoading}
-              />
-            </label>
-          </div>
-
-          <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-green-500 transition">
-            <label className="cursor-pointer block">
-              <Camera className="w-8 h-8 mx-auto text-gray-400 mb-2" />
-              <p className="text-sm text-gray-600 font-medium">
-                Upload cover photo
-              </p>
-              <p className="text-xs text-gray-400 mt-1">
-                {coverUploaded ? "✓ Uploaded" : "Optional"}
-              </p>
-              <input
-                type="file"
-                accept="image/jpeg,image/png"
-                onChange={(e) => handleFileUpload(e, "store_cover")}
-                className="hidden"
-                disabled={isLoading}
-              />
-            </label>
-          </div>
-
-          <div>
-            <label className="block text-sm font-semibold text-gray-900 mb-2">
-              Business Description*
-            </label>
-            <textarea
-              value={businessDescription}
-              onChange={(e) => setBusinessDescription(e.target.value)}
-              placeholder="Tell us about your business, specialties, and what makes you unique..."
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-600"
-              rows={4}
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-semibold text-gray-900 mb-2">
-              Additional Information
-            </label>
-            <textarea
-              value={additionalInfo}
-              onChange={(e) => setAdditionalInfo(e.target.value)}
-              placeholder="Any additional details customers should know..."
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-600"
-              rows={3}
-            />
-          </div>
+      <div className="bg-zinc-900/40 backdrop-blur-2xl rounded-[3rem] p-8 md:p-12 border border-white/5 shadow-2xl space-y-8">
+        <div className="grid grid-cols-2 gap-8">
+           <label className="relative aspect-video bg-white/5 border-2 border-dashed border-white/10 rounded-[2rem] flex flex-col items-center justify-center cursor-pointer hover:border-blue-500/50 transition-all group overflow-hidden">
+              <Camera className="w-8 h-8 text-gray-500 group-hover:text-blue-500 transition-colors mb-2" />
+              <span className="text-[10px] font-black uppercase tracking-widest text-gray-500">Profile Logo</span>
+              <input type="file" className="hidden" onChange={e => handleUpload(e, "store_logo")} />
+           </label>
+           <label className="relative aspect-video bg-white/5 border-2 border-dashed border-white/10 rounded-[2rem] flex flex-col items-center justify-center cursor-pointer hover:border-blue-500/50 transition-all group overflow-hidden">
+              <Camera className="w-8 h-8 text-gray-500 group-hover:text-blue-500 transition-colors mb-2" />
+              <span className="text-[10px] font-black uppercase tracking-widest text-gray-500">Cover Display</span>
+              <input type="file" className="hidden" onChange={e => handleUpload(e, "store_cover")} />
+           </label>
         </div>
 
-        <button
-          onClick={handleSaveDetails}
-          disabled={isLoading}
-          className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-4 rounded-lg disabled:opacity-50 mb-4"
-        >
-          {isLoading ? "Saving..." : "Continue"}
-        </button>
+        <div className="space-y-2">
+           <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 ml-4">Establishment Manifesto</label>
+           <textarea 
+              placeholder="Describe your culinary vision..."
+              value={desc} onChange={e => setDesc(e.target.value)}
+              className="w-full px-8 py-6 bg-white/5 border border-white/10 rounded-[2rem] text-white font-bold text-sm min-h-[150px] resize-none focus:outline-none focus:ring-4 focus:ring-blue-500/10"
+           />
+        </div>
 
-        <button
-          onClick={() => onNavigate("profile1")}
-          className="w-full border border-green-600 text-green-600 font-semibold py-4 rounded-lg hover:bg-green-50"
+        <motion.button
+           whileHover={{ scale: 1.02 }}
+           onClick={handleSave}
+           disabled={isLoading}
+           className="w-full bg-blue-500 text-white font-black italic uppercase tracking-widest py-6 rounded-2xl shadow-xl transition-all flex items-center justify-center gap-2"
         >
-          Back
-        </button>
+          {isLoading ? "Saving Assets..." : "Finalize Branding"}
+        </motion.button>
       </div>
-    </div>
+    </motion.div>
   );
 };
 
-const SetAvailability = ({ onNavigate }: PageProps) => {
-  const [isLoading, setIsLoading] = useState(false);
-  const [agreedToTerms, setAgreedToTerms] = useState(false);
-  const toast = useToast();
-  const [availability, setAvailability] = useState<AvailabilityState>({
-    dayFrom: "Monday",
-    dayTo: "Sunday",
-    holidaysAvailable: "yes",
-    timeStart: "09:00",
-    timeEnd: "21:00",
-    workers: "1",
+// Step 5: Availability
+const AvailabilityScreen = ({ onNavigate }: PageProps) => {
+  const [data, setData] = useState({
+    dayFrom: "MONDAY", dayTo: "SUNDAY", holidaysAvailable: "YES",
+    timeStart: "08:00", timeEnd: "22:00", workers: "5",
   });
+  const [isLoading, setIsLoading] = useState(false);
+  const toast = useToast();
 
-  const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
-  ) => {
-    const { name, value } = e.target;
-    setAvailability((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const handleSaveAvailability = async () => {
-    if (!agreedToTerms) {
-      toast.error("Please agree to terms and conditions");
-      return;
-    }
-
+  const handleSave = async () => {
     setIsLoading(true);
-
     try {
-      const vendorId = localStorage.getItem("tempVendorId");
-      if (!vendorId) {
-        toast.error("Vendor ID not found");
-        return;
-      }
-
-      await authService.saveAvailability(vendorId, availability);
-      toast.success("Availability saved!");
-      localStorage.removeItem("tempVendorId");
-      onNavigate("success");
-    } catch (err) {
-      console.error("Error:", err);
-      if (err instanceof APIError) {
-        toast.error(err.message);
-      } else {
-        toast.error("Failed to save availability");
-      }
-    } finally {
-      setIsLoading(false);
-    }
+      const vId = localStorage.getItem("tempVendorId");
+      if (!vId) return;
+      await authService.saveAvailabilityDetails(vId, data as any);
+      onNavigate("payment");
+    } catch (e: any) { toast.error(e.message); }
+    finally { setIsLoading(false); }
   };
-
-  const days = [
-    "Monday",
-    "Tuesday",
-    "Wednesday",
-    "Thursday",
-    "Friday",
-    "Saturday",
-    "Sunday",
-  ];
 
   return (
-    <div className="min-h-screen bg-white">
-      <ToastContainer toasts={toast.toasts} onClose={toast.closeToast} />
-      <div className="max-w-md mx-auto px-6 py-8">
-        <h2 className="text-xl font-bold text-gray-900 mb-6">
-          Operating Hours
-        </h2>
-
-        <div className="space-y-4 mb-8">
-          <div className="relative">
-            <label className="block text-sm font-semibold mb-2">
-              Working From
-            </label>
-            <select
-              name="dayFrom"
-              value={availability.dayFrom}
-              onChange={handleInputChange}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg appearance-none focus:outline-none focus:ring-2 focus:ring-green-600"
-            >
-              {days.map((day) => (
-                <option key={day} value={day}>
-                  {day}
-                </option>
-              ))}
-            </select>
-            <ChevronDown
-              size={20}
-              className="absolute right-3 top-11 text-gray-400 pointer-events-none"
-            />
-          </div>
-
-          <div className="relative">
-            <label className="block text-sm font-semibold mb-2">To</label>
-            <select
-              name="dayTo"
-              value={availability.dayTo}
-              onChange={handleInputChange}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg appearance-none focus:outline-none focus:ring-2 focus:ring-green-600"
-            >
-              {days.map((day) => (
-                <option key={day} value={day}>
-                  {day}
-                </option>
-              ))}
-            </select>
-            <ChevronDown
-              size={20}
-              className="absolute right-3 top-11 text-gray-400 pointer-events-none"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-semibold mb-2">
-              Opening Time
-            </label>
-            <input
-              type="time"
-              name="timeStart"
-              value={availability.timeStart}
-              onChange={handleInputChange}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-600"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-semibold mb-2">
-              Closing Time
-            </label>
-            <input
-              type="time"
-              name="timeEnd"
-              value={availability.timeEnd}
-              onChange={handleInputChange}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-600"
-            />
-          </div>
-
-          <div className="relative">
-            <label className="block text-sm font-semibold mb-2">
-              Available on Holidays?
-            </label>
-            <select
-              name="holidaysAvailable"
-              value={availability.holidaysAvailable}
-              onChange={handleInputChange}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg appearance-none focus:outline-none focus:ring-2 focus:ring-green-600"
-            >
-              <option value="yes">Yes</option>
-              <option value="no">No</option>
-            </select>
-            <ChevronDown
-              size={20}
-              className="absolute right-3 top-11 text-gray-400 pointer-events-none"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-semibold mb-2">
-              Number of Workers
-            </label>
-            <input
-              type="number"
-              name="workers"
-              min="1"
-              value={availability.workers}
-              onChange={handleInputChange}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-600"
-            />
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2 mb-6">
-          <input
-            type="checkbox"
-            id="terms2"
-            checked={agreedToTerms}
-            onChange={(e) => setAgreedToTerms(e.target.checked)}
-            className="w-4 h-4 accent-green-600"
-          />
-          <label htmlFor="terms2" className="text-sm text-gray-600">
-            I agree to terms and conditions
-          </label>
-        </div>
-
-        <button
-          onClick={handleSaveAvailability}
-          disabled={isLoading || !agreedToTerms}
-          className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-4 rounded-lg disabled:opacity-50 mb-4"
-        >
-          {isLoading ? "Saving..." : "Complete Setup"}
-        </button>
-
-        <button
-          onClick={() => onNavigate("profile2")}
-          className="w-full border border-green-600 text-green-600 font-semibold py-4 rounded-lg hover:bg-green-50"
-        >
-          Back
-        </button>
+    <motion.div initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} className="w-full max-w-2xl">
+      <div className="text-center mb-10">
+        <h1 className="text-3xl font-black italic tracking-tighter uppercase mb-2">Service <span className="text-blue-500">Window</span></h1>
+        <p className="text-[10px] tracking-[0.3em] uppercase text-gray-500 font-black">Step 05: Temporal Matrix</p>
       </div>
-    </div>
+
+      <div className="bg-zinc-900/40 backdrop-blur-2xl rounded-[3rem] p-8 md:p-12 border border-white/5 shadow-2xl space-y-10">
+        <div className="grid grid-cols-2 gap-8">
+           <div className="space-y-4">
+              <div className="flex items-center gap-4 mb-2">
+                 <Clock className="w-4 h-4 text-blue-500" />
+                 <span className="text-[10px] font-black uppercase text-gray-500 tracking-widest">Active Cycles</span>
+              </div>
+              <div className="flex gap-2">
+                 <select value={data.dayFrom} onChange={e => setData({...data, dayFrom: e.target.value})} className="flex-1 bg-white/5 border-white/10 rounded-xl p-3 text-xs font-bold text-white uppercase appearance-none"><option value="MONDAY">Mon</option><option value="FRIDAY">Fri</option></select>
+                 <span className="pt-3">→</span>
+                 <select value={data.dayTo} onChange={e => setData({...data, dayTo: e.target.value})} className="flex-1 bg-white/5 border-white/10 rounded-xl p-3 text-xs font-bold text-white uppercase appearance-none"><option value="SUNDAY">Sun</option><option value="SATURDAY">Sat</option></select>
+              </div>
+           </div>
+           <div className="space-y-4">
+              <div className="flex items-center gap-4 mb-2">
+                 <Clock className="w-4 h-4 text-blue-500" />
+                 <span className="text-[10px] font-black uppercase text-gray-500 tracking-widest">Shift Hours</span>
+              </div>
+              <div className="flex gap-2">
+                 <input type="time" value={data.timeStart} onChange={e => setData({...data, timeStart: e.target.value})} className="flex-1 bg-white/5 border-white/10 rounded-xl p-3 text-xs font-bold text-white" />
+                 <span className="pt-3">→</span>
+                 <input type="time" value={data.timeEnd} onChange={e => setData({...data, timeEnd: e.target.value})} className="flex-1 bg-white/5 border-white/10 rounded-xl p-3 text-xs font-bold text-white" />
+              </div>
+           </div>
+        </div>
+
+        <motion.button
+           whileHover={{ scale: 1.02 }}
+           onClick={handleSave}
+           disabled={isLoading}
+           className="w-full bg-white text-black font-black italic uppercase tracking-widest py-6 rounded-2xl shadow-xl transition-all"
+        >
+          {isLoading ? "Saving Cycles..." : "Commit Temporal Data"}
+        </motion.button>
+      </div>
+    </motion.div>
   );
 };
 
-const SuccessPage = () => {
+// Step 6: Bank Info
+const PaymentOption = ({ onNavigate }: PageProps) => {
+  const [data, setData] = useState({ bankName: "", accountNumber: "", accountName: "" });
+  const [isLoading, setIsLoading] = useState(false);
   const toast = useToast();
 
+  const handleSave = async () => {
+    if (!data.accountNumber || !data.bankName) return toast.error("Bank details required");
+    setIsLoading(true);
+    try {
+      const vId = localStorage.getItem("tempVendorId");
+      if (!vId) return;
+      await authService.savePaymentDetails(vId, data);
+      onNavigate("confirm");
+    } catch (e: any) { toast.error(e.message); }
+    finally { setIsLoading(false); }
+  };
+
   return (
-    <div className="min-h-screen bg-white flex flex-col items-center justify-center px-6">
-      <ToastContainer toasts={toast.toasts} onClose={toast.closeToast} />
-      <div className="text-center">
-        <div className="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
-          <span className="text-4xl">✓</span>
-        </div>
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">
-          Account Created!
-        </h2>
-        <p className="text-gray-600 mb-8">
-          Your vendor account setup is complete. You can now log in.
-        </p>
-        <Link
-          to="/vendor-login"
-          className="inline-block bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-8 rounded-lg"
-        >
-          Go to Login
-        </Link>
+    <motion.div initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} className="w-full max-w-xl">
+      <div className="text-center mb-10">
+        <h1 className="text-3xl font-black italic tracking-tighter uppercase mb-2">Fiscal <span className="text-blue-500">Route</span></h1>
+        <p className="text-[10px] tracking-[0.3em] uppercase text-gray-500 font-black">Step 06: Payout Config</p>
       </div>
-    </div>
+
+      <div className="bg-zinc-900/40 backdrop-blur-2xl rounded-[3rem] p-8 md:p-12 border border-white/5 shadow-2xl space-y-6">
+        <div className="space-y-4">
+           <div className="space-y-1">
+              <label className="text-[10px] font-black uppercase text-gray-500 ml-4">Financial Institution</label>
+              <input placeholder="Bank Name" value={data.bankName} onChange={e => setData({...data, bankName: e.target.value})} className="w-full px-6 py-4 bg-white/5 border border-white/10 rounded-2xl text-white font-bold text-sm" />
+           </div>
+           <div className="space-y-1">
+              <label className="text-[10px] font-black uppercase text-gray-500 ml-4">Account Number</label>
+              <input placeholder="000XXX0000" value={data.accountNumber} onChange={e => setData({...data, accountNumber: e.target.value})} className="w-full px-6 py-4 bg-white/5 border border-white/10 rounded-2xl text-white font-bold text-sm tracking-[0.2em]" />
+           </div>
+           <div className="space-y-1">
+              <label className="text-[10px] font-black uppercase text-gray-500 ml-4">Official Account Name</label>
+              <input placeholder="Beneficiary Name" value={data.accountName} onChange={e => setData({...data, accountName: e.target.value})} className="w-full px-6 py-4 bg-white/5 border border-white/10 rounded-2xl text-white font-bold text-sm" />
+           </div>
+        </div>
+
+        <motion.button
+           whileHover={{ scale: 1.02 }}
+           onClick={handleSave}
+           disabled={isLoading}
+           className="w-full bg-blue-500 text-white font-black italic uppercase tracking-widest py-6 rounded-2xl shadow-xl transition-all flex items-center justify-center gap-2"
+        >
+          {isLoading ? "Validating Route..." : "Secure Fiscal Line"}
+        </motion.button>
+      </div>
+    </motion.div>
+  );
+};
+
+// Step 7: Done
+const ConfirmationScreen = () => {
+  const navigate = useNavigate();
+  return (
+    <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="text-center w-full max-w-lg">
+       <div className="w-24 h-24 bg-blue-500 rounded-full flex items-center justify-center mx-auto mb-8 shadow-[0_0_50px_rgba(59,130,246,0.4)]">
+          <CheckCircle2 className="w-12 h-12 text-white" />
+       </div>
+       <h1 className="text-4xl font-black uppercase italic tracking-tighter mb-4">ONBOARDING <span className="text-blue-500">COMPLETE</span></h1>
+       <p className="text-gray-400 font-medium mb-12">Your terminal is being provisioned. Welcome to the elite vendor network.</p>
+       <motion.button
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={() => navigate("/vendor-login")}
+          className="bg-white text-black font-black uppercase italic tracking-widest py-6 px-12 rounded-2xl shadow-2xl"
+       >
+          Initialize Dashboard
+       </motion.button>
+    </motion.div>
   );
 };
 
 const VendorSignup = () => {
-  const [currentPage, setCurrentPage] = useState("main");
-
-  const renderPage = () => {
-    switch (currentPage) {
-      case "confirm-otp":
-        return <EmailOTPScreen onNavigate={setCurrentPage} />;
-      case "profile1":
-        return <CreateProfile1 onNavigate={setCurrentPage} />;
-      case "profile2":
-        return <CreateProfile2 onNavigate={setCurrentPage} />;
-      case "availability":
-        return <SetAvailability onNavigate={setCurrentPage} />;
-      case "success":
-        return <SuccessPage />;
-      default:
-        return <SignUpPage onNavigate={setCurrentPage} />;
-    }
-  };
-
-  return <div>{renderPage()}</div>;
+  const [page, setPage] = useState("main");
+  const steps: Record<string, number> = { "main": 1, "confirm-otp": 2, "profile1": 3, "profile2": 4, "availability": 5, "payment": 6, "confirm": 7 };
+  
+  return (
+    <VendorSignupShell step={steps[page]} totalSteps={7}>
+      <ToastContainer toasts={useToast().toasts} onClose={useToast().closeToast} />
+      <AnimatePresence mode="wait">
+        {page === "main" && <SignUpPage key="p1" onNavigate={setPage} />}
+        {page === "confirm-otp" && <EmailOTPScreen key="p2" onNavigate={setPage} />}
+        {page === "profile1" && <CreateProfile1 key="p3" onNavigate={setPage} />}
+        {page === "profile2" && <CreateProfile2 key="p4" onNavigate={setPage} />}
+        {page === "availability" && <AvailabilityScreen key="p5" onNavigate={setPage} />}
+        {page === "payment" && <PaymentOption key="p6" onNavigate={setPage} />}
+        {page === "confirm" && <ConfirmationScreen key="p7" />}
+      </AnimatePresence>
+    </VendorSignupShell>
+  );
 };
 
 export default VendorSignup;

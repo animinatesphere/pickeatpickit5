@@ -132,13 +132,26 @@ export const riderAcceptOrder = async (orderId: string, riderId: string) => {
   return { data, error };
 };
 
+export const riderRejectOrder = async (orderId: string) => {
+  const { data, error } = await supabase
+    .from("orders")
+    .update({ 
+      status: "preparing", 
+      rider_id: null 
+    })
+    .eq("id", orderId)
+    .select();
+    
+  return { data, error };
+};
+
 
 export const getAvailableDeliveries = async () => {
   const { data, error } = await supabase
     .from("orders")
     .select(`
       *, 
-      vendor_profiles!orders_vendor_id_profile_fkey(
+      vendor_profiles(
         business_address, 
         business_name, 
         business_phone
@@ -146,9 +159,9 @@ export const getAvailableDeliveries = async () => {
       order_items(
         quantity, 
         price_at_order, 
-        menu_items!order_items_menu_item_id_fkey(name, image_url)
+        menu_items(name, image_url)
       )
-    `) // Added image_url and relationship hints
+    `) 
     .eq("status", "preparing")
     .is("rider_id", null);
     

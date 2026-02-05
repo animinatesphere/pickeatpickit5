@@ -1,9 +1,10 @@
 import { useState } from "react";
-import { Eye, EyeOff, ChefHat, Sparkles } from "lucide-react";
+import { Eye, EyeOff, Mail, Lock, ChefHat, ArrowLeft, ShieldCheck, Sparkles } from "lucide-react";
 import logo from "../../assets/Logo SVG 1.png";
 import { Link, useNavigate } from "react-router-dom";
 import { useToast, ToastContainer } from "../../component/Toast";
 import { authService, APIError } from "../../services/authService";
+import { motion } from "framer-motion";
 
 const VendorLogin = () => {
   const [showPassword, setShowPassword] = useState(false);
@@ -15,345 +16,200 @@ const VendorLogin = () => {
   const navigate = useNavigate();
 
   const handleLogin = async () => {
-    // Validate inputs
     if (!email || !password) {
       toast.error("Please enter both email and password");
       return;
     }
-
     if (!/\S+@\S+\.\S+/.test(email)) {
       toast.error("Please enter a valid email address");
       return;
     }
-
     setIsLoading(true);
-
     try {
       const response = await authService.login(email, password);
-
       toast.success(response.message || "Login successful!");
-
-      // Save token
-      if (response.token) {
-        localStorage.setItem("authToken", response.token);
-      }
-
-      // Save user data
-      if (response.user) {
-        localStorage.setItem("userData", JSON.stringify(response.user));
-      }
-
-      // Redirect to dashboard
-      setTimeout(() => {
-        navigate("/vendor-dashboard");
-      }, 1000);
+      if (response.token) localStorage.setItem("authToken", response.token);
+      if (response.user) localStorage.setItem("userData", JSON.stringify(response.user));
+      setTimeout(() => navigate("/vendor-dashboard"), 1000);
     } catch (error) {
-      if (error instanceof APIError) {
-        toast.error(error.message);
-      } else {
-        toast.error("Login failed. Please try again.");
-      }
+      if (error instanceof APIError) toast.error(error.message);
+      else toast.error("Login failed. Please try again.");
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter") {
-      handleLogin();
-    }
+    if (e.key === "Enter") handleLogin();
   };
 
   return (
     <>
       <ToastContainer toasts={toast.toasts} onClose={toast.closeToast} />
 
-      <div className="min-h-screen relative overflow-hidden">
-        {/* Background Image with Overlay */}
+      <div className="min-h-screen relative overflow-hidden bg-black font-inter">
+        {/* CINEMATIC BACKGROUND */}
         <div className="absolute inset-0 z-0">
-          <img
-            src="https://images.unsplash.com/photo-1504674900247-0877df9cc836?q=80&w=2070&auto=format&fit=crop"
-            alt="Food background"
+          <motion.img
+            initial={{ scale: 1.1, opacity: 0 }}
+            animate={{ scale: 1, opacity: 0.4 }}
+            transition={{ duration: 1.5 }}
+            src="https://images.unsplash.com/photo-1556910103-1c02745aae4d?q=80&w=2000&auto=format&fit=crop"
+            alt="Kitchen background"
             className="w-full h-full object-cover"
           />
-          {/* Gradient overlays for better contrast */}
-          <div className="absolute inset-0 bg-gradient-to-br from-black/60 via-green-900/50 to-black/70"></div>
-          <div className="absolute inset-0 backdrop-blur-[2px]"></div>
+          <div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-r from-black via-transparent to-black" />
         </div>
 
-        {/* Content */}
-        <div className="relative z-10 min-h-screen flex items-center justify-center p-4">
-          <div className="w-full max-w-6xl flex flex-col lg:flex-row gap-8 items-center">
-            {/* Left Side - Visual/Branding */}
-            <div className="hidden lg:flex lg:w-1/2 flex-col justify-center p-8">
-              <div className="relative">
-                {/* Decorative glow effects */}
-                <div className="absolute -top-8 -left-8 w-32 h-32 bg-green-400 rounded-full opacity-20 blur-3xl"></div>
-                <div className="absolute -bottom-8 -right-8 w-40 h-40 bg-green-500 rounded-full opacity-20 blur-3xl"></div>
+        {/* AMBIENT LIGHTS (BLUE FOR VENDORS) */}
+        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-500/10 blur-[120px] rounded-full" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-indigo-500/10 blur-[120px] rounded-full" />
 
-                {/* Main visual content */}
-                <div className="relative bg-white/10 backdrop-blur-xl rounded-3xl p-12 shadow-2xl border border-white/20">
-                  <div className="relative z-10">
-                    <div className="flex items-center gap-3 mb-6">
-                      <ChefHat className="w-16 h-16 text-white" />
-                      <Sparkles className="w-8 h-8 text-green-300 animate-pulse" />
+        <div className="relative z-10 min-h-screen flex items-center justify-center p-6 lg:p-12">
+          <div className="w-full max-w-6xl flex flex-col lg:flex-row gap-16 items-center">
+            
+            {/* LEFT SIDE: PHILOSOPHY */}
+            <motion.div 
+               initial={{ opacity: 0, x: -50 }}
+               animate={{ opacity: 1, x: 0 }}
+               transition={{ duration: 1, ease: "easeOut" }}
+               className="hidden lg:block lg:w-1/2"
+            >
+               <div className="inline-block px-4 py-1 bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-full text-[10px] font-black uppercase tracking-[0.3em] mb-8">
+                  Enterprise Portal
+               </div>
+               <h2 className="text-6xl xl:text-8xl font-black uppercase italic leading-[0.9] text-white mb-8 tracking-tighter">
+                  SCALE YOUR <br />
+                  <span className="text-blue-500">KITCHEN</span>
+               </h2>
+               <p className="text-gray-400 text-lg font-medium max-w-md leading-relaxed mb-12">
+                  Access the ultimate operations hub for modern culinary empires. Precision management for peak performance.
+               </p>
+               
+               <div className="grid grid-cols-2 gap-8">
+                  {[
+                    { label: "Active Nodes", value: "5.2k" },
+                    { label: "Uptime Rate", value: "99.9%" }
+                  ].map((stat, i) => (
+                    <div key={i}>
+                       <div className="text-3xl font-black text-white italic">{stat.value}</div>
+                       <div className="text-[10px] uppercase tracking-widest text-blue-500 font-bold">{stat.label}</div>
                     </div>
-                    <h2 className="text-4xl font-bold text-white mb-4">
-                      Grow Your Food Business
-                    </h2>
-                    <p className="text-white/90 text-lg mb-8 leading-relaxed">
-                      Join thousands of vendors serving delicious meals to
-                      hungry customers every day. Start your culinary journey
-                      with us.
-                    </p>
+                  ))}
+               </div>
+            </motion.div>
 
-                    {/* Stats */}
-                    <div className="grid grid-cols-3 gap-6 mt-12">
-                      <div className="text-center bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
-                        <div className="text-3xl font-bold text-white">5K+</div>
-                        <div className="text-green-100 text-sm mt-1">
-                          Vendors
-                        </div>
-                      </div>
-                      <div className="text-center bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
-                        <div className="text-3xl font-bold text-white">
-                          50K+
-                        </div>
-                        <div className="text-green-100 text-sm mt-1">
-                          Daily Orders
-                        </div>
-                      </div>
-                      <div className="text-center bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
-                        <div className="text-3xl font-bold text-white">98%</div>
-                        <div className="text-green-100 text-sm mt-1">
-                          Satisfaction
-                        </div>
+            {/* RIGHT SIDE: AUTH CARD */}
+            <motion.div 
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, ease: "easeOut" }}
+              className="w-full lg:w-1/2 max-w-lg"
+            >
+              <div className="bg-zinc-900/40 backdrop-blur-2xl rounded-[3rem] p-8 md:p-12 border border-white/5 shadow-2xl relative overflow-hidden group">
+                <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent pointer-events-none" />
+
+                <div className="relative z-10">
+                  <div className="flex justify-between items-start mb-12">
+                     <div>
+                        <h2 className="text-3xl font-black italic tracking-tighter uppercase text-white mb-2">
+                           Vendor Login
+                        </h2>
+                        <p className="text-gray-400 text-sm font-medium">Verify credentials to access terminal</p>
+                     </div>
+                     <motion.div 
+                        animate={{ rotate: [0, 10, 0] }}
+                        transition={{ duration: 4, repeat: Infinity }}
+                        className="w-16 h-16 bg-blue-500/20 rounded-2xl flex items-center justify-center border border-blue-500/30"
+                     >
+                        <ChefHat className="w-8 h-8 text-blue-400" />
+                     </motion.div>
+                  </div>
+
+                  <div className="space-y-6">
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 ml-4">Corporate Email</label>
+                      <div className="relative group/input">
+                        <Mail className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500 group-focus-within/input:text-blue-500 transition-colors" />
+                        <input
+                          type="email"
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          onKeyPress={handleKeyPress}
+                          placeholder="ops@restaurant.com"
+                          className="w-full pl-14 pr-6 py-5 bg-white/5 border border-white/10 rounded-2xl text-white placeholder-gray-600 focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500/50 transition-all font-bold text-sm"
+                        />
                       </div>
                     </div>
-                  </div>
 
-                  {/* Decorative food items */}
-                  <div
-                    className="absolute top-8 right-8 w-20 h-20 bg-white/10 rounded-full flex items-center justify-center backdrop-blur-sm border border-white/20 animate-bounce"
-                    style={{ animationDuration: "3s" }}
-                  >
-                    <span className="text-4xl">🍕</span>
-                  </div>
-                  <div
-                    className="absolute bottom-20 right-16 w-16 h-16 bg-white/10 rounded-full flex items-center justify-center backdrop-blur-sm border border-white/20 animate-bounce"
-                    style={{ animationDuration: "4s", animationDelay: "0.5s" }}
-                  >
-                    <span className="text-3xl">🍔</span>
-                  </div>
-                  <div
-                    className="absolute top-32 right-24 w-12 h-12 bg-white/10 rounded-full flex items-center justify-center backdrop-blur-sm border border-white/20 animate-bounce"
-                    style={{ animationDuration: "3.5s", animationDelay: "1s" }}
-                  >
-                    <span className="text-2xl">🍜</span>
-                  </div>
-                </div>
-
-                {/* Floating badges */}
-                <div className="mt-8 flex gap-4 justify-center">
-                  <div className="bg-white/95 backdrop-blur-sm px-6 py-3 rounded-full shadow-xl flex items-center gap-2 border border-white/40">
-                    <span className="text-2xl">⚡</span>
-                    <span className="text-sm font-semibold text-gray-700">
-                      Fast Setup
-                    </span>
-                  </div>
-                  <div className="bg-white/95 backdrop-blur-sm px-6 py-3 rounded-full shadow-xl flex items-center gap-2 border border-white/40">
-                    <span className="text-2xl">💰</span>
-                    <span className="text-sm font-semibold text-gray-700">
-                      Low Fees
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Right Side - Login Form */}
-            <div className="w-full lg:w-1/2 max-w-md">
-              <div className="bg-white/95 backdrop-blur-xl rounded-3xl shadow-2xl p-8 sm:p-10 md:p-12 border border-white/40">
-                {/* Logo Section */}
-                <div className="flex flex-col items-center mb-8">
-                  <img
-                    src={logo}
-                    alt="PickEAT PickIT Logo"
-                    className="w-20 h-20 mb-3"
-                  />
-                  <h1 className="text-green-600 font-bold text-2xl sm:text-3xl">
-                    PickEAT PickIT
-                  </h1>
-                  <p className="text-gray-500 text-sm mt-2 flex items-center gap-2">
-                    <ChefHat className="w-4 h-4" />
-                    Vendor Portal
-                  </p>
-                </div>
-
-                {/* Mobile stats */}
-                <div className="lg:hidden grid grid-cols-3 gap-3 mb-8 p-4 bg-gradient-to-r from-green-50 to-green-100 rounded-2xl border border-green-200">
-                  <div className="text-center">
-                    <div className="text-xl font-bold text-green-600">5K+</div>
-                    <div className="text-gray-600 text-xs">Vendors</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-xl font-bold text-green-600">50K+</div>
-                    <div className="text-gray-600 text-xs">Orders</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-xl font-bold text-green-600">98%</div>
-                    <div className="text-gray-600 text-xs">Happy</div>
-                  </div>
-                </div>
-
-                {/* Header */}
-                <div className="mb-8">
-                  <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
-                    Welcome Back! 👋
-                  </h2>
-                  <p className="text-gray-600 text-sm sm:text-base">
-                    Sign in to manage your delicious offerings
-                  </p>
-                </div>
-
-                {/* Form */}
-                <div className="space-y-5">
-                  {/* Email Input */}
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">
-                      Email Address
-                    </label>
-                    <div className="relative">
-                      <div className="absolute left-4 top-1/2 -translate-y-1/2">
-                        <div className="w-10 h-10 bg-gradient-to-br from-green-600 to-green-700 rounded-xl flex items-center justify-center shadow-md">
-                          <svg
-                            className="w-5 h-5 text-white"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
-                            />
-                          </svg>
-                        </div>
-                      </div>
-                      <input
-                        type="email"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        onKeyPress={handleKeyPress}
-                        placeholder="chef@restaurant.com"
-                        className="w-full pl-16 pr-4 py-4 border-2 border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all text-sm sm:text-base hover:border-gray-300 bg-white"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Password Input */}
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">
-                      Password
-                    </label>
-                    <div className="relative">
-                      <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
-                        <svg
-                          className="w-5 h-5"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
+                    <div className="space-y-2">
+                       <div className="flex justify-between items-center px-4">
+                          <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500">Security Key</label>
+                          <Link to="/forgot-password?type=vendor" className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-500 hover:text-white transition-colors">Forgot?</Link>
+                       </div>
+                      <div className="relative group/input">
+                        <Lock className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500 group-focus-within/input:text-blue-500 transition-colors" />
+                        <input
+                          type={showPassword ? "text" : "password"}
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
+                          onKeyPress={handleKeyPress}
+                          placeholder="••••••••"
+                          className="w-full pl-14 pr-14 py-5 bg-white/5 border border-white/10 rounded-2xl text-white placeholder-gray-600 focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500/50 transition-all font-bold text-sm"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute right-5 top-1/2 -translate-y-1/2 text-gray-500 hover:text-blue-500 transition-colors"
                         >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
-                          />
-                        </svg>
+                          {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                        </button>
                       </div>
-                      <input
-                        type={showPassword ? "text" : "password"}
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        onKeyPress={handleKeyPress}
-                        placeholder="Enter your password"
-                        className="w-full pl-12 pr-12 py-4 bg-gray-50 border-2 border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all text-sm sm:text-base hover:border-gray-300"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-green-600 transition-colors"
-                      >
-                        {showPassword ? (
-                          <EyeOff className="w-5 h-5" />
-                        ) : (
-                          <Eye className="w-5 h-5" />
-                        )}
-                      </button>
                     </div>
                   </div>
 
-                  {/* Forgot Password */}
-                  <div className="text-right">
-                    <Link to="/forgot-password?type=vendor">
-                      <button className="text-green-600 text-sm font-semibold hover:text-green-700 transition-colors hover:underline">
-                        Forgot Password?
-                      </button>
+                  <div className="mt-12 space-y-4">
+                    <motion.button
+                      whileHover={{ scale: 1.02, y: -2 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={handleLogin}
+                      disabled={isLoading}
+                      className="w-full bg-white text-black font-black italic uppercase tracking-widest py-5 rounded-2xl shadow-xl hover:shadow-blue-500/20 transition-all disabled:opacity-50 flex items-center justify-center gap-3"
+                    >
+                      {isLoading ? (
+                         <div className="w-5 h-5 border-2 border-black border-t-transparent rounded-full animate-spin" />
+                      ) : (
+                        <>
+                          Establish Connection
+                          <ShieldCheck className="w-5 h-5" />
+                        </>
+                      )}
+                    </motion.button>
+
+                    <Link to="/" className="block">
+                       <button className="w-full py-5 text-[10px] font-black uppercase tracking-[0.3em] text-gray-500 hover:text-white transition-colors flex items-center justify-center gap-2">
+                          <ArrowLeft className="w-3 h-3" /> System Hub
+                       </button>
                     </Link>
                   </div>
                 </div>
-                
-                {/* Sign In Button */}
-                <button
-                  onClick={handleLogin}
-                  disabled={isLoading}
-                  className="w-full bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white font-bold py-4 rounded-xl transition-all mt-8 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 text-sm sm:text-base disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
-                >
-                  {isLoading ? "Logging in..." : "Sign In to Dashboard"}
-                </button>
-                
-                {/* Sign Up Link */}
-                <div className="text-center mt-6">
-                  <p className="text-gray-600 text-sm sm:text-base">
-                    New vendor?{" "}
-                    <Link to="/welcome1">
-                      <button className="text-green-600 font-bold hover:text-green-700 transition-colors hover:underline">
-                        Create an account
-                      </button>
-                    </Link>
-                  </p>
-                </div>
-
-                {/* Divider */}
-                <div className="relative my-6">
-                  <div className="absolute inset-0 flex items-center">
-                    <div className="w-full border-t border-gray-200"></div>
-                  </div>
-                  <div className="relative flex justify-center text-sm">
-                    <span className="px-4 bg-white text-gray-500">or</span>
-                  </div>
-                </div>
-
-                <Link to="/">
-                  {/* Select Role Button */}
-                  <button className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-3.5 rounded-xl transition-all text-sm sm:text-base border-2 border-gray-200 hover:border-gray-300">
-                    ← Change Role
-                  </button>
-                </Link>
               </div>
 
-              {/* Footer */}
-              <div className="mt-6 text-center">
-                <p className="text-white/90 text-xs sm:text-sm flex items-center justify-center gap-2 bg-black/30 backdrop-blur-sm rounded-full px-4 py-2 mx-auto w-fit border border-white/20">
-                  <span>🔒</span>
-                  Secure vendor access • SSL encrypted
-                </p>
+              <div className="mt-10 text-center">
+                 <p className="text-gray-500 font-bold uppercase italic tracking-tighter">
+                   Apply for Partnership?{" "}
+                   <Link to="/welcome1">
+                     <span className="text-blue-500 hover:text-white transition-colors cursor-pointer border-b border-blue-500/30">Initialize Onboarding</span>
+                   </Link>
+                 </p>
               </div>
-            </div>
+            </motion.div>
           </div>
         </div>
+
+        {/* SCANNER GRID EFFECT */}
+        <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: "linear-gradient(to right, #333 1px, transparent 1px), linear-gradient(to bottom, #333 1px, transparent 1px)", backgroundSize: "80px 80px" }} />
       </div>
     </>
   );

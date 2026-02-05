@@ -59,6 +59,7 @@ const OrdersManagement = () => {
         // Now load orders with the vendor ID
      // Inside OrdersManagement.tsx -> initializeOrders
 // Inside OrdersManagement.tsx -> initializeOrders
+// Inside OrdersManagement.tsx -> initializeOrders
 const { data, error } = await getVendorOrders(vendorData.id);
 
 console.log("📦 Raw Orders Data:", data); // Debug log

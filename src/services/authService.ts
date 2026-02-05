@@ -660,6 +660,72 @@ class AuthService {
     }
      })
   }
+
+  // Backward compatibility wrapper for documents
+  async uploadRiderPhoto(riderId: string, file: File, type: string) {
+    const docType = type === 'license_photo' ? 'drivers_license' : 'selfie';
+    return this.uploadRiderDocument(riderId, file, docType as any);
+  }
+
+  // Batch save for registration steps
+  async saveRiderRegistration(data: any) {
+    return safeAsyncRequired(async () => {
+      const { riderId, ...fields } = data;
+      
+      // Update main rider record
+      const { error: riderError } = await supabase
+        .from("riders")
+        .update({
+          firstname: fields.firstName,
+          lastname: fields.lastName,
+          phone: fields.phone,
+          gender: fields.gender,
+          vehicle_type: fields.vehicleType,
+          vehicle_brand: fields.vehicleBrand,
+          plate_number: fields.plateNumber,
+          previous_work: fields.previousWork,
+          work_duration: fields.workDuration,
+          referral_code: fields.referralCode,
+          status: "pending"
+        })
+        .eq("id", riderId);
+
+      if (riderError) throw new APIError(riderError.message, 400);
+
+      // Save Bank Info
+      if (fields.bankName) {
+        await supabase.from("rider_bank_info").upsert({
+          rider_id: riderId,
+          bank_name: fields.bankName,
+          account_number: fields.accountNumber,
+          account_name: fields.accountName
+        });
+      }
+
+      // Save Availability
+      if (fields.fromDay) {
+        await supabase.from("rider_availability").upsert({
+          rider_id: riderId,
+          day_from: fields.fromDay,
+          day_to: fields.toDay,
+          holidays_available: fields.holidayAvailable === "Yes, I'm available",
+          time_start: fields.timeStart,
+          time_end: fields.timeEnd
+        });
+      }
+
+      // Save Guarantors if provided in expanded data
+      if (fields.guarantor1Name) {
+        await supabase.from("rider_guarantors").upsert([
+          { rider_id: riderId, name: fields.guarantor1Name, phone: fields.guarantor1Phone, relationship: fields.guarantor1Relationship, guarantor_number: 1 },
+          { rider_id: riderId, name: fields.guarantor2Name, phone: fields.guarantor2Phone, relationship: fields.guarantor2Relationship, guarantor_number: 2 }
+        ].filter(g => g.name));
+      }
+
+      return { success: true };
+    });
+  }
+
   // Login user (not vendor)
   async loginUser(email: string, password: string): Promise<LoginResponse> {
      return safeAsyncRequired(async () => {
@@ -1323,6 +1389,10 @@ export const authService = {
   saveAvailability: (vendorId: string, availability: Record<string, unknown>) =>
     apiService.saveAvailability(vendorId, availability),
   getVendorProfile: (vendorId: string) => apiService.getVendorProfile(vendorId),
+  uploadRiderPhoto: (riderId: string, file: File, type: string) => 
+    apiService.uploadRiderPhoto(riderId, file, type),
+  saveRiderRegistration: (data: any) => 
+    apiService.saveRiderRegistration(data),
 };
 
 export type { GetOTPResponse } from "../types/api.types";

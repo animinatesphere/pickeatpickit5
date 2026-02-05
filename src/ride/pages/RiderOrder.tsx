@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 import { RiderNav } from "../component/RiderNav";
 import { supabase } from "../../services/authService";
-import { riderAcceptOrder, getAvailableDeliveries } from "../../services/api";
+import { riderAcceptOrder, getAvailableDeliveries, riderRejectOrder } from "../../services/api";
 
 const RiderOrder = () => {
   const [activeTab, setActiveTab] = useState<"pending" | "ongoing">("pending");
@@ -64,13 +64,13 @@ const fetchOrders = async () => {
         .from('orders')
         .select(`
           *,
-          vendor_profiles!orders_vendor_id_profile_fkey(business_name, business_address, business_phone),
+          vendor_profiles(business_name, business_address, business_phone),
           order_items(
             quantity, 
             price_at_order, 
-            menu_items!order_items_menu_item_id_fkey(name, image_url)
+            menu_items(name, image_url)
           )
-        `) // Added menu_items(image_url) here
+        `)
         .eq('rider_id', riderId)
         .in('status', ['accepted', 'picked_up']);
       setOngoingOrders(ongoing || []);
@@ -91,6 +91,22 @@ const fetchOrders = async () => {
           fetchOrders();
         }, 1500);
       }
+    }
+  };
+
+  const handleRejectOrder = async () => {
+    if (!selectedOrder) return;
+    
+    if (activeTab === "pending") {
+      // For available orders, rejecting just means going back
+      setView("list");
+      return;
+    }
+
+    const { error } = await riderRejectOrder(selectedOrder.id);
+    if (!error) {
+      fetchOrders();
+      setView("list");
     }
   };
 
@@ -274,16 +290,43 @@ const fetchOrders = async () => {
               <div className="max-w-md mx-auto">
                 {activeTab === "pending" ? (
                   <div className="flex gap-3">
-                    <button onClick={() => setView("list")} className="flex-1 py-4 border-2 border-red-500 text-red-500 font-bold rounded-xl">Reject</button>
-                    <button onClick={handleAcceptOrder} className="flex-2 w-full py-4 bg-green-600 text-white font-bold rounded-xl shadow-lg">Accept Order</button>
+                    <button 
+                      onClick={handleRejectOrder} 
+                      className="flex-1 py-4 border-2 border-red-500 text-red-500 font-bold rounded-xl"
+                    >
+                      Reject
+                    </button>
+                    <button 
+                      onClick={handleAcceptOrder} 
+                      className="flex-2 w-full py-4 bg-green-600 text-white font-bold rounded-xl shadow-lg"
+                    >
+                      Accept Order
+                    </button>
                   </div>
                 ) : (
-                  <button 
-                    onClick={() => updateStatus('completed')} 
-                    className="w-full py-4 bg-blue-600 text-white font-bold rounded-xl shadow-lg"
-                  >
-                    Mark as Delivered
-                  </button>
+                  <div className="flex gap-3">
+                    <button 
+                      onClick={handleRejectOrder} 
+                      className="flex-1 py-4 border-2 border-red-500 text-red-500 font-bold rounded-xl"
+                    >
+                      Reject
+                    </button>
+                    {selectedOrder.status === 'accepted' ? (
+                      <button 
+                        onClick={() => updateStatus('picked_up')} 
+                        className="flex-2 w-full py-4 bg-orange-500 text-white font-bold rounded-xl shadow-lg"
+                      >
+                        Mark as Picked Up
+                      </button>
+                    ) : (
+                      <button 
+                        onClick={() => updateStatus('completed')} 
+                        className="flex-2 w-full py-4 bg-blue-600 text-white font-bold rounded-xl shadow-lg"
+                      >
+                        Mark as Delivered
+                      </button>
+                    )}
+                  </div>
                 )}
               </div>
             </div>

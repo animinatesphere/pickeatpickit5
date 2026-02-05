@@ -6,10 +6,13 @@ import {
   Eye,
   EyeOff,
   ArrowRight,
-  AlertCircle,
+  ShieldCheck,
+  Map,
+  ArrowLeft
 } from "lucide-react";
-import { Link } from "react-router-dom";
-import { authService, APIError } from "../../services/authService"; // Added APIError import
+import { Link, useNavigate } from "react-router-dom";
+import { authService, APIError } from "../../services/authService";
+import { motion } from "framer-motion";
 
 export default function RiderLogin() {
   const [email, setEmail] = useState("");
@@ -17,211 +20,213 @@ export default function RiderLogin() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
-  const [rememberMe, setRememberMe] = useState(false);
+  const navigate = useNavigate();
 
   const handleLogin = async () => {
     setError("");
-
-    // Validation
     if (!email || !password) {
       setError("Please enter both email and password");
       return;
     }
-
-    if (!email.includes("@")) {
-      setError("Please enter a valid email address");
-      return;
-    }
-
     setIsLoading(true);
-
     try {
-      // Call the loginRider API
       const result = await authService.loginRider(email, password);
-
-      // result.success is returned by your authService.ts
       if (result.success) {
-        // Store token/user data (Always store session for the dashboard,
-        // but perhaps persist to localStorage based on rememberMe)
         localStorage.setItem("auth_token", result.token || "");
         localStorage.setItem("user", JSON.stringify(result.user));
-
-        // Redirect to rider dashboard
-        window.location.href = "/rider-dashboard";
+        setTimeout(() => {
+          window.location.href = "/rider-dashboard";
+        }, 1000);
       }
-    } catch (err: unknown) {
-      console.error("Login error:", err);
-
-      // FIX: Differentiate between Auth errors (wrong password)
-      // and Profile errors (Pending/Rejected status)
-      if (err instanceof APIError) {
-        setError(err.message);
-      } else if (err instanceof Error) {
-        setError(err.message);
-      } else {
-        setError("An unexpected error occurred. Please try again.");
-      }
+    } catch (err: any) {
+      if (err instanceof APIError) setError(err.message);
+      else setError("System authentication failed");
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && !isLoading) {
-      handleLogin();
-    }
+    if (e.key === "Enter" && !isLoading) handleLogin();
   };
 
   return (
-    <div className="min-h-screen relative flex items-center justify-center p-4 overflow-hidden">
-      <div
-        className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-        style={{
-          backgroundImage:
-            "url(https://images.unsplash.com/photo-1526367790999-0150786686a2?q=80&w=2071)",
-        }}
-      />
-      <div className="absolute inset-0 bg-gradient-to-br from-green-900/80 via-emerald-900/70 to-black/80" />
+    <div className="min-h-screen relative overflow-hidden bg-black font-inter">
+      {/* CINEMATIC BACKGROUND */}
+      <div className="absolute inset-0 z-0">
+        <motion.img
+          initial={{ scale: 1.1, opacity: 0 }}
+          animate={{ scale: 1, opacity: 0.4 }}
+          transition={{ duration: 1.5 }}
+          src="https://images.unsplash.com/photo-1526367790999-0150786686a2?q=80&w=2000&auto=format&fit=crop"
+          alt="Delivery background"
+          className="w-full h-full object-cover"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-r from-black via-transparent to-black" />
+      </div>
 
-      <div className="relative w-full max-w-md">
-        <div className="bg-white/95 backdrop-blur-xl rounded-3xl shadow-2xl p-8 border border-white/20">
-          <div className="flex justify-center mb-6">
-            <div className="relative">
-              <div className="absolute inset-0 bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl blur-xl opacity-50 animate-pulse" />
-              <div className="relative bg-gradient-to-br from-green-500 to-emerald-600 p-4 rounded-2xl">
-                <Bike className="w-12 h-12 text-white" strokeWidth={2.5} />
-              </div>
-            </div>
-          </div>
+      {/* AMBIENT LIGHTS (ORANGE/AMBER FOR RIDERS) */}
+      <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-orange-500/10 blur-[120px] rounded-full" />
+      <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-amber-500/10 blur-[120px] rounded-full" />
 
-          <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-gray-800 mb-2">
-              Rider Login
-            </h1>
-            <p className="text-gray-600">
-              Sign in to start your delivery shift
-            </p>
-          </div>
+      <div className="relative z-10 min-h-screen flex items-center justify-center p-6 lg:p-12">
+        <div className="w-full max-w-6xl flex flex-col lg:flex-row gap-16 items-center">
+          
+          {/* LEFT SIDE: PHILOSOPHY */}
+          <motion.div 
+             initial={{ opacity: 0, x: -50 }}
+             animate={{ opacity: 1, x: 0 }}
+             transition={{ duration: 1, ease: "easeOut" }}
+             className="hidden lg:block lg:w-1/2"
+          >
+             <div className="inline-block px-4 py-1 bg-orange-500/10 text-orange-400 border border-orange-500/20 rounded-full text-[10px] font-black uppercase tracking-[0.3em] mb-8">
+                Logistics Terminal
+             </div>
+             <h2 className="text-6xl xl:text-8xl font-black uppercase italic leading-[0.9] text-white mb-8 tracking-tighter">
+                OWN THE <br />
+                <span className="text-orange-500">STREETS</span>
+             </h2>
+             <p className="text-gray-400 text-lg font-medium max-w-md leading-relaxed mb-12">
+                Join the elite fleet of independent logistics operators. Real-time routing, instant payouts, total autonomy.
+             </p>
+             
+             <div className="flex gap-12">
+                <div>
+                   <div className="text-3xl font-black text-white italic">24/7</div>
+                   <div className="text-[10px] uppercase tracking-widest text-orange-500 font-bold">Operational Window</div>
+                </div>
+                <div>
+                   <div className="text-3xl font-black text-white italic">FAST</div>
+                   <div className="text-[10px] uppercase tracking-widest text-orange-500 font-bold">Payout Cycles</div>
+                </div>
+             </div>
+          </motion.div>
 
-          {error && (
-            <div className="mb-6 bg-red-50 border border-red-200 rounded-xl p-4 flex items-start gap-3">
-              <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
-              <p className="text-red-700 text-sm">{error}</p>
-            </div>
-          )}
+          {/* RIGHT SIDE: AUTH CARD */}
+          <motion.div 
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, ease: "easeOut" }}
+            className="w-full lg:w-1/2 max-w-lg"
+          >
+            <div className="bg-zinc-900/40 backdrop-blur-2xl rounded-[3rem] p-8 md:p-12 border border-white/5 shadow-2xl relative overflow-hidden group">
+              <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent pointer-events-none" />
 
-          <div className="space-y-5">
-            <div className="relative group">
-              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                <Mail className="w-5 h-5 text-gray-400 group-focus-within:text-green-600 transition-colors duration-300" />
-              </div>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                onKeyPress={handleKeyPress}
-                placeholder="Email address"
-                className="w-full pl-12 pr-4 py-3.5 bg-gray-50 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-green-600 focus:bg-white transition-all duration-300 text-gray-800"
-                disabled={isLoading}
-              />
-            </div>
+              <div className="relative z-10">
+                <div className="flex justify-between items-start mb-12">
+                   <div>
+                      <h2 className="text-3xl font-black italic tracking-tighter uppercase text-white mb-2">
+                         Rider Access
+                      </h2>
+                      <p className="text-gray-400 text-sm font-medium">Synchronize with delivery network</p>
+                   </div>
+                   <motion.div 
+                      animate={{ y: [0, -5, 0] }}
+                      transition={{ duration: 3, repeat: Infinity }}
+                      className="w-16 h-16 bg-orange-500/20 rounded-2xl flex items-center justify-center border border-orange-500/30"
+                   >
+                      <Bike className="w-8 h-8 text-orange-400" />
+                   </motion.div>
+                </div>
 
-            <div className="relative group">
-              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                <Lock className="w-5 h-5 text-gray-400 group-focus-within:text-green-600 transition-colors duration-300" />
-              </div>
-              <input
-                type={showPassword ? "text" : "password"}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                onKeyPress={handleKeyPress}
-                placeholder="Password"
-                className="w-full pl-12 pr-12 py-3.5 bg-gray-50 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-green-600 focus:bg-white transition-all duration-300 text-gray-800"
-                disabled={isLoading}
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-green-600 transition-colors"
-              >
-                {showPassword ? (
-                  <EyeOff className="w-5 h-5" />
-                ) : (
-                  <Eye className="w-5 h-5" />
+                {error && (
+                  <motion.div 
+                     initial={{ opacity: 0, height: 0 }}
+                     animate={{ opacity: 1, height: "auto" }}
+                     className="mb-8 p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-500 text-xs font-bold uppercase tracking-widest text-center"
+                  >
+                     {error}
+                  </motion.div>
                 )}
-              </button>
+
+                <div className="space-y-6">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 ml-4">Rider Email</label>
+                    <div className="relative group/input">
+                      <Mail className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500 group-focus-within/input:text-orange-500 transition-colors" />
+                      <input
+                        type="email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        onKeyPress={handleKeyPress}
+                        placeholder="rider@fleet.com"
+                        className="w-full pl-14 pr-6 py-5 bg-white/5 border border-white/10 rounded-2xl text-white placeholder-gray-600 focus:outline-none focus:ring-4 focus:ring-orange-500/10 focus:border-orange-500/50 transition-all font-bold text-sm"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                     <div className="flex justify-between items-center px-4">
+                        <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500">Access Key</label>
+                        <Link to="/forgot-password?type=rider" className="text-[10px] font-black uppercase tracking-[0.2em] text-orange-500 hover:text-white transition-colors">Recover?</Link>
+                     </div>
+                    <div className="relative group/input">
+                      <Lock className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500 group-focus-within/input:text-orange-500 transition-colors" />
+                      <input
+                        type={showPassword ? "text" : "password"}
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        onKeyPress={handleKeyPress}
+                        placeholder="••••••••"
+                        className="w-full pl-14 pr-14 py-5 bg-white/5 border border-white/10 rounded-2xl text-white placeholder-gray-600 focus:outline-none focus:ring-4 focus:ring-orange-500/10 focus:border-orange-500/50 transition-all font-bold text-sm"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-5 top-1/2 -translate-y-1/2 text-gray-500 hover:text-orange-500 transition-colors"
+                      >
+                        {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-12 space-y-4">
+                  <motion.button
+                    whileHover={{ scale: 1.02, y: -2 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={handleLogin}
+                    disabled={isLoading}
+                    className="w-full bg-white text-black font-black italic uppercase tracking-widest py-5 rounded-2xl shadow-xl hover:shadow-orange-500/20 transition-all disabled:opacity-50 flex items-center justify-center gap-3"
+                  >
+                    {isLoading ? (
+                       <div className="w-5 h-5 border-2 border-black border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <>
+                        Initialize Shift
+                        <ArrowRight className="w-5 h-5" />
+                      </>
+                    )}
+                  </motion.button>
+
+                  <Link to="/" className="block">
+                     <button className="w-full py-5 text-[10px] font-black uppercase tracking-[0.3em] text-gray-500 hover:text-white transition-colors flex items-center justify-center gap-2">
+                        <ArrowLeft className="w-3 h-3" /> Base Interface
+                     </button>
+                  </Link>
+                </div>
+              </div>
             </div>
 
-            <div className="flex items-center justify-between text-sm">
-              <label className="flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={rememberMe}
-                  onChange={(e) => setRememberMe(e.target.checked)}
-                  className="w-4 h-4 rounded border-gray-300 text-green-600 focus:ring-green-500"
-                />
-                <span className="ml-2 text-gray-600">Remember me</span>
-              </label>
-              <Link to="/forgot-password?type=rider">
-                <button
-                  type="button"
-                  className="text-green-600 font-medium hover:underline"
-                >
-                  Forgot password?
-                </button>
-              </Link>
+            <div className="mt-10 text-center">
+               <p className="text-gray-500 font-bold uppercase italic tracking-tighter">
+                 Request Fleet Access?{" "}
+                 <Link to="/rider-registration">
+                   <span className="text-orange-500 hover:text-white transition-colors cursor-pointer border-b border-orange-500/30">Submit Application</span>
+                 </Link>
+               </p>
             </div>
-
-            <button
-              onClick={handleLogin}
-              disabled={isLoading}
-              className="w-full bg-gradient-to-r from-green-500 to-emerald-600 text-white py-4 rounded-xl font-semibold text-lg shadow-lg hover:shadow-xl transition-all flex items-center justify-center disabled:opacity-70"
-            >
-              {isLoading ? (
-                <div className="w-6 h-6 border-3 border-white border-t-transparent rounded-full animate-spin" />
-              ) : (
-                <>
-                  Sign In
-                  <ArrowRight className="ml-2 w-5 h-5" />
-                </>
-              )}
-            </button>
-          </div>
-
-          <div className="relative my-6">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-300" />
-            </div>
-            <div className="relative flex justify-center text-sm">
-              <span className="px-4 bg-white text-gray-500">OR</span>
-            </div>
-          </div>
-
-          <div className="text-center">
-            <p className="text-sm text-gray-600">
-              Need help?{" "}
-              <button
-                type="button"
-                className="text-green-600 font-medium hover:underline"
-              >
-                Rider Support
-              </button>
-            </p>
-          </div>
-        </div>
-
-        <div className="mt-6 text-center">
-          <p className="text-white text-sm drop-shadow-lg">
-            Don't have an account?{" "}
-            <button
-              onClick={() => (window.location.href = "/rider-registration")}
-              className="font-semibold hover:underline"
-            >
-              Apply to become a rider
-            </button>
-          </p>
+          </motion.div>
         </div>
       </div>
+      
+      {/* SCANNER LINE EFFECT */}
+      <motion.div 
+         animate={{ left: ["0%", "100%", "0%"] }}
+         transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
+         className="absolute top-0 bottom-0 w-[1px] bg-orange-500/20 z-0 pointer-events-none"
+      />
     </div>
   );
 }
