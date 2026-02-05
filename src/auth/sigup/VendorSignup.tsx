@@ -1,9 +1,9 @@
 ﻿import logo from "../../assets/Logo SVG 1.png";
 import { useState, useRef } from "react";
-import { Eye, EyeOff, Camera, Mail, Lock, Phone, Clock, CheckCircle2, ChevronRight, Sparkles } from "lucide-react";
+import { Eye, EyeOff, Camera, Mail, Lock, Phone, Clock, CheckCircle2, Sparkles } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useToast, ToastContainer } from "../../component/Toast";
-import { authService, APIError, supabase } from "../../services/authService";
+import { authService, supabase } from "../../services/authService";
 import { motion, AnimatePresence } from "framer-motion";
 
 type NavigateFunction = (page: string) => void;
@@ -12,13 +12,6 @@ interface PageProps {
   onNavigate: NavigateFunction;
 }
 
-interface UserData {
-  firstname: string;
-  lastname: string;
-  email: string;
-  phone: string;
-  password?: string;
-}
 
 const VendorSignupShell = ({ children, step, totalSteps }: { children: React.ReactNode, step: number, totalSteps: number }) => (
   <div className="min-h-screen relative bg-black text-white font-inter overflow-hidden">
@@ -361,7 +354,7 @@ const CreateProfile2 = ({ onNavigate }: PageProps) => {
     setIsLoading(true);
     try {
       const vId = localStorage.getItem("tempVendorId");
-      if (!vId) throw new Error("Expired session");
+      if (!vId) throw new Error("Session expired. Please restart signup.");
       await authService.saveBusinessDetails(vId, { businessDescription: desc, additionalInfo: "" });
       onNavigate("availability");
     } catch (e: any) { toast.error(e.message); }
@@ -435,7 +428,7 @@ const AvailabilityScreen = ({ onNavigate }: PageProps) => {
     setIsLoading(true);
     try {
       const vId = localStorage.getItem("tempVendorId");
-      if (!vId) return;
+      if (!vId) throw new Error("Session expired. Please restart signup.");
       await authService.saveAvailabilityDetails(vId, data as any);
       onNavigate("payment");
     } catch (e: any) { toast.error(e.message); }
@@ -499,7 +492,7 @@ const PaymentOption = ({ onNavigate }: PageProps) => {
     setIsLoading(true);
     try {
       const vId = localStorage.getItem("tempVendorId");
-      if (!vId) return;
+      if (!vId) throw new Error("Session expired. Please restart signup.");
       await authService.savePaymentDetails(vId, data);
       onNavigate("confirm");
     } catch (e: any) { toast.error(e.message); }

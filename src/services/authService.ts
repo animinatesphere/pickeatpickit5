@@ -1246,44 +1246,61 @@ async uploadVendorPhoto(vendorId: string, file: File, photoType: string) {
   }
 
   // Save availability
-  async saveAvailability(
+  async saveAvailabilityDetails(
     vendorId: string,
-    availability: Record<string, unknown>,
-  ): Promise<Record<string, unknown>[] | null> {
+    availability: any,
+  ): Promise<any> {
   return safeAsyncRequired(async () => {
     try {
       const { data, error } = await supabase
         .from("vendor_availability")
-        .insert([
+        .upsert([
           {
             vendor_id: vendorId,
             day_from: availability.dayFrom,
             day_to: availability.dayTo,
-            holidays_available: availability.holidaysAvailable === "yes",
+            holidays_available: availability.holidaysAvailable === "YES",
             opening_time: availability.timeStart,
             closing_time: availability.timeEnd,
-            total_workers: parseInt(availability.workers as string),
+            total_workers: parseInt(availability.workers || "1"),
           },
-        ])
+        ], { onConflict: 'vendor_id' })
         .select();
 
-      if (error) {
-        if (error.code === "23505") {
-          throw new APIError("Availability already set for this account.", 409);
-        }
-        if (error.code === "23503") {
-          throw new APIError(
-            "Vendor account not found. Please register again.",
-            404,
-          );
-        }
-        throw new APIError(error.message, 400);
-      }
+      if (error) throw new APIError(error.message, 400);
       return data;
     } catch (error) {
       if (error instanceof APIError) throw error;
       throw new APIError("Failed to save availability", 400);
     }})
+  }
+
+  // Save bank/payment details
+  async savePaymentDetails(
+    vendorId: string,
+    payment: any,
+  ): Promise<any> {
+    return safeAsyncRequired(async () => {
+      try {
+        const { data, error } = await supabase
+          .from("vendor_bank_info")
+          .upsert([
+            {
+              vendor_id: vendorId,
+              bank_name: payment.bankName,
+              account_number: payment.accountNumber,
+              account_name: payment.accountName,
+            },
+          ], { onConflict: 'vendor_id' })
+          .select();
+
+        if (error) throw new APIError(error.message, 400);
+        return data;
+      } catch (error) {
+        if (error instanceof APIError) throw error;
+        throw new APIError("Failed to save payment details", 400);
+      }
+    });
   }
 
   // Fetch vendor profile by vendor ID
@@ -1398,8 +1415,10 @@ export const authService = {
     vendorId: string,
     details: { businessDescription: string; additionalInfo: string },
   ) => apiService.saveBusinessDetails(vendorId, details),
-  saveAvailability: (vendorId: string, availability: Record<string, unknown>) =>
-    apiService.saveAvailability(vendorId, availability),
+  saveAvailabilityDetails: (vendorId: string, availability: any) =>
+    apiService.saveAvailabilityDetails(vendorId, availability),
+  savePaymentDetails: (vendorId: string, payment: any) =>
+    apiService.savePaymentDetails(vendorId, payment),
   getVendorProfile: (vendorId: string) => apiService.getVendorProfile(vendorId),
   uploadRiderPhoto: (riderId: string, file: File, type: string) => 
     apiService.uploadRiderPhoto(riderId, file, type),
