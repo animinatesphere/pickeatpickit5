@@ -1,12 +1,17 @@
 import { useState } from "react";
-import { Mail, ArrowLeft, Lock, Eye, EyeOff, CheckCircle, ShieldCheck, Sparkles, Key } from "lucide-react";
+import { Mail, ArrowLeft, Lock, Eye, EyeOff, CheckCircle, Key } from "lucide-react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import logo from "../assets/Logo SVG 1.png";
-import { authService, APIError } from "../services/authService";
+import { authService } from "../services/authService";
 import { useToast, ToastContainer } from "../component/Toast";
 import { motion, AnimatePresence } from "framer-motion";
 
 type Step = "email" | "otp" | "password" | "success";
+
+const THEMES: Record<string, { color: string; hex: string }> = {
+  user: { color: "green", hex: "#22c55e" },
+  rider: { color: "orange", hex: "#f97316" },
+  vendor: { color: "blue", hex: "#3b82f6" },
+};
 
 const ForgotPassword = () => {
   const [step, setStep] = useState<Step>("email");
@@ -22,11 +27,7 @@ const ForgotPassword = () => {
   const navigate = useNavigate();
   const toast = useToast();
 
-  const theme = {
-    user: { color: "green", hex: "#22c55e" },
-    rider: { color: "orange", hex: "#f97316" },
-    vendor: { color: "blue", hex: "#3b82f6" },
-  }[userType as keyof typeof theme] || { color: "green", hex: "#22c55e" };
+  const theme = THEMES[userType] || THEMES.vendor;
 
   const getLoginPath = () => {
     switch (userType) {

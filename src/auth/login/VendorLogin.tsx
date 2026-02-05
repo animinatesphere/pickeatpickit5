@@ -1,6 +1,5 @@
 import { useState } from "react";
-import { Eye, EyeOff, Mail, Lock, ChefHat, ArrowLeft, ShieldCheck, Sparkles } from "lucide-react";
-import logo from "../../assets/Logo SVG 1.png";
+import { Eye, EyeOff, Mail, Lock, ChefHat, ArrowLeft, ShieldCheck } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useToast, ToastContainer } from "../../component/Toast";
 import { authService, APIError } from "../../services/authService";

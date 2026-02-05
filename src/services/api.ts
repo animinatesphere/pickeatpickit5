@@ -136,7 +136,7 @@ export const riderRejectOrder = async (orderId: string) => {
   const { data, error } = await supabase
     .from("orders")
     .update({ 
-      status: "preparing", 
+      status: "canceled", 
       rider_id: null 
     })
     .eq("id", orderId)

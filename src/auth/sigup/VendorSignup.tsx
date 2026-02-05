@@ -1,6 +1,6 @@
 ﻿import logo from "../../assets/Logo SVG 1.png";
 import { useState, useRef } from "react";
-import { Eye, EyeOff, ChevronDown, Camera, ArrowLeft, Mail, Lock, User, Phone, Briefcase, MapPin, Clock, CreditCard, CheckCircle2, ShieldCheck, ChevronRight, Sparkles } from "lucide-react";
+import { Eye, EyeOff, Camera, Mail, Lock, Phone, Clock, CheckCircle2, ChevronRight, Sparkles } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useToast, ToastContainer } from "../../component/Toast";
 import { authService, APIError, supabase } from "../../services/authService";
