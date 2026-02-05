@@ -346,3 +346,70 @@ export const addTrackingUpdate = async (orderId: string, trackingData: any) => {
     .select();
   return { data, error };
 };
+
+// DASHBOARD STATS
+export const getAdminStats = async () => {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  // 1. Get Orders Stats
+  const { data: orders } = await supabase.from('orders').select('status, total_amount, created_at');
+  
+  const stats = {
+    activeOrders: orders?.filter(o => ['preparing', 'accepted', 'picked_up'].includes(o.status)).length || 0,
+    completedOrders: orders?.filter(o => o.status === 'completed').length || 0,
+    canceledOrders: orders?.filter(o => o.status === 'cancelled').length || 0,
+    todayEarnings: orders?.filter(o => {
+      const orderDate = new Date(o.created_at);
+      return orderDate >= today && o.status === 'completed';
+    }).reduce((sum, o) => sum + (o.total_amount || 0), 0) || 0,
+    pendingApprovals: 0
+  };
+
+  // 2. Get Pending Rider Approvals
+  const { count: pendingRiders } = await supabase
+    .from('riders')
+    .select('*', { count: 'exact', head: true })
+    .eq('status', 'pending');
+  
+  stats.pendingApprovals = pendingRiders || 0;
+
+  // 3. Get User Counts
+  const { count: clients } = await supabase.from('users').select('*', { count: 'exact', head: true });
+  const { count: vendors } = await supabase.from('vendors').select('*', { count: 'exact', head: true });
+  const { count: riders } = await supabase.from('riders').select('*', { count: 'exact', head: true });
+
+  return {
+    ...stats,
+    userCounts: {
+      clients: clients || 0,
+      vendors: vendors || 0,
+      riders: riders || 0,
+      total: (clients || 0) + (vendors || 0) + (riders || 0)
+    }
+  };
+};
+
+export const getRiderStats = async (riderId: string) => {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const { data: orders } = await supabase
+    .from('orders')
+    .select('status, total_amount, created_at')
+    .eq('rider_id', riderId);
+
+  const todayOrders = orders?.filter(o => {
+    const orderDate = new Date(o.created_at);
+    return orderDate >= today;
+  }) || [];
+
+  return {
+    todayEarnings: todayOrders
+      .filter(o => o.status === 'completed')
+      .reduce((sum, o) => sum + (o.total_amount || 0), 0),
+    todayOrdersCount: todayOrders.length,
+    completedToday: todayOrders.filter(o => o.status === 'completed').length,
+    inProgressToday: todayOrders.filter(o => ['accepted', 'picked_up'].includes(o.status)).length
+  };
+};
