@@ -117,9 +117,9 @@ export default function RiderLogin() {
                 <div className="flex justify-between items-start mb-12">
                    <div>
                       <h2 className="text-3xl font-black italic tracking-tighter uppercase text-white mb-2">
-                         Rider Access
+                         Rider Login
                       </h2>
-                      <p className="text-gray-400 text-sm font-medium">Synchronize with delivery network</p>
+                      <p className="text-gray-400 text-sm font-medium">Enter your details to start your shift</p>
                    </div>
                    <motion.div 
                       animate={{ y: [0, -5, 0] }}
@@ -142,7 +142,7 @@ export default function RiderLogin() {
 
                 <div className="space-y-6">
                   <div className="space-y-2">
-                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 ml-4">Rider Email</label>
+                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 ml-4">Email Address</label>
                     <div className="relative group/input">
                       <Mail className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500 group-focus-within/input:text-orange-500 transition-colors" />
                       <input
@@ -158,7 +158,7 @@ export default function RiderLogin() {
 
                   <div className="space-y-2">
                      <div className="flex justify-between items-center px-4">
-                        <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500">Access Key</label>
+                        <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500">Password</label>
                         <Link to="/forgot-password?type=rider" className="text-[10px] font-black uppercase tracking-[0.2em] text-orange-500 hover:text-white transition-colors">Recover?</Link>
                      </div>
                     <div className="relative group/input">
@@ -194,7 +194,7 @@ export default function RiderLogin() {
                        <div className="w-5 h-5 border-2 border-black border-t-transparent rounded-full animate-spin" />
                     ) : (
                       <>
-                        Initialize Shift
+                        Login Now
                         <ArrowRight className="w-5 h-5" />
                       </>
                     )}
@@ -202,7 +202,7 @@ export default function RiderLogin() {
 
                   <Link to="/" className="block">
                      <button className="w-full py-5 text-[10px] font-black uppercase tracking-[0.3em] text-gray-500 hover:text-white transition-colors flex items-center justify-center gap-2">
-                        <ArrowLeft className="w-3 h-3" /> Base Interface
+                        <ArrowLeft className="w-3 h-3" /> Back to Home
                      </button>
                   </Link>
                 </div>

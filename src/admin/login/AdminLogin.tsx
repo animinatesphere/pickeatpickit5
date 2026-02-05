@@ -101,7 +101,7 @@ export default function AdminLogin() {
                 Welcome Back
               </h1>
               <p className="text-gray-600 dark:text-gray-400 text-lg font-medium font-inter italic">
-                Sign in to your admin dashboard
+                Login as Admin
               </p>
             </div>
 
@@ -189,7 +189,7 @@ export default function AdminLogin() {
                       <span>Signing in...</span>
                     </div>
                   ) : (
-                    "Sign In"
+                    "Login Now"
                   )}
                 </button>
               </Link>

@@ -116,7 +116,7 @@ const VendorLogin = () => {
                         <h2 className="text-3xl font-black italic tracking-tighter uppercase text-white mb-2">
                            Vendor Login
                         </h2>
-                        <p className="text-gray-400 text-sm font-medium">Verify credentials to access terminal</p>
+                        <p className="text-gray-400 text-sm font-medium">Enter your details to access your account</p>
                      </div>
                      <motion.div 
                         animate={{ rotate: [0, 10, 0] }}
@@ -129,7 +129,7 @@ const VendorLogin = () => {
 
                   <div className="space-y-6">
                     <div className="space-y-2">
-                      <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 ml-4">Corporate Email</label>
+                      <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 ml-4">Email Address</label>
                       <div className="relative group/input">
                         <Mail className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500 group-focus-within/input:text-blue-500 transition-colors" />
                         <input
@@ -145,7 +145,7 @@ const VendorLogin = () => {
 
                     <div className="space-y-2">
                        <div className="flex justify-between items-center px-4">
-                          <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500">Security Key</label>
+                          <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500">Password</label>
                           <Link to="/forgot-password?type=vendor" className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-500 hover:text-white transition-colors">Forgot?</Link>
                        </div>
                       <div className="relative group/input">
@@ -181,7 +181,7 @@ const VendorLogin = () => {
                          <div className="w-5 h-5 border-2 border-black border-t-transparent rounded-full animate-spin" />
                       ) : (
                         <>
-                          Establish Connection
+                          Login Now
                           <ShieldCheck className="w-5 h-5" />
                         </>
                       )}
@@ -189,7 +189,7 @@ const VendorLogin = () => {
 
                     <Link to="/" className="block">
                        <button className="w-full py-5 text-[10px] font-black uppercase tracking-[0.3em] text-gray-500 hover:text-white transition-colors flex items-center justify-center gap-2">
-                          <ArrowLeft className="w-3 h-3" /> System Hub
+                          <ArrowLeft className="w-3 h-3" /> Back to Home
                        </button>
                     </Link>
                   </div>
@@ -198,10 +198,9 @@ const VendorLogin = () => {
 
               <div className="mt-10 text-center">
                  <p className="text-gray-500 font-bold uppercase italic tracking-tighter">
-                   Apply for Partnership?{" "}
-                   <Link to="/welcome1">
-                     <span className="text-blue-500 hover:text-white transition-colors cursor-pointer border-b border-blue-500/30">Initialize Onboarding</span>
-                   </Link>
+                    <Link to="/welcome1">
+                      <span className="text-blue-500 hover:text-white transition-colors cursor-pointer border-b border-blue-500/30">Sign Up Now</span>
+                    </Link>
                  </p>
               </div>
             </motion.div>

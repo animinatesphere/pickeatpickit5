@@ -59,13 +59,13 @@ const EmailInputScreen = ({ onContinue, toast }: { onContinue: (email: string, p
     <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="w-full max-w-lg">
       <div className="text-center mb-10">
         <motion.img src={logo} alt="Logo" className="w-20 h-20 mx-auto mb-6 drop-shadow-[0_0_15px_rgba(34,197,94,0.2)]" />
-        <h1 className="text-3xl font-black italic tracking-tighter uppercase mb-2">Initialize <span className="text-green-500">Identity</span></h1>
-        <p className="text-[10px] tracking-[0.3em] uppercase text-gray-500 font-black">Step 01: Credentials</p>
+        <h1 className="text-3xl font-black italic tracking-tighter uppercase mb-2">User <span className="text-green-500">Sign Up</span></h1>
+        <p className="text-[10px] tracking-[0.3em] uppercase text-gray-500 font-black">Step 01: Your Details</p>
       </div>
 
       <div className="bg-zinc-900/40 backdrop-blur-2xl rounded-[2.5rem] p-8 md:p-10 border border-white/5 shadow-2xl space-y-6">
         <div className="space-y-2">
-          <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 ml-4">Identifier</label>
+          <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 ml-4">Email Address</label>
           <div className="relative group/input">
             <Mail className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500 group-focus-within/input:text-green-500 transition-colors" />
             <input
@@ -79,7 +79,7 @@ const EmailInputScreen = ({ onContinue, toast }: { onContinue: (email: string, p
         </div>
 
         <div className="space-y-2">
-          <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 ml-4">Access Key</label>
+          <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 ml-4">Password</label>
           <div className="relative group/input">
             <Lock className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500 group-focus-within/input:text-green-500 transition-colors" />
             <input
@@ -102,11 +102,11 @@ const EmailInputScreen = ({ onContinue, toast }: { onContinue: (email: string, p
           }}
           className="w-full bg-white text-black font-black italic uppercase tracking-widest py-5 rounded-2xl shadow-xl hover:shadow-green-500/20 transition-all flex items-center justify-center gap-2 group"
         >
-          Verify Identity <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+          Create Account <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
         </motion.button>
         
         <p className="text-center text-[10px] text-gray-500 font-bold uppercase tracking-widest">
-          Existing Identity? <Link to="/login" className="text-green-500 hover:text-white transition-colors">Authorize Login</Link>
+          Already have an account? <Link to="/login" className="text-green-500 hover:text-white transition-colors">Login Here</Link>
         </p>
       </div>
     </motion.div>
@@ -140,7 +140,7 @@ const EmailOTPScreen = ({ email, password, onContinue, onBack, toast }: { email:
       </button>
 
       <div className="text-center mb-10">
-        <h1 className="text-3xl font-black italic tracking-tighter uppercase mb-2">Verify <span className="text-green-500">Node</span></h1>
+        <h1 className="text-3xl font-black italic tracking-tighter uppercase mb-2">Verify <span className="text-green-500">Email</span></h1>
         <p className="text-xs text-gray-500 font-medium">Authentication code sent to <span className="text-white">{email}</span></p>
       </div>
 
@@ -175,11 +175,11 @@ const EmailOTPScreen = ({ email, password, onContinue, onBack, toast }: { email:
           disabled={isLoading}
           className="w-full bg-white text-black font-black italic uppercase tracking-widest py-5 rounded-2xl shadow-xl hover:shadow-green-500/20 transition-all flex items-center justify-center gap-2"
         >
-          {isLoading ? "Validating..." : "Confirm Identity"}
+          {isLoading ? "Verifying..." : "Verify Code"}
         </motion.button>
         
         <button onClick={() => toast.info("Check spam folder or resend")} className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 hover:text-green-500 transition-colors">
-          Resend Verification Signal
+          Resend Verification Code
         </button>
       </div>
     </motion.div>
@@ -195,13 +195,13 @@ const CompleteProfileScreen = ({ onContinue, onBack, toast }: { onContinue: (dat
   return (
     <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="w-full max-w-xl">
       <div className="text-center mb-10">
-        <h1 className="text-3xl font-black italic tracking-tighter uppercase mb-2">Subject <span className="text-green-500">Parameters</span></h1>
-        <p className="text-[10px] tracking-[0.3em] uppercase text-gray-500 font-black">Step 03: Profile Configuration</p>
+        <h1 className="text-3xl font-black italic tracking-tighter uppercase mb-2">Profile <span className="text-green-500">Details</span></h1>
+        <p className="text-[10px] tracking-[0.3em] uppercase text-gray-500 font-black">Step 03: Your Information</p>
       </div>
 
       <div className="bg-zinc-900/40 backdrop-blur-2xl rounded-[2.5rem] p-8 md:p-12 border border-white/5 shadow-2xl grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="space-y-2">
-          <label className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-500 ml-4">Primary Name</label>
+          <label className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-500 ml-4">First Name</label>
           <div className="relative group/input">
             <User className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 group-focus-within/input:text-green-500" />
             <input 
@@ -212,7 +212,7 @@ const CompleteProfileScreen = ({ onContinue, onBack, toast }: { onContinue: (dat
           </div>
         </div>
         <div className="space-y-2">
-          <label className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-500 ml-4">Secondary Name</label>
+          <label className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-500 ml-4">Last Name</label>
           <div className="relative group/input">
             <User className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 group-focus-within/input:text-green-500" />
             <input 
@@ -223,7 +223,7 @@ const CompleteProfileScreen = ({ onContinue, onBack, toast }: { onContinue: (dat
           </div>
         </div>
         <div className="col-span-1 md:col-span-2 space-y-2">
-          <label className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-500 ml-4">Communication Line</label>
+          <label className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-500 ml-4">Phone Number</label>
           <div className="relative group/input">
             <Phone className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 group-focus-within/input:text-green-500" />
             <span className="absolute left-11 top-1/2 -translate-y-1/2 text-sm font-black text-green-500/50">+234</span>
@@ -245,7 +245,7 @@ const CompleteProfileScreen = ({ onContinue, onBack, toast }: { onContinue: (dat
             }}
             className="w-full bg-green-500 text-white font-black italic uppercase tracking-widest py-5 rounded-2xl shadow-[0_10px_30px_rgba(34,197,94,0.3)] transition-all flex items-center justify-center gap-2"
           >
-            Configure Profile <ShieldCheck className="w-5 h-5" />
+            Save and Continue <ShieldCheck className="w-5 h-5" />
           </motion.button>
         </div>
       </div>
@@ -259,8 +259,8 @@ const AddressInputScreen = ({ onComplete, toast }: { onComplete: (addr: string) 
   return (
     <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-lg">
       <div className="text-center mb-10">
-        <h1 className="text-3xl font-black italic tracking-tighter uppercase mb-2">Operational <span className="text-green-500">Base</span></h1>
-        <p className="text-[10px] tracking-[0.3em] uppercase text-gray-500 font-black">Step 04: Final Integration</p>
+        <h1 className="text-3xl font-black italic tracking-tighter uppercase mb-2">Delivery <span className="text-green-500">Address</span></h1>
+        <p className="text-[10px] tracking-[0.3em] uppercase text-gray-500 font-black">Step 04: Your Location</p>
       </div>
 
       <div className="bg-zinc-900/40 backdrop-blur-2xl rounded-[2.5rem] p-8 md:p-12 border border-white/5 shadow-2xl space-y-8">
@@ -285,7 +285,7 @@ const AddressInputScreen = ({ onComplete, toast }: { onComplete: (addr: string) 
           }}
           className="w-full bg-white text-black font-black italic uppercase tracking-widest py-6 rounded-2xl shadow-xl transition-all flex items-center justify-center gap-2 group"
         >
-          Initialize Account <CheckCircle2 className="w-6 h-6 text-green-500 group-hover:scale-125 transition-transform" />
+          Finish Registration <CheckCircle2 className="w-6 h-6 text-green-500 group-hover:scale-125 transition-transform" />
         </motion.button>
       </div>
     </motion.div>
@@ -331,7 +331,7 @@ const Signup: React.FC = () => {
         {isFinalizing && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center">
             <div className="w-16 h-16 border-4 border-green-500 border-t-transparent rounded-full animate-spin mx-auto mb-6" />
-            <h2 className="text-xl font-black uppercase italic tracking-widest animate-pulse">Synchronizing Core...</h2>
+            <h2 className="text-xl font-black uppercase italic tracking-widest animate-pulse">Creating Account...</h2>
           </motion.div>
         )}
       </AnimatePresence>

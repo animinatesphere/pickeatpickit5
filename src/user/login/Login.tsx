@@ -4,7 +4,7 @@ import logo from "../../assets/Logo SVG 1.png";
 import { Link, useNavigate } from "react-router-dom";
 import { authService, APIError } from "../../services/authService";
 import { useToast, ToastContainer } from "../../component/Toast";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 
 const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
@@ -104,7 +104,7 @@ const Login = () => {
                 PickEAT <span className="text-green-500">PickIT</span>
               </h1>
               <p className="text-xs tracking-[0.3em] uppercase text-gray-500 font-bold">
-                Identity Authentication
+                User Login
               </p>
             </div>
 
@@ -118,14 +118,14 @@ const Login = () => {
                   <h2 className="text-2xl font-black italic tracking-tighter uppercase text-white mb-2">
                     Welcome Back
                   </h2>
-                  <p className="text-gray-400 text-sm font-medium">Enter your credentials to continue your journey</p>
+                  <p className="text-gray-400 text-sm font-medium">Enter your email and password to login</p>
                 </div>
 
                 <div className="space-y-6">
                   {/* Email Input */}
                   <div className="space-y-2">
                     <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 ml-4">
-                      Account Email
+                      Email Address
                     </label>
                     <div className="relative group/input">
                       <Mail className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500 group-focus-within/input:text-green-500 transition-colors" />
@@ -183,7 +183,7 @@ const Login = () => {
                        <div className="w-5 h-5 border-2 border-black border-t-transparent rounded-full animate-spin" />
                     ) : (
                       <>
-                        Authorize Access
+                        Login Now
                         <ShieldCheck className="w-5 h-5" />
                       </>
                     )}
@@ -191,7 +191,7 @@ const Login = () => {
 
                   <Link to="/" className="block">
                      <button className="w-full py-5 text-[10px] font-black uppercase tracking-[0.3em] text-gray-500 hover:text-white transition-colors flex items-center justify-center gap-2">
-                        <ArrowLeft className="w-3 h-3" /> Change Identity
+                        <ArrowLeft className="w-3 h-3" /> Back to Home
                      </button>
                   </Link>
                 </div>
@@ -206,12 +206,11 @@ const Login = () => {
                className="text-center mt-10"
             >
               <p className="text-gray-500 font-bold uppercase italic tracking-tighter">
-                New to the platform?{" "}
-                <Link to="/signup">
-                  <span className="text-green-500 hover:text-white transition-colors cursor-pointer border-b border-green-500/30">
-                    Register Identity
-                  </span>
-                </Link>
+                    <Link to="/signup">
+                      <span className="text-green-500 hover:text-white transition-colors cursor-pointer border-b border-green-500/30">
+                        Sign Up Now
+                      </span>
+                    </Link>
               </p>
             </motion.div>
           </motion.div>
