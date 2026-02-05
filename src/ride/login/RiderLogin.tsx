@@ -8,7 +8,7 @@ import {
   ArrowRight,
   ArrowLeft
 } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { authService, APIError } from "../../services/authService";
 import { motion } from "framer-motion";
 

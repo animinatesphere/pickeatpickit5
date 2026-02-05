@@ -1,7 +1,7 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Bike, ShieldCheck, Zap, DollarSign, ArrowRight, ArrowLeft } from "lucide-react";
+import { Bike, ShieldCheck, Zap, DollarSign, ArrowRight } from "lucide-react";
 
 const OnboardingScreen: React.FC = () => {
   return (

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { ArrowLeft, Camera, MapPin, X, Check, Loader2 } from "lucide-react";
+import { ArrowLeft, Camera, X, Check, Loader2 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "../../services/authService";
 

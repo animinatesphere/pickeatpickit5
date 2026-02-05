@@ -159,10 +159,9 @@ useEffect(() => {
     // Call your existing service
     const response = await apiService.uploadVendorPhoto(vendorId, file, "store_logo");
     
-    if (response && response.length > 0) {
+    if (response && response.publicUrl) {
       // Update local UI
-      const newUrl = response[0].photo_url as string;
-      setProfileImage(newUrl);
+      setProfileImage(response.publicUrl);
       toast.success("Profile photo updated!", "Photo Updated");
     }
   } catch (error) {

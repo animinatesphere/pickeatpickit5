@@ -1,5 +1,5 @@
 import React, { useState, useRef } from "react";
-import { APIError, supabase } from "../../services/authService";
+import { supabase } from "../../services/authService";
 import { ArrowLeft, Mail, Lock, User, Phone, MapPin, CheckCircle2, ShieldCheck, ChevronRight } from "lucide-react";
 import logo from "../../assets/Logo SVG 1.png";
 import { Link, useNavigate } from "react-router-dom";
@@ -53,7 +53,6 @@ const SignupShell = ({ children, step, totalSteps }: { children: React.ReactNode
 const EmailInputScreen = ({ onContinue, toast }: { onContinue: (email: string, password: string) => void, toast: any }) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
 
   return (
     <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="w-full max-w-lg">
@@ -187,7 +186,7 @@ const EmailOTPScreen = ({ email, password, onContinue, onBack, toast }: { email:
 };
 
 // Step 3: Profile
-const CompleteProfileScreen = ({ onContinue, onBack, toast }: { onContinue: (data: UserData) => void, onBack: () => void, toast: any }) => {
+const CompleteProfileScreen = ({ onContinue, toast }: { onContinue: (data: UserData) => void, toast: any }) => {
   const [fName, setFName] = useState("");
   const [lName, setLName] = useState("");
   const [ph, setPh] = useState("");
@@ -326,7 +325,7 @@ const Signup: React.FC = () => {
       <AnimatePresence mode="wait">
         {step === 1 && <EmailInputScreen key="s1" toast={toast} onContinue={(e, p) => { setEmail(e); setPassword(p); setStep(2); }} />}
         {step === 2 && <EmailOTPScreen key="s2" email={email} password={password} onContinue={() => setStep(3)} onBack={() => setStep(1)} toast={toast} />}
-        {step === 3 && <CompleteProfileScreen key="s3" onContinue={(d) => { setUserData(d); setStep(4); }} onBack={() => setStep(2)} toast={toast} />}
+        {step === 3 && <CompleteProfileScreen key="s3" onContinue={(d) => { setUserData(d); setStep(4); }} toast={toast} />}
         {step === 4 && !isFinalizing && <AddressInputScreen key="s4" onComplete={handleFinalComplete} toast={toast} />}
         {isFinalizing && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center">
