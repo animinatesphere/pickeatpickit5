@@ -1,7 +1,8 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Menu, Bell, ChevronRight, ArrowLeft } from "lucide-react";
+import { getAllOrders, getAdminOrderDetails } from "../../services/api";
 
-type OrderStatus = "Completed" | "Pending" | "Cancelled";
+type OrderStatus = "Completed" | "Pending" | "Cancelled" | "Preparing" | "Accepted" | "Picked_up";
 type StatusTab = "All" | "Pending" | "Completed" | "Cancelled";
 type Screen = "main" | "details" | "status-control";
 
@@ -47,82 +48,80 @@ const OrderManagement: React.FC = () => {
   const [activeTab, setActiveTab] = useState<StatusTab>("All");
   const [currentScreen, setCurrentScreen] = useState<Screen>("main");
   const [selectedOrder, setSelectedOrder] = useState<OrderDetail | null>(null);
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const orders: Order[] = [
-    {
-      id: "1",
-      name: "Robert Fox",
-      date: "Oct 24, 2022 at 06:00 am",
-      amount: "₦5000",
-      status: "Completed",
-      image:
-        "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=400&h=400&fit=crop",
-    },
-    {
-      id: "2",
-      name: "Cameron Williamson",
-      date: "Oct 24, 2022 at 06:00 am",
-      amount: "₦5000",
-      status: "Pending",
-      image:
-        "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400&h=400&fit=crop",
-    },
-    {
-      id: "3",
-      name: "Wade Warren",
-      date: "Oct 24, 2022 at 06:00 am",
-      amount: "₦5000",
-      status: "Cancelled",
-      image:
-        "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=400&h=400&fit=crop",
-    },
-  ];
-
-  const statusOrders: StatusOrder[] = [
-    {
-      id: "1",
-      name: "Samuel Omotayo .K",
-      location: "Vila Nova Estate, New Agp Ext.",
-      time: "Tue 21 Oct. - 4:00PM",
-      status: "Completed",
-      image:
-        "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=400&h=400&fit=crop",
-    },
-    {
-      id: "2",
-      name: "Samuel Omotayo .K",
-      location: "Vila Nova Estate, New Agp Ext.",
-      time: "Tue 21 Oct. - 4:00PM",
-      status: "Preparing",
-      image:
-        "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400&h=400&fit=crop",
-      showCheckout: true,
-    },
-  ];
-
-  const orderDetail: OrderDetail = {
-    id: "5178",
-    title: "Fried Rice",
-    price: "$15.67",
-    quantity: "X2",
-    status: "Paid",
-    items: [
-      { quantity: 2, name: "Jollof Rice", price: "$46.90" },
-      { quantity: 5, name: "Fried Plantain", price: "$1.75" },
-      { quantity: 1, name: "Banana Smoothie", price: "$0.89" },
-    ],
-    serviceCharges: "$0.15",
-    deliveryCharges: "$1.45",
-    promoCode: "-5% off",
-    total: "$51.14",
-    deliverTo: "Old Male Hostel University of Abuja, Block A| Room 302",
-    assignedRider: "Mr. Bright Osmond",
+  const fetchOrders = async () => {
+    setLoading(true);
+    try {
+      const { data, error } = await getAllOrders();
+      if (!error && data) {
+        const formattedOrders: Order[] = data.map(o => ({
+          id: o.id,
+          name: o.users ? `${o.users.firstname} ${o.users.lastname}` : (o.restaurant_name || "Unknown"),
+          date: new Date(o.created_at).toLocaleString('en-US', { 
+            month: 'short', 
+            day: 'numeric', 
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+          }),
+          amount: `₦${(o.total_amount || 0).toLocaleString()}`,
+          status: (o.status.charAt(0).toUpperCase() + o.status.slice(1)) as OrderStatus,
+          image: "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=400&h=400&fit=crop" // Placeholder image for now
+        }));
+        setOrders(formattedOrders);
+      }
+    } catch (err) {
+      console.error("Failed to fetch orders", err);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleCheckClick = () => {
-    setSelectedOrder(orderDetail);
-    setCurrentScreen("details");
+  useEffect(() => {
+    fetchOrders();
+  }, []);
+
+  const handleCheckClick = async (orderId: string) => {
+    try {
+      const { data, error } = await getAdminOrderDetails(orderId);
+      if (!error && data) {
+        const detail: OrderDetail = {
+          id: data.id.slice(0, 4), // Using short ID for display
+          title: data.order_items?.[0]?.menu_items?.name || "Multiple Items",
+          price: `₦${(data.total_amount || 0).toLocaleString()}`,
+          quantity: `X${data.items_count || 1}`,
+          status: data.status.toUpperCase(),
+          items: (data.order_items || []).map((item: any) => ({
+            quantity: item.quantity,
+            name: item.menu_items?.name || "Unknown Item",
+            price: `₦${(item.price || 0).toLocaleString()}`
+          })),
+          serviceCharges: "₦500", // Fixed or calculated
+          deliveryCharges: "₦1,000",
+          promoCode: "None",
+          total: `₦${(data.total_amount || 0).toLocaleString()}`,
+          deliverTo: data.delivery_address,
+          assignedRider: data.riders ? `${data.riders.firstname} ${data.riders.lastname}` : "Not Assigned"
+        };
+        setSelectedOrder(detail);
+        setCurrentScreen("details");
+      }
+    } catch (err) {
+      console.error("Failed to fetch order details", err);
+    }
   };
+
+  const statusOrders: StatusOrder[] = orders.slice(0, 5).map(o => ({
+    id: o.id,
+    name: o.name,
+    location: "Vila Nova Estate, New Agp Ext.", // Hardcoded as it's not in the summary item
+    time: o.date,
+    status: o.status,
+    image: o.image,
+    showCheckout: o.status === "Preparing"
+  }));
 
   const handleStatusControlClick = () => {
     setCurrentScreen("status-control");
@@ -134,14 +133,14 @@ const OrderManagement: React.FC = () => {
   };
 
   const getStatusColor = (status: string) => {
-    switch (status) {
-      case "Completed":
+    switch (status.toLowerCase()) {
+      case "completed":
         return "text-green-600";
-      case "Pending":
+      case "pending":
         return "text-yellow-600";
-      case "Cancelled":
+      case "cancelled":
         return "text-red-600";
-      case "Preparing":
+      case "preparing":
         return "text-blue-600";
       default:
         return "text-gray-600";
@@ -149,14 +148,14 @@ const OrderManagement: React.FC = () => {
   };
 
   const getStatusBgColor = (status: string) => {
-    switch (status) {
-      case "Completed":
+    switch (status.toLowerCase()) {
+      case "completed":
         return "bg-green-600";
-      case "Pending":
+      case "pending":
         return "bg-yellow-600";
-      case "Cancelled":
+      case "cancelled":
         return "bg-red-600";
-      case "Preparing":
+      case "preparing":
         return "bg-blue-600";
       default:
         return "bg-gray-600";
@@ -168,9 +167,17 @@ const OrderManagement: React.FC = () => {
       ? orders
       : orders.filter((order) => order.status === activeTab);
 
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-white dark:bg-gray-950">
+        <div className="w-12 h-12 border-4 border-green-600 border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-white dark:bg-gray-950 transition-colors duration-300">
-      <div className="w-full max-w-2xl mx-auto bg-white dark:bg-gray-950 min-h-screen">
+      <div className="w-full bg-white dark:bg-gray-950 min-h-screen">
         {/* Main Screen */}
         {currentScreen === "main" && (
           <div className="animate-fadeIn">
@@ -265,9 +272,9 @@ const OrderManagement: React.FC = () => {
                               {order.date}
                             </p>
                           </div>
-                          {order.status === "Pending" && (
+                          {order.status !== "Completed" && (
                             <button
-                              onClick={handleCheckClick}
+                              onClick={() => handleCheckClick(order.id)}
                               className="px-5 py-2 bg-green-600 dark:bg-green-700 text-white text-[10px] font-black uppercase italic tracking-widest rounded-xl hover:bg-green-700 transition-all transform hover:scale-105 shadow-lg shadow-green-500/20 active:scale-95"
                             >
                               Details

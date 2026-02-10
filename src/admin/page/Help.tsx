@@ -36,8 +36,8 @@ const Help: React.FC = () => {
   const selectedCountry = countryCodes.find((c) => c.code === countryCode);
 
   return (
-    <div className="min-h-screen bg-white dark:bg-gray-950 transition-colors duration-300 flex items-center justify-center p-4">
-      <div className="w-full max-w-2xl bg-white dark:bg-gray-950 rounded-[2.5rem] shadow-2xl overflow-hidden border border-transparent dark:border-gray-800">
+    <div className="min-h-screen bg-white dark:bg-gray-950 transition-colors duration-300">
+      <div className="w-full bg-white dark:bg-gray-950 rounded-[2.5rem] shadow-2xl overflow-hidden border border-transparent dark:border-gray-800">
         <div className="animate-fadeIn min-h-screen">
           {/* Header */}
           <div className="bg-green-600 dark:bg-green-700 text-white p-6 sticky top-0 z-40 shadow-lg">

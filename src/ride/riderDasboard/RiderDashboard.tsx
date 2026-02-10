@@ -133,7 +133,7 @@ export default function RiderDashboard() {
         </div>
 
         {/* Today's Orders Card */}
-        <Link to="/rider-orders" className="block">
+        <Link to="/rider-order" className="block">
           <div className="bg-white rounded-[2rem] p-8 shadow-xl border border-gray-100 hover:border-green-300 hover:shadow-2xl transition-all group active:scale-[0.98]">
             <div className="flex items-center justify-between">
               <div className="flex-1">

@@ -1,5 +1,6 @@
-import React, { useState } from "react";
-import { ArrowLeft, ChevronRight, Search } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { ArrowLeft, ChevronRight, Search, Loader2 } from "lucide-react";
+import { getAdminUsers, getAdminVendors, getAdminRiders } from "../../services/api";
 
 type Screen =
   | "main"
@@ -30,63 +31,82 @@ const Restrict: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [currentPageType, setCurrentPageType] = useState<PageType>("user");
+  const [loading, setLoading] = useState(false);
 
   // Users with their individual page settings
-  const [users, setUsers] = useState<UserItem[]>(
-    Array(10)
-      .fill(null)
-      .map((_, i) => ({
-        id: `user-${i}`,
-        name: "Bessie Cooper",
-        avatar:
-          "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&h=150&fit=crop",
-        orders: 24,
-        pages: [
-          { id: "1", name: "Special Offers", enabled: true },
-          { id: "2", name: "Featured Sellers", enabled: true },
-          { id: "3", name: "Kitchens near you", enabled: true },
-          { id: "4", name: "Schedule Delivery", enabled: true },
-          { id: "5", name: "Order", enabled: true },
-        ],
-      }))
-  );
+  const [users, setUsers] = useState<UserItem[]>([]);
+  const [vendors, setVendors] = useState<UserItem[]>([]);
+  const [riders, setRiders] = useState<UserItem[]>([]);
 
-  // Vendors with their individual page settings
-  const [vendors, setVendors] = useState<UserItem[]>(
-    Array(10)
-      .fill(null)
-      .map((_, i) => ({
-        id: `vendor-${i}`,
-        name: "Mardiya Kitchen",
-        avatar:
-          "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&h=150&fit=crop",
-        orders: 24,
-        pages: [
-          { id: "1", name: "Orders", enabled: true },
-          { id: "2", name: "Earnings", enabled: true },
-          { id: "3", name: "Chat", enabled: true },
-          { id: "4", name: "Reviews and Feedback", enabled: true },
-        ],
-      }))
-  );
+  const defaultUserPages = [
+    { id: "1", name: "Special Offers", enabled: true },
+    { id: "2", name: "Featured Sellers", enabled: true },
+    { id: "3", name: "Kitchens near you", enabled: true },
+    { id: "4", name: "Schedule Delivery", enabled: true },
+    { id: "5", name: "Order", enabled: true },
+  ];
 
-  // Riders with their individual page settings
-  const [riders, setRiders] = useState<UserItem[]>(
-    Array(10)
-      .fill(null)
-      .map((_, i) => ({
-        id: `rider-${i}`,
-        name: "John Rider",
-        avatar:
-          "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop",
-        orders: 24,
-        pages: [
-          { id: "1", name: "Rider Games", enabled: true },
-          { id: "2", name: "Map", enabled: true },
-          { id: "3", name: "Order", enabled: true },
-        ],
-      }))
-  );
+  const defaultVendorPages = [
+    { id: "1", name: "Orders", enabled: true },
+    { id: "2", name: "Earnings", enabled: true },
+    { id: "3", name: "Chat", enabled: true },
+    { id: "4", name: "Reviews and Feedback", enabled: true },
+  ];
+
+  const defaultRiderPages = [
+    { id: "1", name: "Rider Games", enabled: true },
+    { id: "2", name: "Map", enabled: true },
+    { id: "3", name: "Order", enabled: true },
+  ];
+
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const [uRes, vRes, rRes] = await Promise.all([
+        getAdminUsers(),
+        getAdminVendors(),
+        getAdminRiders()
+      ]);
+
+      if (!uRes.error && uRes.data) {
+        setUsers(uRes.data.map(u => ({
+          id: u.user_id,
+          name: `${u.firstname} ${u.lastname}`,
+          avatar: u.avatar_url || "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&h=150&fit=crop",
+          orders: 0, // In a real app, we'd fetch this too
+          pages: [...defaultUserPages]
+        })));
+      }
+
+      if (!vRes.error && vRes.data) {
+        setVendors(vRes.data.map(v => ({
+          id: v.id,
+          name: v.business_name || "Unknown Vendor",
+          avatar: v.avatar_url || "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&h=150&fit=crop",
+          orders: 0,
+          pages: [...defaultVendorPages]
+        })));
+      }
+
+      if (!rRes.error && rRes.data) {
+        setRiders(rRes.data.map(r => ({
+          id: r.id,
+          name: `${r.firstname} ${r.lastname}`,
+          avatar: r.avatar_url || "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop",
+          orders: 0,
+          pages: [...defaultRiderPages]
+        })));
+      }
+    } catch (err) {
+      console.error("Restriction fetch error:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
 
   const handleUserClick = (userId: string, pageType: PageType) => {
     setSelectedUserId(userId);
@@ -204,9 +224,17 @@ const Restrict: React.FC = () => {
     }
   };
 
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-white dark:bg-gray-950 flex items-center justify-center">
+        <Loader2 className="w-12 h-12 text-green-600 animate-spin" />
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-      <div className="w-full max-w-7xl bg-white  overflow-hidden">
+    <div className="min-h-screen bg-white dark:bg-gray-950">
+      <div className="w-full">
         {/* Main Pages Screen */}
         {currentScreen === "main" && (
           <div className="animate-fadeIn min-h-screen">

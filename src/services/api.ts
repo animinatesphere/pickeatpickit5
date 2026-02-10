@@ -390,6 +390,178 @@ export const getAdminStats = async () => {
   };
 };
 
+// ADMIN - GET ALL ORDERS
+export const getAllOrders = async () => {
+  const { data, error } = await supabase
+    .from('orders')
+    .select(`
+      *,
+      users (firstname, lastname),
+      vendors (business_name)
+    `)
+    .order('created_at', { ascending: false });
+  
+  return { data, error };
+};
+
+// ADMIN - GET DETAILED ORDER
+export const getAdminOrderDetails = async (orderId: string) => {
+  const { data, error } = await supabase
+    .from('orders')
+    .select(`
+      *,
+      users (firstname, lastname, email, phone, address, city, state),
+      vendors (business_name, business_address, business_phone),
+      riders (firstname, lastname, phone),
+      order_items (
+        id,
+        quantity,
+        price,
+        menu_items (name)
+      )
+    `)
+    .eq('id', orderId)
+    .single();
+  
+  return { data, error };
+};
+
+// ADMIN - REVENUE ANALYTICS
+export const getRevenueAnalytics = async (period: 'D' | 'W' | 'M' | 'Y') => {
+  const now = new Date();
+  let startDate = new Date();
+
+  switch (period) {
+    case 'D': startDate.setDate(now.getDate() - 1); break;
+    case 'W': startDate.setDate(now.getDate() - 7); break;
+    case 'M': startDate.setDate(now.getDate() - 30); break;
+    case 'Y': startDate.setDate(now.getDate() - 365); break;
+  }
+
+  const { data, error } = await supabase
+    .from('orders')
+    .select('total_amount, created_at, status')
+    .eq('status', 'completed')
+    .gte('created_at', startDate.toISOString());
+
+  if (error) return { data: null, error };
+
+  return { data, error: null };
+};
+
+// ADMIN - TOP USERS
+export const getTopUsers = async (limit = 5) => {
+  const { data, error } = await supabase
+    .from('orders')
+    .select('user_id, users(firstname, lastname)')
+    .eq('status', 'completed');
+
+  if (error) return { data: null, error };
+
+  // Calculate order counts
+  const counts: Record<string, any> = {};
+  data.forEach(order => {
+    const id = order.user_id;
+    if (!counts[id]) {
+      const user = order.users as any;
+      counts[id] = { 
+        name: user ? `${user.firstname} ${user.lastname}` : 'Unknown',
+        orders: 0 
+      };
+    }
+    counts[id].orders++;
+  });
+
+  return {
+    data: Object.values(counts)
+      .sort((a, b) => b.orders - a.orders)
+      .slice(0, limit),
+    error: null
+  };
+};
+
+// ADMIN - GET POPULAR ITEMS
+export const getPopularItems = async (limit = 3) => {
+  const { data, error } = await supabase
+    .from('order_items')
+    .select('menu_item_id, menu_items(name, category)')
+    .order('created_at', { ascending: false });
+
+  if (error) return { data: null, error };
+
+  const counts: Record<string, any> = {};
+  data.forEach(item => {
+    const id = item.menu_item_id;
+    if (!id) return;
+    if (!counts[id]) {
+      const menuItem = item.menu_items as any;
+      counts[id] = { 
+        name: menuItem?.name || 'Unknown',
+        category: menuItem?.category || 'General',
+        count: 0 
+      };
+    }
+    counts[id].count++;
+  });
+
+  return {
+    data: Object.values(counts)
+      .sort((a, b) => b.count - a.count)
+      .slice(0, limit),
+    error: null
+  };
+};
+
+// ADMIN - GET ALL TRANSACTIONS
+export const getAllTransactions = async () => {
+  const { data, error } = await supabase
+    .from('transactions')
+    .select('*')
+    .order('created_at', { ascending: false });
+  
+  return { data, error };
+};
+
+// ADMIN - GET PAYOUT REQUESTS
+export const getPayoutRequests = async () => {
+  const { data, error } = await supabase
+    .from('payout_requests')
+    .select('*')
+    .order('created_at', { ascending: false });
+  
+  return { data, error };
+};
+
+// ADMIN - UPDATE PAYOUT STATUS
+export const updatePayoutStatus = async (payoutId: string, status: 'approved' | 'rejected' | 'successful') => {
+  const { data, error } = await supabase
+    .from('payout_requests')
+    .update({ status, updated_at: new Date() })
+    .eq('id', payoutId)
+    .select();
+  
+  return { data, error };
+};
+
+// ADMIN - GET PLATFORM TOTALS
+export const getPlatformTotals = async () => {
+  const { data: orders } = await supabase
+    .from('orders')
+    .select('total_amount')
+    .eq('status', 'completed');
+  
+  const totalEarnings = orders?.reduce((sum, o) => sum + (o.total_amount || 0), 0) || 0;
+  
+  const { data: pendingPayouts } = await supabase
+    .from('payout_requests')
+    .select('amount')
+    .eq('status', 'pending');
+  
+  const totalPendingPayouts = pendingPayouts?.reduce((sum, p) => sum + (p.amount || 0), 0) || 0;
+
+  return { totalEarnings, totalPendingPayouts };
+};
+
 export const getRiderStats = async (riderId: string) => {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -412,4 +584,48 @@ export const getRiderStats = async (riderId: string) => {
     completedToday: todayOrders.filter(o => o.status === 'completed').length,
     inProgressToday: todayOrders.filter(o => ['accepted', 'picked_up'].includes(o.status)).length
   };
+};
+
+// ADMIN - GET USERS FOR RESTRICTION
+export const getAdminUsers = async () => {
+  const { data, error } = await supabase
+    .from('users')
+    .select(`
+      user_id,
+      firstname,
+      lastname,
+      avatar_url
+    `)
+    .order('created_at', { ascending: false });
+  
+  return { data, error };
+};
+
+// ADMIN - GET VENDORS FOR RESTRICTION
+export const getAdminVendors = async () => {
+  const { data, error } = await supabase
+    .from('vendors')
+    .select(`
+      id,
+      business_name,
+      avatar_url
+    `)
+    .order('created_at', { ascending: false });
+  
+  return { data, error };
+};
+
+// ADMIN - GET RIDERS FOR RESTRICTION
+export const getAdminRiders = async () => {
+  const { data, error } = await supabase
+    .from('riders')
+    .select(`
+      id,
+      firstname,
+      lastname,
+      avatar_url
+    `)
+    .order('created_at', { ascending: false });
+  
+  return { data, error };
 };

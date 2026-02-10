@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   BarChart,
   Bar,
@@ -15,53 +15,110 @@ import {
   Users,
   ShoppingBag,
   Clock,
+  Loader2,
 } from "lucide-react";
+import { 
+  getRevenueAnalytics, 
+  getTopUsers, 
+  getPopularItems, 
+  getPlatformTotals 
+} from "../../services/api";
 
 const Analysis = () => {
   const [activeTab, setActiveTab] = useState("M");
+  const [loading, setLoading] = useState(true);
+  
+  const [peakHours, setPeakHours] = useState("N/A");
+  const [topCategory, setTopCategory] = useState("N/A");
+  const [chartData, setChartData] = useState<any[]>([]);
+  const [topUsers, setTopUsers] = useState<any[]>([]);
+  const [popularItems, setPopularItems] = useState<any[]>([]);
+  const [revenue, setRevenue] = useState(0);
 
-  const chartData = [
-    { day: "1", value: 60000 },
-    { day: "3", value: 85000 },
-    { day: "5", value: 95000 },
-    { day: "7", value: 78000 },
-    { day: "9", value: 65000 },
-    { day: "11", value: 92000 },
-    { day: "13", value: 72000 },
-    { day: "15", value: 88000 },
-    { day: "17", value: 95000 },
-    { day: "19", value: 68000 },
-    { day: "21", value: 82000 },
-    { day: "23", value: 98000 },
-    { day: "25", value: 90000 },
-    { day: "27", value: 85000 },
-    { day: "29", value: 95000 },
-    { day: "31", value: 88000 },
-  ];
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const [revRes, usersRes, itemsRes, totalsRes] = await Promise.all([
+        getRevenueAnalytics(activeTab as any),
+        getTopUsers(3),
+        getPopularItems(3),
+        getPlatformTotals()
+      ]);
 
-  const users = [
-    { name: "Esther Howard", orders: 33, avatar: "👩🏻", color: "bg-orange-400" },
-    { name: "Jacob Jones", orders: 29, avatar: "👨🏻", color: "bg-green-400" },
-    { name: "Bessie Cooper", orders: 24, avatar: "👩🏻‍🦰", color: "bg-blue-400" },
-  ];
+      if (!revRes.error && revRes.data) {
+        // Group by day for the chart
+        const grouped: Record<string, number> = {};
+        const hours: Record<number, number> = {};
+
+        revRes.data.forEach((o: any) => {
+          const date = new Date(o.created_at);
+          const day = date.getDate().toString();
+          grouped[day] = (grouped[day] || 0) + (o.total_amount || 0);
+
+          const hour = date.getHours();
+          hours[hour] = (hours[hour] || 0) + 1;
+        });
+        
+        const formattedChart = Object.entries(grouped).map(([day, value]) => ({
+          day,
+          value
+        })).sort((a, b) => parseInt(a.day) - parseInt(b.day));
+        
+        setChartData(formattedChart);
+
+        // Calculate peak hour
+        const sortedHours = Object.entries(hours).sort((a, b) => b[1] - a[1]);
+        if (sortedHours.length > 0) {
+          const topHour = parseInt(sortedHours[0][0]);
+          const endHour = (topHour + 1) % 24;
+          const formatHour = (h: number) => h === 0 ? "12AM" : h < 12 ? `${h}AM` : h === 12 ? "12PM" : `${h - 12}PM`;
+          setPeakHours(`${formatHour(topHour)} - ${formatHour(endHour)}`);
+        }
+      }
+
+      setTopUsers(usersRes.data || []);
+      setPopularItems(itemsRes.data || []);
+      setRevenue(totalsRes.totalEarnings);
+      
+      if (itemsRes.data && itemsRes.data.length > 0) {
+        setTopCategory((itemsRes.data[0] as any).category || "General");
+      }
+    } catch (err) {
+      console.error("Failed to fetch analytics", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, [activeTab]);
+
+  if (loading) {
+    return (
+      <div className="h-96 flex items-center justify-center">
+        <Loader2 className="w-12 h-12 text-green-600 animate-spin" />
+      </div>
+    );
+  }
 
   const insights = [
     {
       icon: ShoppingBag,
-      label: "Most sells",
-      value: "Mardiya kitchen",
+      label: "Most popular item",
+      value: popularItems[0]?.name || "N/A",
       color: "bg-orange-400",
     },
     {
       icon: TrendingUp,
-      label: "Popular orders",
-      value: "Fried rice",
+      label: "Popular category",
+      value: topCategory,
       color: "bg-green-400",
     },
     {
       icon: Clock,
       label: "Peak order hours",
-      value: "5PM - 9PM",
+      value: peakHours,
       color: "bg-blue-400",
     },
   ];
@@ -70,7 +127,7 @@ const Analysis = () => {
     <div className="min-h-screen bg-white dark:bg-gray-950 transition-colors duration-300">
       {/* Header */}
       <div className="bg-green-600 dark:bg-green-700 text-white px-4 py-6 shadow-xl sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto">
+        <div className="w-full">
           <div className="flex items-center justify-between mb-6">
             <button className="p-2 hover:bg-white/20 rounded-xl transition-all active:scale-95 shadow-lg">
               <Menu className="w-6 h-6" />
@@ -90,7 +147,7 @@ const Analysis = () => {
                 <p className="text-green-100 dark:text-green-300 text-xs font-bold uppercase tracking-[0.2em] mb-2 font-inter italic">
                   Total Revenue
                 </p>
-                <p className="text-4xl font-black font-inter tracking-tighter">$1,200.87</p>
+                <p className="text-4xl font-black font-inter tracking-tighter">₦{revenue.toLocaleString()}</p>
               </div>
               <div className="bg-white/20 p-4 rounded-3xl border border-white/20 shadow-inner">
                 <TrendingUp className="w-8 h-8" />
@@ -100,7 +157,7 @@ const Analysis = () => {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 py-6 space-y-6">
+      <div className="w-full px-4 py-6 space-y-6">
         {/* Chart Section */}
         <div className="bg-white dark:bg-gray-900 rounded-[2.5rem] shadow-2xl p-8 border border-transparent dark:border-gray-800 animate-fade-in transition-all">
           <div className="flex items-center justify-between mb-10">
@@ -158,7 +215,7 @@ const Analysis = () => {
                   fontWeight: 'bold',
                 }}
                 itemStyle={{ color: '#059669' }}
-                formatter={(value) => [`$${value.toLocaleString()}`, "Revenue"]}
+                formatter={(value) => [`₦${value.toLocaleString()}`, "Revenue"]}
               />
               <Bar
                 dataKey="value"
@@ -182,16 +239,16 @@ const Analysis = () => {
           </div>
 
           <div className="space-y-4">
-            {users.map((user, index) => (
+            {topUsers.map((user, index) => (
               <div
                 key={user.name}
                 className="flex items-center gap-5 p-4 rounded-3xl hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-all cursor-pointer group border border-transparent hover:border-gray-100 dark:hover:border-gray-700 shadow-sm"
                 style={{ animationDelay: `${index * 100}ms` }}
               >
                 <div
-                  className={`w-14 h-14 ${user.color} rounded-[1.25rem] flex items-center justify-center text-3xl shadow-2xl group-hover:rotate-6 transition-all duration-300 transform`}
+                  className={`w-14 h-14 bg-green-100 dark:bg-green-900/30 rounded-[1.25rem] flex items-center justify-center text-3xl shadow-2xl group-hover:rotate-6 transition-all duration-300 transform`}
                 >
-                  {user.avatar}
+                  {user.name.charAt(0)}
                 </div>
                 <div className="flex-1">
                   <p className="font-bold text-gray-800 dark:text-gray-100 font-inter tracking-tight text-lg">{user.name}</p>
@@ -199,8 +256,8 @@ const Analysis = () => {
                 </div>
                 <div className="w-20 h-2.5 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden p-0.5">
                   <div
-                    className={`h-full ${user.color} rounded-full transition-all duration-1000 shadow-[0_0_10px_rgba(34,197,94,0.3)]`}
-                    style={{ width: `${(user.orders / 33) * 100}%` }}
+                    className={`h-full bg-green-500 rounded-full transition-all duration-1000 shadow-[0_0_10px_rgba(34,197,94,0.3)]`}
+                    style={{ width: `${(user.orders / (topUsers[0]?.orders || 1)) * 100}%` }}
                   ></div>
                 </div>
               </div>

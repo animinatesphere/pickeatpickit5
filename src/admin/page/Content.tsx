@@ -228,7 +228,7 @@ const Content: React.FC = () => {
   );
 
   const renderHome = () => (
-    <div className="p-4 space-y-6 animate-fadeIn max-w-2xl mx-auto">
+    <div className="p-4 space-y-6 animate-fadeIn w-full">
       <div className="bg-white dark:bg-gray-900 rounded-3xl shadow-xl p-8 transform hover:scale-[1.01] transition-all duration-300 border border-transparent dark:border-gray-800">
         <h2 className="text-green-600 dark:text-green-400 font-black text-xl mb-6 font-inter italic tracking-tighter uppercase">
           Daily Rider Game Target
@@ -333,7 +333,7 @@ const Content: React.FC = () => {
   );
 
   const renderGameHistory = () => (
-    <div className="p-4 space-y-6 animate-fadeIn max-w-2xl mx-auto">
+    <div className="p-4 space-y-6 animate-fadeIn w-full">
       {games.map((game, idx) => (
         <div
           key={game.id}
@@ -371,7 +371,7 @@ const Content: React.FC = () => {
   );
 
   const renderNotifications = () => (
-    <div className="p-4 space-y-6 animate-fadeIn max-w-2xl mx-auto">
+    <div className="p-4 space-y-6 animate-fadeIn w-full">
       {notifications.map((notif, idx) => (
         <div
           key={notif.id}
@@ -406,7 +406,7 @@ const Content: React.FC = () => {
   );
 
   const renderBanners = () => (
-    <div className="p-4 space-y-6 animate-fadeIn max-w-2xl mx-auto">
+    <div className="p-4 space-y-6 animate-fadeIn w-full">
       {banners.map((banner, idx) => (
         <div
           key={banner.id}
@@ -475,7 +475,7 @@ const Content: React.FC = () => {
   );
 
   const renderBannerForm = () => (
-    <div className="p-4 space-y-8 animate-fadeIn max-w-2xl mx-auto">
+    <div className="p-4 space-y-8 animate-fadeIn w-full">
       <div className="bg-white dark:bg-gray-900 rounded-[2.5rem] shadow-xl p-8 border border-transparent dark:border-gray-800">
         <div className="space-y-6">
           <div>

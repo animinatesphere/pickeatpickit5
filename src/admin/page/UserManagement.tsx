@@ -172,7 +172,7 @@ const UserManagement = () => {
             </div>
 
             {/* Information Cards */}
-            <div className="space-y-6 max-w-lg mx-auto">
+            <div className="space-y-6 w-full">
               <div className="bg-white dark:bg-gray-900 p-6 rounded-3xl shadow-xl border border-transparent dark:border-gray-800 transition-all">
                 <h3 className="text-[10px] font-bold text-gray-400 dark:text-gray-600 uppercase tracking-[0.2em] mb-6">Contact Information</h3>
                 
@@ -249,7 +249,7 @@ const UserManagement = () => {
           </div>
 
           <div className="px-4 py-6 bg-white dark:bg-gray-900 shadow-sm border-b border-gray-100 dark:border-gray-800">
-            <div className="relative group max-w-lg mx-auto">
+            <div className="relative group w-full">
               <Search className="w-5 h-5 absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-green-600 transition-colors" />
               <input type="text" placeholder="Search through users..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-12 pr-4 py-4 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-800 rounded-2xl focus:ring-4 focus:ring-green-500/10 focus:border-green-500 dark:focus:border-green-400 outline-none text-gray-800 dark:text-gray-100 transition-all font-inter" />
@@ -267,7 +267,7 @@ const UserManagement = () => {
           </div>
 
           {/* User List */}
-          <div className="px-4 py-4 space-y-3 max-w-lg mx-auto">
+          <div className="px-4 py-4 space-y-3 w-full">
             {filteredUsers.map((user) => (
               <div key={user.id} onClick={() => handleUserClick(user)} 
                 className="bg-white dark:bg-gray-900 rounded-2xl py-5 px-5 flex items-center justify-between border border-transparent dark:border-gray-800 hover:border-green-200 dark:hover:border-green-900/50 transition-all cursor-pointer shadow-sm hover:shadow-xl group">
