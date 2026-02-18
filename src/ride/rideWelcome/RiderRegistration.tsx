@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { authService, supabase } from "../../services/authService";
+import { authService } from "../../services/authService";
 import {
   Upload,
   CheckCircle,
@@ -163,10 +163,9 @@ function StepOTP({ formData, onChange, onNext, onBack, isLoading, setIsLoading, 
   const handleVerify = async () => {
     setIsLoading(true);
     try {
-      const { data, error: e } = await supabase.auth.verifyOtp({ email: formData.email, token: formData.emailOTP, type: "email" });
-      if (e) throw e;
-      if (data.user) {
-        const id = await authService.createInitialRiderProfile(data.user.id, formData.email);
+      const { user } = await authService.verifyEmailOTP(formData.email, formData.emailOTP);
+      if (user) {
+        const id = await authService.createInitialRiderProfile(user.id, formData.email);
         setRiderId(id);
         onNext();
       }
@@ -188,6 +187,21 @@ function StepOTP({ formData, onChange, onNext, onBack, isLoading, setIsLoading, 
         <input maxLength={6} type="text" value={formData.emailOTP} onChange={e => onChange("emailOTP", e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-2xl py-6 text-4xl font-black text-center text-orange-500 tracking-[0.5em] focus:border-orange-500/50 outline-none" />
         <button onClick={handleVerify} disabled={isLoading} className="w-full bg-white text-black font-black italic uppercase tracking-widest py-5 rounded-2xl shadow-xl">
           {isLoading ? "Verifying..." : "Verify Code"}
+        </button>
+
+        <button 
+          onClick={async () => {
+            try {
+              await authService.resendOtp(formData.email);
+              // We use alert or a local error state since toast isn't visible here
+              setError("A new code has been sent to your email.");
+            } catch (e: any) {
+              setError(e.message || "Failed to resend");
+            }
+          }} 
+          className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-500 hover:text-orange-500 transition-colors w-full mt-4"
+        >
+          Didn't receive code? <span className="underline">Resend Signal</span>
         </button>
       </div>
     </motion.div>

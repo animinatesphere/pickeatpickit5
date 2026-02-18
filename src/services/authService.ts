@@ -6,6 +6,7 @@ import type {
   LoginResponse,
   GetOTPResponse,
 } from "../types/api.types";
+import { humanizeError } from "../utils/errorUtils";
 
 // Initialize Supabase client
 const SUPABASE_URL = "https://acuqcetaduizgwchoosa.supabase.co";
@@ -39,8 +40,6 @@ const safeAsyncRequired = async <T>(operation: () => Promise<T>): Promise<T> => 
 };
 
 class AuthService {
-  // Add this to your AuthService class in authService.ts
-
   // src/services/authService.ts
 
   async createInitialRiderProfile(
@@ -63,7 +62,7 @@ class AuthService {
       .select("id")
       .single();
 
-    if (error) throw new APIError(error.message, 400);
+    if (error) throw new APIError(humanizeError(error, "We couldn't create your profile."), 400);
     return data.id;
   }
   // Update the existing registerRider to handle UPDATES instead of a new SIGNUP
@@ -83,7 +82,7 @@ class AuthService {
       })
       .eq("id", riderId);
 
-    if (error) throw new APIError(error.message, 400);
+    if (error) throw new APIError(humanizeError(error, "We couldn't save your profile updates."), 400);
     })
   }
   async sendEmailOTP(
@@ -91,53 +90,97 @@ class AuthService {
     password?: string,
   ): Promise<{ message: string }> {
     return safeAsyncRequired(async () => {
-    try {
-      const { error } = await supabase.auth.signUp({
-        email,
-        // If a password is provided (from Step 0), use it.
-        // Otherwise, use a temp one (not recommended for this flow).
-        password: password || "TempPassword123!",
-        options: {
-          emailRedirectTo: undefined,
-        },
-      });
+      try {
+        const { data, error } = await supabase.auth.signUp({
+          email,
+          password: password || "TempPassword123!",
+          options: {
+            emailRedirectTo: undefined,
+          },
+        });
 
-      if (error) throw new APIError(error.message, 400);
-      return { message: "OTP sent!" };
-    } catch (error) {
-      if (error instanceof APIError) {
-        throw error;
+        // If the user already exists but isn't confirmed, Supabase might not send the email again via signUp.
+        // We trigger a resend to be sure.
+        if (!error && data?.user && !data?.session) {
+           await supabase.auth.resend({
+             type: 'signup',
+             email,
+           });
+        }
+
+        if (error) {
+          // If user already exists, try resending the OTP anyway
+          if (error.message.includes("already registered")) {
+            const { error: resendError } = await supabase.auth.resend({
+              type: 'signup',
+              email,
+            });
+            if (resendError) throw resendError;
+            return { message: "Account already exists but is unverified. A new code has been sent." };
+          }
+          throw new APIError(humanizeError(error, "Failed to send OTP"), 400);
+        }
+
+        return { message: "OTP sent successfully! Please check your email." };
+      } catch (error) {
+        if (error instanceof APIError) throw error;
+        throw new APIError(humanizeError(error, "Failed to send OTP. Please try again."), 400);
       }
-      throw new APIError("Failed to send OTP. Please try again.", 400);
-    }
-  })
+    });
   }
 
-  // Verify Email OTP (update existing method)
-  async verifyEmailOTP(
-    email: string,
-    otp: string,
-  ): Promise<{ message: string }> {
-   return safeAsyncRequired(async () => {
-    try {
-      const { error } = await supabase.auth.verifyOtp({
+  async verifyEmailOTP(email: string, otp: string): Promise<LoginResponse> {
+    return safeAsyncRequired(async () => {
+      const { data, error } = await supabase.auth.verifyOtp({
         email,
         token: otp,
-        type: "email",
+        type: "signup", // Use signup for signup flow
       });
 
       if (error) {
-        throw new APIError(error.message, 400);
+        throw new APIError(humanizeError(error, "OTP verification failed"), 400);
       }
 
-      return { message: "Email verified successfully!" };
-    } catch (error) {
-      if (error instanceof APIError) {
-        throw error;
+      if (!data.user) {
+        throw new APIError("We couldn't find your account. Please try signing up again.", 400);
       }
-      throw new APIError("OTP verification failed. Please try again.", 400);
-    }
-   })
+
+      return {
+        success: true,
+        message: "Welcome! Your email has been verified.",
+        user: {
+          id: data.user.id,
+          email: data.user.email || "",
+          fullname: `${data.user.user_metadata?.firstname || ""} ${data.user.user_metadata?.lastname || ""}`.trim() || "User",
+          phone: data.user.user_metadata?.phone,
+        },
+        token: data.session?.access_token,
+      };
+    });
+  }
+
+  async resendOtp(
+    email: string,
+    type: "signup" | "recovery" = "signup",
+  ): Promise<GetOTPResponse> {
+    return safeAsyncRequired(async () => {
+      // recovery is handled as recovery resend, signup as signup
+      const resendType: 'signup' | 'recovery' = type === "recovery" ? "recovery" : "signup";
+      
+      const { error } = await supabase.auth.resend({
+        type: resendType as any,
+        email,
+      });
+
+      if (error) {
+        throw new APIError(humanizeError(error, "Failed to resend OTP"), 400);
+      }
+
+      return {
+        success: true,
+        message: "A new code has been sent to your email.",
+      };
+    });
   }
   async registerRider(data: {
    
@@ -195,11 +238,11 @@ class AuthService {
       });
 
       if (authError) {
-        throw new APIError(authError.message, 400);
+        throw new APIError(humanizeError(authError, "We couldn't sign you up right now."), 400);
       }
 
       if (!authData.user) {
-        throw new APIError("Registration failed", 400);
+        throw new APIError("Something went wrong during signup. Please try again.", 400);
       }
 
       // Insert rider profile into riders table
@@ -339,50 +382,48 @@ class AuthService {
     }
      })
   }
-  // Inside class AuthService...
-
   async loginRider(email: string, password: string): Promise<LoginResponse> {
-    // 1. Try to log in to Supabase Auth
     return safeAsyncRequired(async () => {
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) throw new APIError(humanizeError(error, "Login failed."), 401);
+
+      const { data: riderData, error: dbError } = await supabase
+        .from("riders")
+        .select("*")
+        .eq("user_id", data.user.id)
+        .single();
+
+      if (dbError || !riderData) {
+        await supabase.auth.signOut();
+        throw new APIError(
+          humanizeError(dbError, "This account is not registered as a rider."),
+          403,
+        );
+      }
+
+      if (riderData.status === "pending") {
+        throw new APIError(
+          "Your account is still being reviewed. We'll notify you via email once you're approved!",
+          403,
+        );
+      }
+
+      return {
+        success: true,
+        message: "Login successful!",
+        user: {
+          id: data.user.id,
+          email: data.user.email || "",
+          fullname: `${riderData.firstname || ""} ${riderData.lastname || ""}`.trim() || "Rider",
+          ...riderData,
+        },
+        token: data.session.access_token,
+      };
     });
-
-    if (error) throw new APIError(error.message, 401);
-
-    // 2. If Auth works, check the database profile
-    const { data: riderData, error: dbError } = await supabase
-      .from("riders")
-      .select("*")
-      .eq("user_id", data.user.id)
-      .single();
-
-    // Check if rider profile exists - if not, user is not a rider
-    if (dbError || !riderData) {
-      // Sign out the user since they're not a rider
-      await supabase.auth.signOut();
-      throw new APIError(
-        "This account is not registered as a rider. Please use the correct login portal.",
-        403,
-      );
-    }
-
-    // 3. Check Status
-    if (riderData.status === "pending") {
-      throw new APIError(
-        "Account pending approval. Please wait for an email.",
-        403,
-      );
-    }
-
-    return {
-      success: true,
-      message: "Login successful!",
-      user: riderData,
-      token: data.session.access_token,
-    };
-  })
   }
   async uploadRiderDocument(
     riderId: string,
@@ -405,7 +446,7 @@ class AuthService {
         });
 
       if (uploadError) {
-        throw new APIError(uploadError.message, 400);
+        throw new APIError(humanizeError(uploadError, "Failed to upload document."), 400);
       }
 
       // Get public URL
@@ -428,7 +469,7 @@ class AuthService {
       ]);
 
       if (dbError) {
-        console.warn("Document record save warning:", dbError.message);
+        console.warn("Document record save warning:", humanizeError(dbError, "Failed to save document record."));
         // Don't fail if table doesn't exist, still return success
       }
 
@@ -439,7 +480,7 @@ class AuthService {
       };
     } catch (error) {
       if (error instanceof APIError) throw error;
-      throw new APIError("Failed to upload document. Please try again.", 400);
+      throw new APIError(humanizeError(error, "Failed to upload document. Please try again."), 400);
     }
   })
   }
@@ -461,7 +502,7 @@ class AuthService {
       });
 
       if (authError) {
-        throw new APIError(authError.message, 400);
+        throw new APIError(humanizeError(authError, "Registration failed."), 400);
       }
 
       if (!authData.user) {
@@ -487,7 +528,7 @@ class AuthService {
             409,
           );
         }
-        throw new APIError("Failed to create vendor profile", 400);
+        throw new APIError(humanizeError(profileError, "Failed to create vendor profile."), 400);
       }
 
       // Query for the vendor record to get its ID
@@ -501,7 +542,7 @@ class AuthService {
         !vendorDataArray ||
         vendorDataArray.length === 0
       ) {
-        throw new APIError("Failed to retrieve vendor ID", 400);
+        throw new APIError(humanizeError(vendorQueryError, "Failed to retrieve vendor ID."), 400);
       }
 
       const vendorData = vendorDataArray[0];
@@ -518,7 +559,7 @@ class AuthService {
       if (error instanceof APIError) {
         throw error;
       }
-      throw new APIError("Registration failed. Please try again.", 400);
+      throw new APIError(humanizeError(error, "Registration failed. Please try again."), 400);
     }
   })
   }
@@ -549,7 +590,7 @@ class AuthService {
       });
 
       if (authError) {
-        throw new APIError(authError.message, 400);
+        throw new APIError(humanizeError(authError, "Registration failed."), 400);
       }
 
       if (!authData.user) {
@@ -576,7 +617,7 @@ class AuthService {
             409,
           );
         }
-        throw new APIError("Failed to create user profile", 400);
+        throw new APIError(humanizeError(profileError, "Failed to create user profile."), 400);
       }
 
       // Query for the user record to get its ID
@@ -587,7 +628,7 @@ class AuthService {
         .single();
 
       if (userQueryError || !userDataArray) {
-        throw new APIError("Failed to retrieve user ID", 400);
+        throw new APIError(humanizeError(userQueryError, "Failed to retrieve user ID."), 400);
       }
 
       return {
@@ -602,7 +643,7 @@ class AuthService {
       if (error instanceof APIError) {
         throw error;
       }
-      throw new APIError("Registration failed. Please try again.", 400);
+      throw new APIError(humanizeError(error, "Registration failed. Please try again."), 400);
     }
   })
   }
@@ -616,7 +657,7 @@ class AuthService {
       });
 
       if (error) {
-        throw new APIError(error.message, 401);
+        throw new APIError(humanizeError(error, "Login failed."), 401);
       }
 
       if (!data.user || !data.session) {
@@ -624,30 +665,28 @@ class AuthService {
       }
 
       // Fetch vendor profile
-      const { data: vendorDataArray, error: vendorError } = await supabase
+      const { data: vendorData, error: vendorError } = await supabase
         .from("vendors")
         .select("*")
         .eq("user_id", data.user.id)
-          .maybeSingle(); 
+        .maybeSingle();
 
       // Check if vendor profile exists - if not, user is not a vendor
-      if (vendorError || !vendorDataArray || vendorDataArray.length === 0) {
-        // Sign out the user since they're not a vendor
+      if (vendorError || !vendorData) {
         await supabase.auth.signOut();
         throw new APIError(
-          "This account is not registered as a vendor. Please use the correct login portal.",
+          humanizeError(vendorError, "This account is not registered as a vendor."),
           403,
         );
       }
 
-      const vendorData = vendorDataArray[0];
-
       return {
         success: true,
-        message: "Login successful!",
+        message: "Welcome back!",
         user: {
           id: data.user.id,
-          email: data.user.email,
+          email: data.user.email || "",
+          fullname: `${vendorData.firstname || ""} ${vendorData.lastname || ""}`.trim() || "Vendor",
           ...vendorData,
         },
         token: data.session.access_token,
@@ -656,7 +695,7 @@ class AuthService {
       if (error instanceof APIError) {
         throw error;
       }
-      throw new APIError("Login failed. Please check your credentials.", 401);
+      throw new APIError(humanizeError(error, "Login failed. Please check your credentials."), 401);
     }
      })
   }
@@ -744,39 +783,35 @@ class AuthService {
       }
 
       // Fetch user profile from users table
-      const { data: userDataArray, error: userError } = await supabase
-       .from("riders")
-  .select("*")
-  .eq("user_id", data.user.id)
-  .maybeSingle();
+      const { data: userData, error: userError } = await supabase
+        .from("users")
+        .select("*")
+        .eq("user_id", data.user.id)
+        .maybeSingle();
 
       // Check if user profile exists - if not, user is not a customer
-      if (userError || !userDataArray || userDataArray.length === 0) {
-        // Sign out the user since they're not a customer
+      if (userError || !userData) {
         await supabase.auth.signOut();
         throw new APIError(
-          "This account is not registered as a customer. Please use the correct login portal.",
+          humanizeError(userError, "This account is not registered as a customer."),
           403,
         );
       }
-
-      const userData = userDataArray[0];
 
       return {
         success: true,
         message: "Login successful!",
         user: {
           id: data.user.id,
-          email: data.user.email,
+          email: data.user.email || "",
+          fullname: `${userData.firstname || ""} ${userData.lastname || ""}`.trim() || "User",
           ...userData,
         },
         token: data.session.access_token,
       };
     } catch (error) {
-      if (error instanceof APIError) {
-        throw error;
-      }
-      throw new APIError("Login failed. Please check your credentials.", 401);
+      if (error instanceof APIError) throw error;
+      throw new APIError(humanizeError(error, "Login failed. Please check your credentials."), 401);
     }
      })
   }
@@ -789,15 +824,13 @@ class AuthService {
       });
 
       if (error) {
-        throw new APIError(error.message, 400);
+        throw new APIError(humanizeError(error, "Failed to send reset email."), 400);
       }
 
-      return { message: "Password reset email sent!" };
+      return { message: "We've sent a password reset link to your email!" };
     } catch (error) {
-      if (error instanceof APIError) {
-        throw error;
-      }
-      throw new APIError("Failed to send reset email. Please try again.", 400);
+      if (error instanceof APIError) throw error;
+      throw new APIError(humanizeError(error, "Failed to send reset email. Please try again."), 400);
     }
   })
   }
@@ -809,19 +842,17 @@ class AuthService {
       const { error } = await supabase.auth.verifyOtp({
         email,
         token: otp,
-        type: "email",
+        type: "signup", // Standardized to signup
       });
 
       if (error) {
-        throw new APIError(error.message, 400);
+        throw new APIError(humanizeError(error, "OTP verification failed"), 400);
       }
 
       return { message: "Email verified successfully!" };
     } catch (error) {
-      if (error instanceof APIError) {
-        throw error;
-      }
-      throw new APIError("OTP verification failed. Please try again.", 400);
+      if (error instanceof APIError) throw error;
+      throw new APIError(humanizeError(error, "OTP verification failed. Please try again."), 400);
     }
   })
   }
@@ -835,18 +866,16 @@ class AuthService {
       });
 
       if (error) {
-        throw new APIError(error.message, 400);
+        throw new APIError(humanizeError(error, "Failed to send OTP"), 400);
       }
 
       return {
         success: true,
-        message: "OTP sent to your phone!",
+        message: "Code sent to your phone!",
       };
     } catch (error) {
-      if (error instanceof APIError) {
-        throw error;
-      }
-      throw new APIError("Failed to send OTP. Please try again.", 400);
+      if (error instanceof APIError) throw error;
+      throw new APIError(humanizeError(error, "Failed to send OTP. Please try again."), 400);
     }
   })
   }
@@ -864,15 +893,13 @@ class AuthService {
       });
 
       if (error) {
-        throw new APIError(error.message, 400);
+        throw new APIError(humanizeError(error, "Password reset failed"), 400);
       }
 
-      return { message: "Password reset successfully!" };
+      return { message: "Your password has been reset successfully!" };
     } catch (error) {
-      if (error instanceof APIError) {
-        throw error;
-      }
-      throw new APIError("Password reset failed. Please try again.", 400);
+      if (error instanceof APIError) throw error;
+      throw new APIError(humanizeError(error, "Password reset failed. Please try again."), 400);
     }
   })
   }
@@ -880,46 +907,21 @@ class AuthService {
   // Send OTP for password reset - using same method as signup
   async sendPasswordResetOTP(email: string): Promise<{ message: string }> {
     return safeAsyncRequired(async () => {
-    try {
-      console.log("Attempting to send OTP to:", email);
+      try {
+        console.log("Attempting to send Password Reset OTP to:", email);
+        const { error } = await supabase.auth.resetPasswordForEmail(email);
 
-      // Use the SAME method as signup - this sends a numeric OTP code
-      const { error } = await supabase.auth.signUp({
-        email,
-        password: "TempPasswordForReset123!", // Temporary password, will be changed
-        options: {
-          emailRedirectTo: undefined, // This makes it send OTP instead of link
-        },
-      });
-
-      console.log("OTP send response:", { error });
-
-      if (error) {
-        // If user already exists, that's fine - we still want to send OTP
-        // Supabase will send OTP for existing users too
-        if (error.message.includes("already registered")) {
-          console.log("User exists, OTP should still be sent");
-          // Store email for verification
-          localStorage.setItem("password_reset_email", email);
-          return { message: "OTP sent to your email!" };
+        if (error) {
+          throw new APIError(humanizeError(error, "Failed to send reset code"), 400);
         }
-        console.error("OTP send error:", error);
-        throw new APIError(error.message, 400);
-      }
 
-      // Store email for verification
-      localStorage.setItem("password_reset_email", email);
-      console.log("OTP sent successfully");
-
-      return { message: "OTP sent to your email!" };
-    } catch (error) {
-      console.error("Caught error in sendPasswordResetOTP:", error);
-      if (error instanceof APIError) {
-        throw error;
+        localStorage.setItem("password_reset_email", email);
+        return { message: "We've sent a recovery code to your email!" };
+      } catch (error) {
+        if (error instanceof APIError) throw error;
+        throw new APIError(humanizeError(error, "Failed to send code. Please try again."), 400);
       }
-      throw new APIError("Failed to send OTP. Please try again.", 400);
-    }
-  })
+    });
   }
 
   // Verify OTP for password reset - using same method as signup
@@ -932,35 +934,28 @@ class AuthService {
       console.log("Verifying OTP for:", email);
       console.log("Provided OTP:", otp);
 
-      // Use the SAME verification method as signup
+      // type: 'recovery' is for password resets
       const { data, error } = await supabase.auth.verifyOtp({
         email,
         token: otp,
-        type: "email", // Same as signup
+        type: "recovery",
       });
 
       console.log("OTP verification response:", { data, error });
 
       if (error) {
-        console.error("OTP verification error:", error);
-        throw new APIError(error.message, 400);
+        throw new APIError(humanizeError(error, "Verification failed"), 400);
       }
 
-      console.log("OTP verified successfully!");
-
-      // Store that OTP was verified
       localStorage.setItem("password_reset_verified", "true");
 
       return {
-        message: "OTP verified successfully!",
+        message: "Code verified successfully!",
         access_token: data.session?.access_token,
       };
     } catch (error) {
-      console.error("OTP verification error:", error);
-      if (error instanceof APIError) {
-        throw error;
-      }
-      throw new APIError("OTP verification failed. Please try again.", 400);
+      if (error instanceof APIError) throw error;
+      throw new APIError(humanizeError(error, "Code verification failed. Please try again."), 400);
     }
   })
   }
@@ -989,22 +984,17 @@ class AuthService {
       });
 
       if (error) {
-        console.error("Password update error:", error);
-        throw new APIError(error.message, 400);
+        throw new APIError(humanizeError(error, "Password reset failed"), 400);
       }
 
       // Clean up
       localStorage.removeItem("password_reset_email");
       localStorage.removeItem("password_reset_verified");
-      console.log("Password reset successful");
 
-      return { message: "Password reset successfully!" };
+      return { message: "Your password has been reset successfully!" };
     } catch (error) {
-      console.error("Password reset error:", error);
-      if (error instanceof APIError) {
-        throw error;
-      }
-      throw new APIError("Password reset failed. Please try again.", 400);
+      if (error instanceof APIError) throw error;
+      throw new APIError(humanizeError(error, "Password reset failed. Please try again."), 400);
     }
   })
   }
@@ -1021,7 +1011,7 @@ class AuthService {
 
   // Get current user
 // Example for any method in authService.ts
-async getCurrentUser() {
+    async getCurrentUser() {
   return safeAsyncRequired(async () => {
     const { data: { user }, error } = await supabase.auth.getUser();
     if (error) throw error;
@@ -1029,7 +1019,7 @@ async getCurrentUser() {
   });
 }
   // Get current user profile (customer/user)
-async getCurrentUserProfile() {
+    async getCurrentUserProfile() {
   return safeAsyncRequired(async () => {
     const authUser = await this.getCurrentUser();
     if (!authUser) {
@@ -1065,7 +1055,7 @@ async getCurrentUserProfile() {
 
   // Update current user profile
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-async updateCurrentUserProfile(updates: any) {
+  async updateCurrentUserProfile(updates: any) {
  return safeAsyncRequired(async () => {
   try {
     const authUser = await this.getCurrentUser();
@@ -1166,7 +1156,7 @@ async updateCurrentUserProfile(updates: any) {
  // Inside authService.ts
 // Inside class AuthService...
 
-async uploadVendorPhoto(vendorId: string, file: File, photoType: string) {
+  async uploadVendorPhoto(vendorId: string, file: File, photoType: string) {
   return safeAsyncRequired(async () => {  
     const fileName = `${vendorId}/${Date.now()}_${file.name}`;
     
@@ -1397,6 +1387,8 @@ export const authService = {
     apiService.verifyPasswordResetOTP(email, otp),
   resetPasswordWithOTP: (newPassword: string) =>
     apiService.resetPasswordWithOTP(newPassword),
+  resendOtp: (email: string, type?: 'signup' | 'recovery') =>
+    apiService.resendOtp(email, type),
   logout: () => apiService.logout(),
   getCurrentUser: () => apiService.getCurrentUser(),
   getCurrentUserProfile: () => apiService.getCurrentUserProfile(),

@@ -7,6 +7,8 @@ import { createOrder } from "../../services/api";
 import { supabase } from "../../services/authService";
 import { Navbar } from "../../component/Navbar";
 import { useToast } from "../../context/ToastContext";
+import { usePaystackPayment } from "react-paystack";
+import { PAYSTACK_PUBLIC_KEY } from "../../config/paystack";
 
 interface OrderItem {
   id: number;
@@ -32,6 +34,8 @@ const PaymentComponent: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [deliveryAddress, setDeliveryAddress] = useState("");
   const [trackingCode, setTrackingCode] = useState<string | null>(null);
+  const [paymentMethod, setPaymentMethod] = useState<"cod" | "online">("online");
+  const [userEmail, setUserEmail] = useState("");
 
   useEffect(() => {
 
@@ -54,6 +58,14 @@ const PaymentComponent: React.FC = () => {
       toast.warning("No order found. Please add items first.", "Cart Empty");
       navigate("/market");
     }
+
+    const getUserEmail = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user?.email) {
+        setUserEmail(session.user.email);
+      }
+    };
+    getUserEmail();
   }, [navigate]);
 
   const calculateTotal = () => {
@@ -74,17 +86,54 @@ const PaymentComponent: React.FC = () => {
 
 // FINAL CORRECTED handlePayment function
 // Replace your current handlePayment function with this:
+  const totals = calculateTotal();
+  const total = totals.total;
 
-const handlePayment = async () => {
-  if (!orderData) return;
-  if (!deliveryAddress.trim()) {
-    toast.warning("Please enter delivery address", "Address Required");
-    return;
-  }
+  const config = {
+    reference: (new Date()).getTime().toString(),
+    email: userEmail,
+    amount: Math.round(total * 100), // Convert to kobo
+    publicKey: PAYSTACK_PUBLIC_KEY,
+  };
 
-  setLoading(true);
+  const initializePayment = usePaystackPayment(config);
 
-  try {
+  const handlePayment = async () => {
+    if (!orderData) return;
+    if (!deliveryAddress.trim()) {
+      toast.warning("Please enter delivery address", "Address Required");
+      return;
+    }
+
+    setLoading(true);
+
+    if (paymentMethod === "online") {
+      try {
+        // @ts-ignore
+        initializePayment({onSuccess: handlePaystackSuccess, onClose: handlePaystackClose});
+      } catch (error) {
+        console.error("Paystack init error:", error);
+        toast.error("Failed to initialize payment", "Payment Error");
+        setLoading(false);
+      }
+    } else {
+      // Cash on delivery flow
+      await processOrderCreation();
+    }
+  };
+
+  const handlePaystackSuccess = async (reference: any) => {
+    console.log("Paystack Reference:", reference);
+    await processOrderCreation(reference.reference);
+  };
+
+  const handlePaystackClose = () => {
+    toast.info("Transaction was not completed", "Payment Cancelled");
+    setLoading(false);
+  };
+
+  const processOrderCreation = async (paymentRef: string | null = null) => {
+    try {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session?.user) return;
 
@@ -108,7 +157,7 @@ const handlePayment = async () => {
     console.log("Customer Info:", { fullName, phoneNum }); // Debug log
 
     // 2. Fetch vendor business name correctly
-    const firstItemId = orderData.items[0].id;
+    const firstItemId = orderData!.items[0].id;
     
     // Fetch menu info to get the vendor_id
     const { data: menuInfo, error: menuErr } = await supabase
@@ -132,7 +181,6 @@ const handlePayment = async () => {
 
     // Define the variables the payload is looking for
     const restaurantName = vendorProfile?.business_name || "Restaurant";
-    const { total } = calculateTotal();
 
     // 3. Prepare Payload
     const orderPayload = {
@@ -144,13 +192,16 @@ const handlePayment = async () => {
       delivery_address: deliveryAddress,
       total_amount: total,          
       status: "pending",
-      items_count: orderData.items.length,
+      items_count: orderData!.items.length,
       scheduled_time: new Date().toISOString(),
+      payment_method: paymentMethod,
+      payment_reference: paymentRef,
+      is_paid: paymentMethod === "online",
     };
 
     console.log("Order Payload:", orderPayload); // Debug log
 
-    const orderItems = orderData.items.map(item => ({
+    const orderItems = orderData!.items.map(item => ({
       menu_item_id: item.id,
       quantity: item.quantity,
       price_at_order: item.price
@@ -290,7 +341,7 @@ const handlePayment = async () => {
     );
   }
 
-  const { subtotal, delivery, total } = calculateTotal();
+  const { subtotal, delivery } = totals;
 
   return (
     <div className="min-h-screen bg-white dark:bg-gray-950 transition-colors duration-300">
@@ -409,19 +460,51 @@ const handlePayment = async () => {
           </div>
         </div>
 
-        {/* Payment Method */}
-        <div className="bg-white dark:bg-gray-900 rounded-2xl p-5 mb-6 shadow-lg hover:shadow-xl transition-all border border-transparent dark:border-gray-800">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center">
-              <CreditCard className="w-6 h-6 text-green-600 dark:text-green-400" />
-            </div>
-            <div className="flex-1 font-inter">
-              <p className="font-bold text-gray-900 dark:text-gray-100 uppercase italic tracking-tighter">Payment Method</p>
-              <p className="text-sm text-gray-600 dark:text-gray-400">Cash on Delivery</p>
-            </div>
-            <div className="w-8 h-8 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center">
-              <span className="text-green-600 dark:text-green-400 text-xl">💵</span>
-            </div>
+        {/* Payment Method Seçimi */}
+        <div className="bg-white dark:bg-gray-900 rounded-2xl p-5 mb-6 shadow-lg border border-transparent dark:border-gray-800">
+          <h2 className="font-bold text-gray-900 dark:text-gray-100 text-lg mb-4 font-inter italic uppercase tracking-tighter">
+            Choose Payment Method
+          </h2>
+          <div className="space-y-3">
+            <label 
+              className={`flex items-center gap-4 p-4 rounded-xl border-2 cursor-pointer transition-all ${
+                paymentMethod === "online" 
+                  ? "border-green-500 bg-green-50 dark:bg-green-900/20" 
+                  : "border-gray-100 dark:border-gray-800 hover:border-green-200"
+              }`}
+              onClick={() => setPaymentMethod("online")}
+            >
+              <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
+                paymentMethod === "online" ? "border-green-500" : "border-gray-300"
+              }`}>
+                {paymentMethod === "online" && <div className="w-3 h-3 bg-green-500 rounded-full"></div>}
+              </div>
+              <div className="flex-1 font-inter">
+                <p className="font-bold text-gray-900 dark:text-gray-100 italic">Pay Online (Paystack)</p>
+                <p className="text-xs text-gray-600 dark:text-gray-400">Secure payment with Card, Transfer, USSD</p>
+              </div>
+              <CreditCard className="w-6 h-6 text-green-600" />
+            </label>
+
+            <label 
+              className={`flex items-center gap-4 p-4 rounded-xl border-2 cursor-pointer transition-all ${
+                paymentMethod === "cod" 
+                  ? "border-green-500 bg-green-50 dark:bg-green-900/20" 
+                  : "border-gray-100 dark:border-gray-800 hover:border-green-200"
+              }`}
+              onClick={() => setPaymentMethod("cod")}
+            >
+              <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
+                paymentMethod === "cod" ? "border-green-500" : "border-gray-300"
+              }`}>
+                {paymentMethod === "cod" && <div className="w-3 h-3 bg-green-500 rounded-full"></div>}
+              </div>
+              <div className="flex-1 font-inter">
+                <p className="font-bold text-gray-900 dark:text-gray-100 italic">Cash on Delivery</p>
+                <p className="text-xs text-gray-600 dark:text-gray-400">Pay when you receive your food</p>
+              </div>
+              <span className="text-2xl">💵</span>
+            </label>
           </div>
         </div>
 

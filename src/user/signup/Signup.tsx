@@ -1,5 +1,5 @@
 import React, { useState, useRef } from "react";
-import { supabase } from "../../services/authService";
+import { supabase, authService } from "../../services/authService";
 import { ArrowLeft, Mail, Lock, User, Phone, MapPin, CheckCircle2, ShieldCheck, ChevronRight } from "lucide-react";
 import logo from "../../assets/Logo SVG 1.png";
 import { Link, useNavigate } from "react-router-dom";
@@ -50,9 +50,26 @@ const SignupShell = ({ children, step, totalSteps }: { children: React.ReactNode
 );
 
 // Step 1: Credentials
-const EmailInputScreen = ({ onContinue, toast }: { onContinue: (email: string, password: string) => void, toast: any }) => {
+const EmailInputScreen = ({ onContinue, toast }: { onContinue: (email: string) => void, toast: any }) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleCreate = async () => {
+    if (!email || !/\S+@\S+\.\S+/.test(email)) return toast.error("Enter a valid email");
+    if (password.length < 8) return toast.error("Password too short");
+    
+    setIsLoading(true);
+    try {
+      await authService.sendEmailOTP(email, password);
+      toast.success("Verification Signal Sent");
+      onContinue(email);
+    } catch (err: any) {
+      toast.error(err.message || "Failed to initiate signup");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="w-full max-w-lg">
@@ -94,14 +111,11 @@ const EmailInputScreen = ({ onContinue, toast }: { onContinue: (email: string, p
         <motion.button
           whileHover={{ scale: 1.02, y: -2 }}
           whileTap={{ scale: 0.98 }}
-          onClick={() => {
-            if (!email || !/\S+@\S+\.\S+/.test(email)) return toast.error("Enter a valid email");
-            if (password.length < 8) return toast.error("Password too short");
-            onContinue(email, password);
-          }}
-          className="w-full bg-white text-black font-black italic uppercase tracking-widest py-5 rounded-2xl shadow-xl hover:shadow-green-500/20 transition-all flex items-center justify-center gap-2 group"
+          onClick={handleCreate}
+          disabled={isLoading}
+          className="w-full bg-white text-black font-black italic uppercase tracking-widest py-5 rounded-2xl shadow-xl hover:shadow-green-500/20 transition-all flex items-center justify-center gap-2 group disabled:opacity-50"
         >
-          Create Account <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+          {isLoading ? "Starting Process..." : <>Create Account <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" /></>}
         </motion.button>
         
         <p className="text-center text-[10px] text-gray-500 font-bold uppercase tracking-widest">
@@ -113,7 +127,7 @@ const EmailInputScreen = ({ onContinue, toast }: { onContinue: (email: string, p
 };
 
 // Step 2: Verification
-const EmailOTPScreen = ({ email, password, onContinue, onBack, toast }: { email: string, password: string, onContinue: () => void, onBack: () => void, toast: any }) => {
+const EmailOTPScreen = ({ email, onContinue, onBack, toast }: { email: string, onContinue: () => void, onBack: () => void, toast: any }) => {
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [isLoading, setIsLoading] = useState(false);
   const inputRefs = useRef<HTMLInputElement[]>([]);
@@ -123,9 +137,7 @@ const EmailOTPScreen = ({ email, password, onContinue, onBack, toast }: { email:
     if (otpCode.length !== 6) return toast.error("Incomplete code");
     setIsLoading(true);
     try {
-      const { error } = await supabase.auth.verifyOtp({ email, token: otpCode, type: "email" });
-      if (error) throw error;
-      await supabase.auth.updateUser({ password });
+      await authService.verifyEmailOTP(email, otpCode);
       toast.success("Identity Verified");
       onContinue();
     } catch (e: any) { toast.error(e.message || "Verification failed"); }
@@ -153,14 +165,16 @@ const EmailOTPScreen = ({ email, password, onContinue, onBack, toast }: { email:
               maxLength={1}
               value={digit}
               onChange={(e) => {
-                const val = e.target.value.replace(/\D/g, "");
-                if (val) {
-                  const newOtp = [...otp]; newOtp[i] = val; setOtp(newOtp);
-                  if (i < 5) inputRefs.current[i+1]?.focus();
-                }
+                const val = e.target.value.replace(/\D/g, "").slice(-1);
+                const newOtp = [...otp];
+                newOtp[i] = val;
+                setOtp(newOtp);
+                if (val && i < 5) inputRefs.current[i + 1]?.focus();
               }}
               onKeyDown={(e) => {
-                if (e.key === "Backspace" && !otp[i] && i > 0) inputRefs.current[i-1]?.focus();
+                if (e.key === "Backspace" && !otp[i] && i > 0) {
+                  inputRefs.current[i - 1]?.focus();
+                }
               }}
               className="w-12 h-16 bg-white/5 border border-white/10 rounded-xl text-2xl font-black text-green-500 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent text-center"
             />
@@ -177,8 +191,18 @@ const EmailOTPScreen = ({ email, password, onContinue, onBack, toast }: { email:
           {isLoading ? "Verifying..." : "Verify Code"}
         </motion.button>
         
-        <button onClick={() => toast.info("Check spam folder or resend")} className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 hover:text-green-500 transition-colors">
-          Resend Verification Code
+        <button 
+          onClick={async () => {
+            try {
+              await authService.resendOtp(email);
+              toast.success("New code sent to your email");
+            } catch (e: any) {
+              toast.error(e.message || "Failed to resend");
+            }
+          }} 
+          className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-500 hover:text-green-500 transition-colors w-full mt-4"
+        >
+          Didn't receive code? <span className="underline">Resend Signal</span>
         </button>
       </div>
     </motion.div>
@@ -294,7 +318,6 @@ const AddressInputScreen = ({ onComplete, toast }: { onComplete: (addr: string) 
 const Signup: React.FC = () => {
   const [step, setStep] = useState(1);
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [userData, setUserData] = useState<UserData>({});
   const [isFinalizing, setIsFinalizing] = useState(false);
   const toast = useToast();
@@ -323,8 +346,8 @@ const Signup: React.FC = () => {
     <SignupShell step={step} totalSteps={4}>
       <ToastContainer toasts={toast.toasts} onClose={toast.closeToast} />
       <AnimatePresence mode="wait">
-        {step === 1 && <EmailInputScreen key="s1" toast={toast} onContinue={(e, p) => { setEmail(e); setPassword(p); setStep(2); }} />}
-        {step === 2 && <EmailOTPScreen key="s2" email={email} password={password} onContinue={() => setStep(3)} onBack={() => setStep(1)} toast={toast} />}
+        {step === 1 && <EmailInputScreen key="s1" toast={toast} onContinue={(e) => { setEmail(e); setStep(2); }} />}
+        {step === 2 && <EmailOTPScreen key="s2" email={email} onContinue={() => setStep(3)} onBack={() => setStep(1)} toast={toast} />}
         {step === 3 && <CompleteProfileScreen key="s3" onContinue={(d) => { setUserData(d); setStep(4); }} toast={toast} />}
         {step === 4 && !isFinalizing && <AddressInputScreen key="s4" onComplete={handleFinalComplete} toast={toast} />}
         {isFinalizing && (

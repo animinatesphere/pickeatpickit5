@@ -1,5 +1,5 @@
 ﻿import logo from "../../assets/Logo SVG 1.png";
-import { useState, useRef } from "react";
+import { useState, useRef} from "react";
 import { Eye, EyeOff, Camera, Mail, Lock, Phone, Clock, CheckCircle2, Sparkles } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useToast, ToastContainer } from "../../component/Toast";
@@ -66,11 +66,7 @@ const SignUpPage = ({ onNavigate }: PageProps) => {
     
     setIsLoading(true);
     try {
-      const { error } = await supabase.auth.signUp({
-        email: formData.email, password: formData.password,
-        options: { data: { firstname: formData.firstname, lastname: formData.lastname, phone: formData.phone } },
-      });
-      if (error) throw error;
+      await authService.sendEmailOTP(formData.email, formData.password);
       localStorage.setItem("tempSignupData", JSON.stringify(formData));
       toast.success("Verification Signal Sent");
       onNavigate("confirm-otp");
@@ -182,11 +178,10 @@ const EmailOTPScreen = ({ onNavigate }: PageProps) => {
     if (otpCode.length !== 6) return toast.error("Incomplete signal");
     setIsLoading(true);
     try {
-      const { data, error } = await supabase.auth.verifyOtp({ email, token: otpCode, type: "email" });
-      if (error) throw error;
-      if (data.user && signupData) {
+      const { user } = await authService.verifyEmailOTP(email, otpCode);
+      if (user && signupData) {
         const { data: v, error: pe } = await supabase.from("vendors").insert([{
-          user_id: data.user.id, email: signupData.email, 
+          user_id: user.id, email: signupData.email, 
           firstname: signupData.firstname, lastname: signupData.lastname, phone: signupData.phone
         }]).select();
         if (pe) throw pe;
@@ -213,10 +208,15 @@ const EmailOTPScreen = ({ onNavigate }: PageProps) => {
               key={i} ref={el => { if (el) inputRefs.current[i] = el; }}
               type="text" maxLength={1} value={digit}
               onChange={e => {
-                const val = e.target.value.replace(/\D/g, "");
-                if (val) {
-                  const newOtp = [...otp]; newOtp[i] = val; setOtp(newOtp);
-                  if (i < 5) inputRefs.current[i+1]?.focus();
+                const val = e.target.value.replace(/\D/g, "").slice(-1);
+                const newOtp = [...otp];
+                newOtp[i] = val;
+                setOtp(newOtp);
+                if (val && i < 5) inputRefs.current[i + 1]?.focus();
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Backspace" && !otp[i] && i > 0) {
+                  inputRefs.current[i - 1]?.focus();
                 }
               }}
               className="w-12 h-16 bg-white/5 border border-white/10 rounded-xl text-2xl font-black text-blue-500 text-center focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -231,6 +231,20 @@ const EmailOTPScreen = ({ onNavigate }: PageProps) => {
         >
           {isLoading ? "Verifying..." : "Verify Code"}
         </motion.button>
+
+        <button 
+          onClick={async () => {
+            try {
+              await authService.resendOtp(email);
+              toast.success("New code sent to your email");
+            } catch (e: any) {
+              toast.error(e.message || "Failed to resend");
+            }
+          }} 
+          className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-500 hover:text-blue-500 transition-colors w-full mt-4"
+        >
+          Didn't receive code? <span className="underline">Resend Signal</span>
+        </button>
       </div>
     </motion.div>
   );
