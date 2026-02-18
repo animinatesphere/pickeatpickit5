@@ -58,6 +58,12 @@ import VendorChat from "./vendor/pages/VendorChat";
 import ForgotPassword from "./auth/ForgotPassword";
 import Device from "./user/component/Device";
 
+// Footer Pages
+import About from "./pages/About";
+import Careers from "./pages/Careers";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
+import Terms from "./pages/Terms";
+
 const AppRoutes = () => {
   return (
     <Routes>
@@ -127,6 +133,12 @@ const AppRoutes = () => {
       {/* Admin section */}
       <Route path="/admin-login" element={<AdminLogin />} />
       <Route path="/admin-dashboard" element={<AdminDashboard />} />
+
+      {/* Footer Pages */}
+      <Route path="/about" element={<About />} />
+      <Route path="/careers" element={<Careers />} />
+      <Route path="/privacy" element={<PrivacyPolicy />} />
+      <Route path="/terms" element={<Terms />} />
     </Routes>
   );
 };

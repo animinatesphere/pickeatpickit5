@@ -302,15 +302,23 @@ const LandingPage: React.FC = () => {
               <div className="space-y-4">
                  <h4 className="text-sm font-bold uppercase tracking-tighter text-green-500">Company</h4>
                  <ul className="space-y-2 text-gray-400 font-medium font-inter">
-                    <li className="hover:text-white cursor-pointer transition-colors">About Us</li>
-                    <li className="hover:text-white cursor-pointer transition-colors">Careers</li>
+                    <li className="hover:text-white transition-colors">
+                       <Link to="/about">About Us</Link>
+                    </li>
+                    <li className="hover:text-white transition-colors">
+                       <Link to="/careers">Careers</Link>
+                    </li>
                  </ul>
               </div>
               <div className="space-y-4">
                  <h4 className="text-sm font-bold uppercase tracking-tighter text-green-500">Legal</h4>
                  <ul className="space-y-2 text-gray-400 font-medium font-inter">
-                    <li className="hover:text-white cursor-pointer transition-colors">Privacy Policy</li>
-                    <li className="hover:text-white cursor-pointer transition-colors">Terms</li>
+                    <li className="hover:text-white transition-colors">
+                       <Link to="/privacy">Privacy Policy</Link>
+                    </li>
+                    <li className="hover:text-white transition-colors">
+                       <Link to="/terms">Terms</Link>
+                    </li>
                  </ul>
               </div>
            </div>
