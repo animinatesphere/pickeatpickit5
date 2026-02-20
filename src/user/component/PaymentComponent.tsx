@@ -1,5 +1,3 @@
-
-
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { ChevronLeft, CreditCard, MapPin, Package } from "lucide-react";
@@ -34,11 +32,12 @@ const PaymentComponent: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [deliveryAddress, setDeliveryAddress] = useState("");
   const [trackingCode, setTrackingCode] = useState<string | null>(null);
-  const [paymentMethod, setPaymentMethod] = useState<"cod" | "online">("online");
+  const [paymentMethod, setPaymentMethod] = useState<"cod" | "online">(
+    "online",
+  );
   const [userEmail, setUserEmail] = useState("");
 
   useEffect(() => {
-
     const pendingOrder = sessionStorage.getItem("pendingOrder");
     const checkoutItems = sessionStorage.getItem("checkoutItems");
 
@@ -60,13 +59,15 @@ const PaymentComponent: React.FC = () => {
     }
 
     const getUserEmail = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       if (session?.user?.email) {
         setUserEmail(session.user.email);
       }
     };
     getUserEmail();
-  }, [navigate]);
+  }, [navigate, toast]);
 
   const calculateTotal = () => {
     if (!orderData) return { subtotal: 0, delivery: 5, total: 5 };
@@ -81,16 +82,16 @@ const PaymentComponent: React.FC = () => {
     return { subtotal, delivery, total };
   };
 
-// FIXED handlePayment function
-// Replace your current handlePayment function with this:
+  // FIXED handlePayment function
+  // Replace your current handlePayment function with this:
 
-// FINAL CORRECTED handlePayment function
-// Replace your current handlePayment function with this:
+  // FINAL CORRECTED handlePayment function
+  // Replace your current handlePayment function with this:
   const totals = calculateTotal();
   const total = totals.total;
 
   const config = {
-    reference: (new Date()).getTime().toString(),
+    reference: new Date().getTime().toString(),
     email: userEmail,
     amount: Math.round(total * 100), // Convert to kobo
     publicKey: PAYSTACK_PUBLIC_KEY,
@@ -109,8 +110,10 @@ const PaymentComponent: React.FC = () => {
 
     if (paymentMethod === "online") {
       try {
-        // @ts-ignore
-        initializePayment({onSuccess: handlePaystackSuccess, onClose: handlePaystackClose});
+        initializePayment({
+          onSuccess: handlePaystackSuccess,
+          onClose: handlePaystackClose,
+        });
       } catch (error) {
         console.error("Paystack init error:", error);
         toast.error("Failed to initialize payment", "Payment Error");
@@ -122,7 +125,7 @@ const PaymentComponent: React.FC = () => {
     }
   };
 
-  const handlePaystackSuccess = async (reference: any) => {
+  const handlePaystackSuccess = async (reference: { reference: string }) => {
     console.log("Paystack Reference:", reference);
     await processOrderCreation(reference.reference);
   };
@@ -134,97 +137,129 @@ const PaymentComponent: React.FC = () => {
 
   const processOrderCreation = async (paymentRef: string | null = null) => {
     try {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session?.user) return;
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (!session?.user) return;
 
-    // 1. Fetch user profile data from 'users' table (the correct table name!)
-    const { data: userProfile, error: profileError } = await supabase
-      .from('users')  // ← Changed from 'user_profiles' to 'users'
-      .select('firstname, lastname, phone')
-      .eq('user_id', session.user.id)
-      .single();
+      // 1. Fetch user profile data from 'users' table (the correct table name!)
+      const { data: userProfile, error: profileError } = await supabase
+        .from("users") // ← Changed from 'user_profiles' to 'users'
+        .select("firstname, lastname, phone")
+        .eq("user_id", session.user.id)
+        .single();
 
-    if (profileError) {
-      console.error("Profile fetch error:", profileError);
-    }
+      if (profileError) {
+        console.error("Profile fetch error:", profileError);
+      }
 
-    // Build fullName and phoneNum from the fetched profile
-    const fullName = userProfile 
-      ? `${userProfile.firstname || ""} ${userProfile.lastname || ""}`.trim() || "Customer"
-      : "Customer";
-    const phoneNum = userProfile?.phone || "No phone";
+      // Build fullName and phoneNum from the fetched profile
+      const fullName = userProfile
+        ? `${userProfile.firstname || ""} ${userProfile.lastname || ""}`.trim() ||
+          "Customer"
+        : "Customer";
+      const phoneNum = userProfile?.phone || "No phone";
 
-    console.log("Customer Info:", { fullName, phoneNum }); // Debug log
+      console.log("Customer Info:", { fullName, phoneNum }); // Debug log
 
-    // 2. Fetch vendor business name correctly
-    const firstItemId = orderData!.items[0].id;
-    
-    // Fetch menu info to get the vendor_id
-    const { data: menuInfo, error: menuErr } = await supabase
-      .from('menu_items')
-      .select('vendor_id')
-      .eq('id', firstItemId)
-      .single();
+      // 2. Fetch vendor business name correctly
+      const firstItemId = orderData!.items[0].id;
 
-    if (menuErr || !menuInfo) {
-      toast.error("Unable to find vendor information.", "Vendor Error");
+      // Fetch menu info to get the vendor_id
+      const { data: menuInfo, error: menuErr } = await supabase
+        .from("menu_items")
+        .select("vendor_id")
+        .eq("id", firstItemId)
+        .single();
+
+      if (menuErr || !menuInfo) {
+        toast.error("Unable to find vendor information.", "Vendor Error");
+        setLoading(false);
+        return;
+      }
+
+      // Fetch the restaurant name using vendor_id
+      const { data: vendorProfile } = await supabase
+        .from("vendor_profiles")
+        .select("business_name")
+        .eq("vendor_id", menuInfo.vendor_id)
+        .single();
+
+      // Define the variables the payload is looking for
+      const restaurantName = vendorProfile?.business_name || "Restaurant";
+
+      // 3. Prepare Payload
+      const orderPayload = {
+        vendor_id: menuInfo.vendor_id,
+        restaurant_name: restaurantName,
+        user_id: session.user.id,
+        customer_name: fullName, // Now correctly from users table
+        customer_phone: phoneNum, // Now correctly from users table
+        delivery_address: deliveryAddress,
+        total_amount: total,
+        status: "pending",
+        items_count: orderData!.items.length,
+        scheduled_time: new Date().toISOString(),
+        payment_method: paymentMethod,
+        payment_reference: paymentRef,
+        is_paid: paymentMethod === "online",
+      };
+
+      console.log("Order Payload:", orderPayload); // Debug log
+
+      const orderItems = orderData!.items.map((item) => ({
+        menu_item_id: item.id,
+        quantity: item.quantity,
+        price_at_order: item.price,
+      }));
+
+      const { data: createdOrder, error: orderError } = await createOrder(
+        orderPayload,
+        orderItems,
+      );
+
+      if (!orderError && createdOrder?.order?.id) {
+        sessionStorage.removeItem("cart");
+        sessionStorage.removeItem("pendingOrder");
+        sessionStorage.removeItem("checkoutItems");
+        setTrackingCode(createdOrder.order.id);
+      } else {
+        console.error("Order Error:", orderError);
+        // Humanize error messages instead of showing technical database errors
+        let errorMessage =
+          "Unable to place your order at this time. Please try again.";
+
+        if (orderError?.message) {
+          if (
+            orderError.message.includes("column") ||
+            orderError.message.includes("schema")
+          ) {
+            errorMessage =
+              "We're experiencing technical difficulties. Please contact support if this persists.";
+          } else if (
+            orderError.message.includes("network") ||
+            orderError.message.includes("connection")
+          ) {
+            errorMessage =
+              "Network connection issue. Please check your internet and try again.";
+          } else if (
+            orderError.message.includes("permission") ||
+            orderError.message.includes("unauthorized")
+          ) {
+            errorMessage =
+              "Authentication issue. Please log in again and try placing your order.";
+          }
+        }
+
+        toast.error(errorMessage, "Order Failed");
+      }
+    } catch (error) {
+      console.error("Payment error:", error);
+      toast.error("An error occurred. Please try again.", "Payment Error");
+    } finally {
       setLoading(false);
-      return;
     }
-
-    // Fetch the restaurant name using vendor_id
-    const { data: vendorProfile } = await supabase
-      .from('vendor_profiles')
-      .select('business_name')
-      .eq('vendor_id', menuInfo.vendor_id)
-      .single();
-
-    // Define the variables the payload is looking for
-    const restaurantName = vendorProfile?.business_name || "Restaurant";
-
-    // 3. Prepare Payload
-    const orderPayload = {
-      vendor_id: menuInfo.vendor_id,
-      restaurant_name: restaurantName,  
-      user_id: session.user.id,
-      customer_name: fullName,      // Now correctly from users table
-      customer_phone: phoneNum,     // Now correctly from users table
-      delivery_address: deliveryAddress,
-      total_amount: total,          
-      status: "pending",
-      items_count: orderData!.items.length,
-      scheduled_time: new Date().toISOString(),
-      payment_method: paymentMethod,
-      payment_reference: paymentRef,
-      is_paid: paymentMethod === "online",
-    };
-
-    console.log("Order Payload:", orderPayload); // Debug log
-
-    const orderItems = orderData!.items.map(item => ({
-      menu_item_id: item.id,
-      quantity: item.quantity,
-      price_at_order: item.price
-    }));
-
-    const { data: createdOrder, error: orderError } = await createOrder(orderPayload, orderItems);
-
-    if (!orderError && createdOrder?.order?.id) {
-      sessionStorage.removeItem("cart");
-      sessionStorage.removeItem("pendingOrder");
-      sessionStorage.removeItem("checkoutItems");
-      setTrackingCode(createdOrder.order.id);
-    } else {
-      console.error("Order Error:", orderError);
-      toast.error("Failed to place order. " + (orderError?.message || ""), "Order Failed");
-    }
-  } catch (error) {
-    console.error("Payment error:", error);
-    toast.error("An error occurred. Please try again.", "Payment Error");
-  } finally {
-    setLoading(false);
-  }
-};
+  };
   if (!orderData) {
     return (
       <div className="min-h-screen bg-white dark:bg-gray-950 flex items-center justify-center transition-colors duration-300">
@@ -303,7 +338,9 @@ const PaymentComponent: React.FC = () => {
           <div className="bg-white dark:bg-gray-900 rounded-xl p-6 shadow-sm border border-gray-100 dark:border-gray-800 mb-6">
             <div className="space-y-4 font-inter">
               <div className="flex justify-between">
-                <span className="text-gray-600 dark:text-gray-400">Restaurant</span>
+                <span className="text-gray-600 dark:text-gray-400">
+                  Restaurant
+                </span>
                 <span className="font-semibold text-gray-900 dark:text-gray-100">
                   {orderData.items[0]?.name || "Order"}
                 </span>
@@ -315,7 +352,9 @@ const PaymentComponent: React.FC = () => {
                 </span>
               </div>
               <div className="flex justify-between border-t dark:border-gray-800 pt-4">
-                <span className="text-gray-600 dark:text-gray-400">Delivery Address</span>
+                <span className="text-gray-600 dark:text-gray-400">
+                  Delivery Address
+                </span>
                 <span className="font-semibold text-gray-900 dark:text-gray-100 text-right max-w-xs text-sm truncate">
                   {deliveryAddress}
                 </span>
@@ -354,7 +393,9 @@ const PaymentComponent: React.FC = () => {
             className="w-6 h-6 cursor-pointer text-white hover:bg-white/10 rounded-full p-1 transition-all"
             onClick={() => navigate(-1)}
           />
-          <h1 className="text-xl font-bold text-white flex-1 font-inter italic tracking-tight">Payment</h1>
+          <h1 className="text-xl font-bold text-white flex-1 font-inter italic tracking-tight">
+            Payment
+          </h1>
           <Package className="w-6 h-6 text-white" />
         </div>
       </div>
@@ -403,14 +444,16 @@ const PaymentComponent: React.FC = () => {
                   )}
                 </div>
                 <div className="flex-1">
-                  <p className="font-bold text-gray-900 dark:text-gray-100 text-lg font-inter">{item.name}</p>
+                  <p className="font-bold text-gray-900 dark:text-gray-100 text-lg font-inter">
+                    {item.name}
+                  </p>
                   <p className="text-sm text-gray-600 dark:text-gray-400">
                     Quantity:{" "}
                     <span className="font-semibold">{item.quantity}</span>
                   </p>
                 </div>
                 <p className="font-bold text-green-600 dark:text-green-400 text-lg font-inter">
-                    ₦{(item.price * item.quantity).toLocaleString()}
+                  ₦{(item.price * item.quantity).toLocaleString()}
                 </p>
               </div>
             ))}
@@ -425,11 +468,16 @@ const PaymentComponent: React.FC = () => {
           <div className="space-y-3 text-base font-inter">
             <div className="flex justify-between text-gray-700 dark:text-gray-300">
               <span>Subtotal</span>
-              <span className="font-semibold"> ₦{subtotal.toFixed(2).toLocaleString()}</span>
+              <span className="font-semibold">
+                {" "}
+                ₦{subtotal.toFixed(2).toLocaleString()}
+              </span>
             </div>
             <div className="flex justify-between text-gray-700 dark:text-gray-300">
               <span>Delivery Fee</span>
-              <span className="font-semibold">₦{delivery.toFixed(2).toLocaleString()}</span>
+              <span className="font-semibold">
+                ₦{delivery.toFixed(2).toLocaleString()}
+              </span>
             </div>
             {orderData.spiceLevel && (
               <div className="flex justify-between text-gray-600 dark:text-gray-400 text-sm pt-2 border-t dark:border-gray-800 font-medium">
@@ -454,8 +502,12 @@ const PaymentComponent: React.FC = () => {
               </div>
             )}
             <div className="border-t-2 border-green-200 dark:border-green-800 pt-4 mt-4 flex justify-between font-bold text-xl uppercase italic tracking-tighter">
-              <span className="text-gray-900 dark:text-gray-100">Total Amount</span>
-              <span className="text-green-600 dark:text-green-400">₦{total.toFixed(2).toLocaleString()}</span>
+              <span className="text-gray-900 dark:text-gray-100">
+                Total Amount
+              </span>
+              <span className="text-green-600 dark:text-green-400">
+                ₦{total.toFixed(2).toLocaleString()}
+              </span>
             </div>
           </div>
         </div>
@@ -466,42 +518,62 @@ const PaymentComponent: React.FC = () => {
             Choose Payment Method
           </h2>
           <div className="space-y-3">
-            <label 
+            <label
               className={`flex items-center gap-4 p-4 rounded-xl border-2 cursor-pointer transition-all ${
-                paymentMethod === "online" 
-                  ? "border-green-500 bg-green-50 dark:bg-green-900/20" 
+                paymentMethod === "online"
+                  ? "border-green-500 bg-green-50 dark:bg-green-900/20"
                   : "border-gray-100 dark:border-gray-800 hover:border-green-200"
               }`}
               onClick={() => setPaymentMethod("online")}
             >
-              <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
-                paymentMethod === "online" ? "border-green-500" : "border-gray-300"
-              }`}>
-                {paymentMethod === "online" && <div className="w-3 h-3 bg-green-500 rounded-full"></div>}
+              <div
+                className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
+                  paymentMethod === "online"
+                    ? "border-green-500"
+                    : "border-gray-300"
+                }`}
+              >
+                {paymentMethod === "online" && (
+                  <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                )}
               </div>
               <div className="flex-1 font-inter">
-                <p className="font-bold text-gray-900 dark:text-gray-100 italic">Pay Online (Paystack)</p>
-                <p className="text-xs text-gray-600 dark:text-gray-400">Secure payment with Card, Transfer, USSD</p>
+                <p className="font-bold text-gray-900 dark:text-gray-100 italic">
+                  Pay Online (Paystack)
+                </p>
+                <p className="text-xs text-gray-600 dark:text-gray-400">
+                  Secure payment with Card, Transfer, USSD
+                </p>
               </div>
               <CreditCard className="w-6 h-6 text-green-600" />
             </label>
 
-            <label 
+            <label
               className={`flex items-center gap-4 p-4 rounded-xl border-2 cursor-pointer transition-all ${
-                paymentMethod === "cod" 
-                  ? "border-green-500 bg-green-50 dark:bg-green-900/20" 
+                paymentMethod === "cod"
+                  ? "border-green-500 bg-green-50 dark:bg-green-900/20"
                   : "border-gray-100 dark:border-gray-800 hover:border-green-200"
               }`}
               onClick={() => setPaymentMethod("cod")}
             >
-              <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
-                paymentMethod === "cod" ? "border-green-500" : "border-gray-300"
-              }`}>
-                {paymentMethod === "cod" && <div className="w-3 h-3 bg-green-500 rounded-full"></div>}
+              <div
+                className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
+                  paymentMethod === "cod"
+                    ? "border-green-500"
+                    : "border-gray-300"
+                }`}
+              >
+                {paymentMethod === "cod" && (
+                  <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                )}
               </div>
               <div className="flex-1 font-inter">
-                <p className="font-bold text-gray-900 dark:text-gray-100 italic">Cash on Delivery</p>
-                <p className="text-xs text-gray-600 dark:text-gray-400">Pay when you receive your food</p>
+                <p className="font-bold text-gray-900 dark:text-gray-100 italic">
+                  Cash on Delivery
+                </p>
+                <p className="text-xs text-gray-600 dark:text-gray-400">
+                  Pay when you receive your food
+                </p>
               </div>
               <span className="text-2xl">💵</span>
             </label>

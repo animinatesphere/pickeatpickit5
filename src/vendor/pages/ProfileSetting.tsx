@@ -14,9 +14,9 @@ const ProfileSetting = () => {
   const [editingField, setEditingField] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [vendorId, setVendorId] = useState<string | null>(null);
-const [profileImage, setProfileImage] = useState<string>("");
-const [isPhotoLoading, setIsPhotoLoading] = useState(false);
-const fileInputRef = useRef<HTMLInputElement>(null);
+  const [profileImage, setProfileImage] = useState<string>("");
+  const [isPhotoLoading, setIsPhotoLoading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   // Initialize formData with empty values - will be populated by useEffect
   const [formData, setFormData] = useState({
     restaurantName: "",
@@ -48,129 +48,147 @@ const fileInputRef = useRef<HTMLInputElement>(null);
     setEditingField(null);
     setTempValue("");
   };
-useEffect(() => {
-  const fetchVendorData = async () => {
-    try {
-      setIsLoading(true);
+  useEffect(() => {
+    const fetchVendorData = async () => {
+      try {
+        setIsLoading(true);
 
-      // 1. Check session
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        window.location.href = "/vendor-login";
-        return;
+        // 1. Check session
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+        if (!session) {
+          window.location.href = "/vendor-login";
+          return;
+        }
+
+        // 2. Check email verification
+        if (!session.user.email_confirmed_at) {
+          toast.warning(
+            "Please verify your email before accessing your profile.",
+            "Email Verification Required",
+          );
+          window.location.href = "/vendor-login";
+          return;
+        }
+
+        // 3. Get current user
+        const user = await apiService.getCurrentUser();
+        if (!user) {
+          window.location.href = "/vendor-login";
+          return;
+        }
+
+        // 4. Get vendor record FIRST (This provides the vendor ID)
+        const { data: vendorData, error: vendorError } = await supabase
+          .from("vendors")
+          .select(
+            "id, email, firstname, lastname, phone, business_address, business_name, state, lga",
+          )
+          .eq("user_id", user.id)
+          .single();
+
+        if (vendorError || !vendorData) {
+          console.error("Error fetching vendor:", vendorError);
+          return;
+        }
+
+        setVendorId(vendorData.id);
+
+        // 5. NOW fetch the photo using the valid vendorData.id
+        const { data: photoData } = await supabase
+          .from("vendor_photos")
+          .select("photo_url")
+          .eq("vendor_id", vendorData.id)
+          .eq("photo_type", "store_logo")
+          .order("uploaded_at", { ascending: false })
+          .limit(1);
+
+        if (photoData && photoData.length > 0) {
+          setProfileImage(photoData[0].photo_url);
+        }
+
+        // 6. Fetch remaining profile data
+        const { data: profileData } = await supabase
+          .from("vendor_profiles")
+          .select("*")
+          .eq("vendor_id", vendorData.id)
+          .single();
+
+        const { data: availabilityData } = await supabase
+          .from("vendor_availability")
+          .select("*")
+          .eq("vendor_id", vendorData.id)
+          .single();
+
+        // 7. Update formData
+        setFormData({
+          restaurantName:
+            profileData?.business_name ||
+            vendorData.business_name ||
+            "Restaurant Name",
+          category: "Restaurant",
+          email: profileData?.business_email || vendorData.email || "",
+          phone: profileData?.business_phone || vendorData.phone || "",
+          fullName:
+            profileData?.full_name ||
+            `${vendorData.firstname || ""} ${vendorData.lastname || ""}`.trim(),
+          address:
+            profileData?.business_address || vendorData.business_address || "",
+          zip: "900104",
+          city: profileData?.lga || vendorData.lga || "City",
+          state: profileData?.state || vendorData.state || "State",
+          deliveryRange:
+            availabilityData?.day_from && availabilityData?.day_to
+              ? `${availabilityData.day_from} - ${availabilityData.day_to}`
+              : "Not Set",
+        });
+
+        if (availabilityData?.is_open !== undefined) {
+          setIsOpen(availabilityData.is_open);
+        }
+      } catch (error) {
+        console.error("Error loading vendor data:", error);
+      } finally {
+        setIsLoading(false);
       }
+    };
 
-      // 2. Check email verification
-      if (!session.user.email_confirmed_at) {
-        toast.warning("Please verify your email before accessing your profile.", "Email Verification Required");
-        window.location.href = "/vendor-login";
-        return;
-      }
-
-      // 3. Get current user
-      const user = await apiService.getCurrentUser();
-      if (!user) {
-        window.location.href = "/vendor-login";
-        return;
-      }
-
-      // 4. Get vendor record FIRST (This provides the vendor ID)
-      const { data: vendorData, error: vendorError } = await supabase
-        .from("vendors")
-        .select("id, email, firstname, lastname, phone, business_address, business_name, state, lga")
-        .eq("user_id", user.id)
-        .single();
-
-      if (vendorError || !vendorData) {
-        console.error("Error fetching vendor:", vendorError);
-        return;
-      }
-
-      setVendorId(vendorData.id);
-
-      // 5. NOW fetch the photo using the valid vendorData.id
-      const { data: photoData } = await supabase
-        .from("vendor_photos")
-        .select("photo_url")
-        .eq("vendor_id", vendorData.id)
-        .eq("photo_type", "store_logo")
-        .order("uploaded_at", { ascending: false })
-        .limit(1);
-
-      if (photoData && photoData.length > 0) {
-        setProfileImage(photoData[0].photo_url);
-      }
-
-      // 6. Fetch remaining profile data
-      const { data: profileData } = await supabase
-        .from("vendor_profiles")
-        .select("*")
-        .eq("vendor_id", vendorData.id)
-        .single();
-
-      const { data: availabilityData } = await supabase
-        .from("vendor_availability")
-        .select("*")
-        .eq("vendor_id", vendorData.id)
-        .single();
-
-      // 7. Update formData
-      setFormData({
-        restaurantName: profileData?.business_name || vendorData.business_name || "Restaurant Name",
-        category: "Restaurant",
-        email: profileData?.business_email || vendorData.email || "",
-        phone: profileData?.business_phone || vendorData.phone || "",
-        fullName: profileData?.full_name || `${vendorData.firstname || ""} ${vendorData.lastname || ""}`.trim(),
-        address: profileData?.business_address || vendorData.business_address || "",
-        zip: "900104",
-        city: profileData?.lga || vendorData.lga || "City",
-        state: profileData?.state || vendorData.state || "State",
-        deliveryRange: availabilityData?.day_from && availabilityData?.day_to
-            ? `${availabilityData.day_from} - ${availabilityData.day_to}`
-            : "Not Set",
-      });
-
-      if (availabilityData?.is_open !== undefined) {
-        setIsOpen(availabilityData.is_open);
-      }
-    } catch (error) {
-      console.error("Error loading vendor data:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  fetchVendorData();
-}, []);
+    fetchVendorData();
+  }, [toast]);
 
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-  const file = e.target.files?.[0];
-  if (!file || !vendorId) return;
+    const file = e.target.files?.[0];
+    if (!file || !vendorId) return;
 
-  // Basic validation
-  if (file.size > 1024 * 1024) {
-    toast.warning("File size must be less than 1MB", "File Too Large");
-    return;
-  }
-
-  try {
-    setIsPhotoLoading(true);
-    
-    // Call your existing service
-    const response = await apiService.uploadVendorPhoto(vendorId, file, "store_logo");
-    
-    if (response && response.publicUrl) {
-      // Update local UI
-      setProfileImage(response.publicUrl);
-      toast.success("Profile photo updated!", "Photo Updated");
+    // Basic validation
+    if (file.size > 1024 * 1024) {
+      toast.warning("File size must be less than 1MB", "File Too Large");
+      return;
     }
-  } catch (error) {
-    console.error("Upload error:", error);
-    toast.error("Failed to upload photo", "Upload Error");
-  } finally {
-    setIsPhotoLoading(false);
-  }
-};
+
+    try {
+      setIsPhotoLoading(true);
+
+      // Call your existing service
+      const response = await apiService.uploadVendorPhoto(
+        vendorId,
+        file,
+        "store_logo",
+      );
+
+      if (response && response.publicUrl) {
+        // Update local UI
+        setProfileImage(response.publicUrl);
+        toast.success("Profile photo updated!", "Photo Updated");
+      }
+    } catch (error) {
+      console.error("Upload error:", error);
+      toast.error("Failed to upload photo", "Upload Error");
+    } finally {
+      setIsPhotoLoading(false);
+    }
+  };
   const handleSaveChanges = async () => {
     if (!vendorId) return;
 
@@ -216,7 +234,9 @@ useEffect(() => {
       <div className="min-h-screen bg-white dark:bg-gray-950 flex items-center justify-center transition-colors duration-300">
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-green-600 dark:border-green-400 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600 dark:text-gray-400 font-medium">Loading profile...</p>
+          <p className="text-gray-600 dark:text-gray-400 font-medium">
+            Loading profile...
+          </p>
         </div>
       </div>
     );
@@ -228,87 +248,94 @@ useEffect(() => {
       {/* Header */}
       <div className="bg-gradient-to-r from-green-600 to-green-700 dark:from-green-700 dark:to-green-800 text-white px-6 py-4 shadow-lg sticky top-0 z-20 transition-all">
         <div className="flex items-center gap-4">
-          <button className="p-2 hover:bg-white/20 rounded-lg transition-all" onClick={() => navigate(-1)}>
+          <button
+            className="p-2 hover:bg-white/20 rounded-lg transition-all"
+            onClick={() => navigate(-1)}
+          >
             <ArrowLeft className="w-6 h-6" />
           </button>
-          <h1 className="text-xl font-bold font-inter italic tracking-tighter uppercase">Profile Settings</h1>
+          <h1 className="text-xl font-bold font-inter italic tracking-tighter uppercase">
+            Profile Settings
+          </h1>
         </div>
       </div>
 
-      <div className="max-w-4xl mx-auto px-4 py-6 pb-24">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 pb-24">
         {/* Restaurant Status Toggle */}
-        <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-lg p-6 mb-6 border border-transparent dark:border-gray-800">
-          <div className="flex items-center justify-between">
+        <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-lg p-6 mb-6 border border-transparent dark:border-gray-800 flex flex-col sm:flex-row sm:items-center sm:justify-between">
+          <div>
             <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100 font-inter italic uppercase tracking-tighter">
               Restaurant Status
             </h3>
-            <button
-              onClick={() => setIsOpen(!isOpen)}
-              className={`relative w-16 h-8 rounded-full transition-all duration-300 ${
-                isOpen ? "bg-green-600" : "bg-gray-300 dark:bg-gray-800"
-              }`}
-            >
-              <div
-                className={`absolute top-1 w-6 h-6 bg-white dark:bg-gray-100 rounded-full shadow-md transition-all duration-300 ${
-                  isOpen ? "left-9" : "left-1"
-                }`}
-              />
-            </button>
+            <p className="text-sm text-gray-500 dark:text-gray-400 font-medium mt-2">
+              {isOpen
+                ? "Your restaurant is currently open"
+                : "Your restaurant is currently closed"}
+            </p>
           </div>
-          <p className="text-sm text-gray-500 dark:text-gray-400 font-medium mt-2">
-            {isOpen
-              ? "Your restaurant is currently open"
-              : "Your restaurant is currently closed"}
-          </p>
+          <button
+            onClick={() => setIsOpen(!isOpen)}
+            className={`relative w-16 h-8 rounded-full transition-all duration-300 ${
+              isOpen ? "bg-green-600" : "bg-gray-300 dark:bg-gray-800"
+            } mt-4 sm:mt-0`}
+          >
+            <div
+              className={`absolute top-1 w-6 h-6 bg-white dark:bg-gray-100 rounded-full shadow-md transition-all duration-300 ${
+                isOpen ? "left-9" : "left-1"
+              }`}
+            />
+          </button>
         </div>
 
         {/* Profile Card */}
-     <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-lg p-6 mb-6 border border-transparent dark:border-gray-800 transition-all">
-  <div className="flex items-start gap-4">
-    <div className="relative group">
-      {/* Hidden File Input */}
-      <input
-        type="file"
-        ref={fileInputRef}
-        onChange={handlePhotoUpload}
-        accept="image/*"
-        className="hidden"
-      />
-      
-      <div 
-        onClick={() => fileInputRef.current?.click()}
-        className="w-24 h-24 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center shadow-lg cursor-pointer overflow-hidden border-4 border-white dark:border-gray-800 relative group transition-all"
-      >
-        {isPhotoLoading ? (
-          <div className="absolute inset-0 bg-black/40 flex items-center justify-center z-10">
-            <div className="w-6 h-6 border-2 border-green-600 dark:border-green-400 border-t-transparent rounded-full animate-spin"></div>
-          </div>
-        ) : null}
-
-        {profileImage ? (
-          <img src={profileImage} alt="Profile" className="w-full h-full object-cover" />
-        ) : (
-          <Camera className="w-10 h-10 text-gray-400" />
-        )}
-      </div>
-
-      <button 
-        onClick={() => fileInputRef.current?.click()}
-        className="absolute bottom-0 right-0 w-8 h-8 bg-green-600 rounded-full flex items-center justify-center shadow-lg hover:bg-green-700 transition-all transform hover:scale-110"
-      >
-        <Edit2 className="w-4 h-4 text-white" />
-      </button>
-    </div>
-    
-            <div className="flex-1 font-inter transition-all">
+        <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-lg p-6 mb-6 border border-transparent dark:border-gray-800 transition-all">
+          <div className="flex flex-col sm:flex-row items-start gap-4">
+            <div className="relative group mx-auto sm:mx-0">
+              {/* Hidden File Input */}
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handlePhotoUpload}
+                accept="image/*"
+                className="hidden"
+              />
+              <div
+                onClick={() => fileInputRef.current?.click()}
+                className="w-24 h-24 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center shadow-lg cursor-pointer overflow-hidden border-4 border-white dark:border-gray-800 relative group transition-all"
+              >
+                {isPhotoLoading ? (
+                  <div className="absolute inset-0 bg-black/40 flex items-center justify-center z-10">
+                    <div className="w-6 h-6 border-2 border-green-600 dark:border-green-400 border-t-transparent rounded-full animate-spin"></div>
+                  </div>
+                ) : null}
+                {profileImage ? (
+                  <img
+                    src={profileImage}
+                    alt="Profile"
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <Camera className="w-10 h-10 text-gray-400" />
+                )}
+              </div>
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="absolute bottom-0 right-0 w-8 h-8 bg-green-600 rounded-full flex items-center justify-center shadow-lg hover:bg-green-700 transition-all transform hover:scale-110"
+              >
+                <Edit2 className="w-4 h-4 text-white" />
+              </button>
+            </div>
+            <div className="flex-1 font-inter transition-all text-center sm:text-left">
               <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100 italic uppercase tracking-tighter">
                 {formData.restaurantName}
               </h2>
               <p className="text-green-600 dark:text-green-400 font-bold uppercase text-sm tracking-wide">
                 {formData.category}
               </p>
-              <p className="text-sm text-gray-600 dark:text-gray-400 font-medium mt-1">{formData.email}</p>
-              <p className="text-sm font-bold text-gray-700 dark:text-gray-200 mt-1">
+              <p className="text-sm text-gray-600 dark:text-gray-400 font-medium mt-1 break-all">
+                {formData.email}
+              </p>
+              <p className="text-sm font-bold text-gray-700 dark:text-gray-200 mt-1 break-all">
                 {formData.phone}
               </p>
             </div>
@@ -456,7 +483,9 @@ useEffect(() => {
 
         {/* Address Section */}
         <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-lg p-6 mb-6 border border-transparent dark:border-gray-800 transition-all">
-          <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100 mb-4 font-inter italic uppercase tracking-tighter">Address</h3>
+          <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100 mb-4 font-inter italic uppercase tracking-tighter">
+            Address
+          </h3>
 
           {editingField === "address" ? (
             <div className="mb-4">
@@ -493,7 +522,9 @@ useEffect(() => {
 
           <div className="grid grid-cols-3 gap-4">
             <div>
-              <label className="text-xs text-gray-600 dark:text-gray-400 mb-1 block font-medium uppercase tracking-widest">Zip</label>
+              <label className="text-xs text-gray-600 dark:text-gray-400 mb-1 block font-medium uppercase tracking-widest">
+                Zip
+              </label>
               <input
                 type="text"
                 value={formData.zip}
@@ -504,7 +535,9 @@ useEffect(() => {
               />
             </div>
             <div>
-              <label className="text-xs text-gray-600 dark:text-gray-400 mb-1 block font-medium uppercase tracking-widest">City</label>
+              <label className="text-xs text-gray-600 dark:text-gray-400 mb-1 block font-medium uppercase tracking-widest">
+                City
+              </label>
               <input
                 type="text"
                 value={formData.city}
@@ -515,7 +548,9 @@ useEffect(() => {
               />
             </div>
             <div>
-              <label className="text-xs text-gray-600 dark:text-gray-400 mb-1 block font-medium uppercase tracking-widest">State</label>
+              <label className="text-xs text-gray-600 dark:text-gray-400 mb-1 block font-medium uppercase tracking-widest">
+                State
+              </label>
               <input
                 type="text"
                 value={formData.state}
@@ -538,7 +573,9 @@ useEffect(() => {
               <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100 font-inter italic uppercase tracking-tighter">
                 Delivery Range
               </h3>
-              <p className="text-sm text-gray-600 dark:text-gray-400 font-medium">{formData.deliveryRange}</p>
+              <p className="text-sm text-gray-600 dark:text-gray-400 font-medium">
+                {formData.deliveryRange}
+              </p>
             </div>
           </div>
 

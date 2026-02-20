@@ -8,6 +8,17 @@ import {
   addTrackingUpdate,
 } from "../../services/api";
 
+interface OrderData {
+  id: string;
+  customer_name: string;
+  customer_phone: string;
+  delivery_address: string;
+  created_at: string;
+  status: string;
+  total_amount: number;
+  order_items?: { menu_items?: { image_url?: string } }[];
+}
+
 interface Order {
   id: string;
   customerName: string;
@@ -16,6 +27,7 @@ interface Order {
   time: string;
   image: string;
   status: "pending" | "accepted" | "canceled" | "completed";
+  total: number;
 }
 
 const OrdersManagement = () => {
@@ -57,36 +69,40 @@ const OrdersManagement = () => {
         setVendorId(vendorData.id);
 
         // Now load orders with the vendor ID
-     // Inside OrdersManagement.tsx -> initializeOrders
-// Inside OrdersManagement.tsx -> initializeOrders
-// Inside OrdersManagement.tsx -> initializeOrders
-const { data, error } = await getVendorOrders(vendorData.id);
+        // Inside OrdersManagement.tsx -> initializeOrders
+        // Inside OrdersManagement.tsx -> initializeOrders
+        // Inside OrdersManagement.tsx -> initializeOrders
+        const { data, error } = await getVendorOrders(vendorData.id);
 
-console.log("📦 Raw Orders Data:", data); // Debug log
+        console.log("📦 Raw Orders Data:", data); // Debug log
 
-if (!error && data) {
-  const formattedOrders = data.map((order: any) => {
-    // Use the data directly from the order object, NOT from order.user
-    const customerName = order.customer_name || 'Guest';
-    const customerPhone = order.customer_phone || 'No Phone';
+        if (!error && data) {
+          const formattedOrders: Order[] = data.map((order: OrderData) => {
+            const customerName = order.customer_name || "Guest";
+            const customerPhone = order.customer_phone || "No Phone";
+            let image = "🍽️";
+            if (
+              order.order_items &&
+              order.order_items[0]?.menu_items?.image_url
+            ) {
+              image = order.order_items[0].menu_items.image_url;
+            }
+            return {
+              id: order.id,
+              customerName,
+              phone: customerPhone,
+              address: order.delivery_address || "No address",
+              time: new Date(order.created_at).toLocaleString(),
+              image,
+              status: order.status as Order["status"],
+              total: order.total_amount || 0,
+            };
+          });
 
-    console.log(`Order ${order.id}:`, { customerName, customerPhone }); // Debug log
-
-    return {
-      id: order.id,
-      customerName: customerName,
-      phone: customerPhone,
-      address: order.delivery_address || 'No address',
-      time: new Date(order.created_at).toLocaleString(),
-      image: order.order_items?.[0]?.menu_items?.image_url || '🍽️',
-      status: order.status,
-      total: order.total_amount || 0
-    };
-  });
-  
-  console.log("✅ Formatted Orders:", formattedOrders); // Debug log
-  setOrders(formattedOrders);
-}      } catch (error) {
+          console.log("✅ Formatted Orders:", formattedOrders); // Debug log
+          setOrders(formattedOrders);
+        }
+      } catch (error) {
         console.error("Error initializing orders:", error);
       } finally {
         setLoading(false);
@@ -98,7 +114,7 @@ if (!error && data) {
 
   // Fix the handler types
   const handleAccept = async (orderId: string) => {
-    const { error } = await updateOrderStatus(orderId, "preparing"); 
+    const { error } = await updateOrderStatus(orderId, "preparing");
     if (!error) {
       // Add tracking update
       await addTrackingUpdate(orderId, {
@@ -229,9 +245,11 @@ if (!error && data) {
         </div>
       </div>
 
-      <div className="max-w-4xl mx-auto px-4 py-6">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-4 sm:py-6">
         {/* My Orders Title */}
-        <h2 className="text-2xl font-bold text-green-700 mb-6">My Orders</h2>
+        <h2 className="text-xl sm:text-2xl font-bold text-green-700 mb-4 sm:mb-6">
+          My Orders
+        </h2>
 
         {/* Tab Navigation */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
@@ -317,11 +335,11 @@ if (!error && data) {
             filteredOrders.map((order) => (
               <div
                 key={order.id}
-                className="bg-white rounded-2xl shadow-md hover:shadow-xl transition-all duration-300 p-4 transform hover:-translate-y-1"
+                className="bg-white rounded-2xl shadow-md hover:shadow-xl transition-all duration-300 p-4 sm:p-6 transform hover:-translate-y-1"
               >
-                <div className="flex gap-4">
+                <div className="flex flex-col sm:flex-row gap-4">
                   {/* Order Image */}
-                  <div className="w-20 h-20 rounded-xl bg-gradient-to-br from-green-100 to-green-200 flex items-center justify-center flex-shrink-0 shadow-md overflow-hidden">
+                  <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl bg-gradient-to-br from-green-100 to-green-200 flex items-center justify-center flex-shrink-0 shadow-md overflow-hidden mx-auto sm:mx-0">
                     {order.image.startsWith("http") ? (
                       <img
                         src={order.image}
@@ -333,43 +351,51 @@ if (!error && data) {
                         }}
                       />
                     ) : (
-                      <span className="text-4xl">{order.image}</span>
+                      <span className="text-2xl sm:text-4xl">
+                        {order.image}
+                      </span>
                     )}
                   </div>
 
                   {/* Order Details */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between gap-2 mb-2">
+                  <div className="flex-1 min-w-0 text-center sm:text-left">
+                    <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 mb-3">
                       <div>
-                        <h3 className="font-bold text-gray-800 text-lg">
+                        <h3 className="font-bold text-gray-800 text-base sm:text-lg">
                           {order.customerName}
                         </h3>
                         <p className="text-xs text-gray-500 font-mono font-semibold">
                           Order ID: {order.id.slice(0, 8).toUpperCase()}
                         </p>
                       </div>
-                      <h3 className="font-bold text-gray-800 text-lg">
-                        {order.phone}
-                      </h3>
-                      {getStatusBadge(order.status)}
+                      <div className="flex flex-col sm:items-end gap-1">
+                        <h3 className="font-bold text-gray-800 text-base sm:text-lg">
+                          {order.phone}
+                        </h3>
+                        {getStatusBadge(order.status)}
+                      </div>
                     </div>
 
                     {/* Display Phone Number as a link */}
-                    <div className="mb-2">
+                    <div className="mb-3">
                       <a
                         href={`tel:${order.phone}`}
-                        className="text-emerald-600 font-bold text-sm hover:underline flex items-center gap-1"
+                        className="text-emerald-600 font-bold text-sm hover:underline flex items-center justify-center sm:justify-start gap-1"
                       >
                         📞 {order.phone || "No phone provided"}
                       </a>
                     </div>
 
-                    <div className="flex items-start gap-2 text-gray-600 text-sm mb-2">
-                      <MapPin className="w-4 h-4 mt-0.5 flex-shrink-0 text-green-600" />
-                      <span className="line-clamp-1">{order.address}</span>
+                    <div className="flex flex-col sm:flex-row sm:items-start gap-2 text-gray-600 text-sm mb-3">
+                      <div className="flex items-start gap-2 justify-center sm:justify-start">
+                        <MapPin className="w-4 h-4 mt-0.5 flex-shrink-0 text-green-600" />
+                        <span className="line-clamp-2 text-center sm:text-left">
+                          {order.address}
+                        </span>
+                      </div>
                     </div>
 
-                    <div className="flex items-center gap-2 text-green-600 text-sm font-semibold">
+                    <div className="flex items-center justify-center sm:justify-start gap-2 text-green-600 text-sm font-semibold">
                       <Clock className="w-4 h-4" />
                       <span>Time: {order.time}</span>
                     </div>
@@ -377,18 +403,18 @@ if (!error && data) {
                 </div>
 
                 {/* Action Buttons */}
-                <div className="flex gap-3 mt-4">
+                <div className="flex flex-col sm:flex-row gap-3 mt-4">
                   {order.status === "pending" && (
                     <>
                       <button
                         onClick={() => handleCancel(order.id)}
-                        className="flex-1 py-2.5 px-4 rounded-xl font-semibold text-green-600 bg-green-50 hover:bg-green-100 transition-all duration-300 hover:shadow-md"
+                        className="flex-1 py-2.5 px-4 rounded-xl font-semibold text-green-600 bg-green-50 hover:bg-green-100 transition-all duration-300 hover:shadow-md text-sm sm:text-base"
                       >
                         Cancel
                       </button>
                       <button
                         onClick={() => handleAccept(order.id)}
-                        className="flex-1 py-2.5 px-4 rounded-xl font-semibold text-white bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 transition-all duration-300 shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
+                        className="flex-1 py-2.5 px-4 rounded-xl font-semibold text-white bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 transition-all duration-300 shadow-md hover:shadow-lg transform hover:-translate-y-0.5 text-sm sm:text-base"
                       >
                         Accept
                       </button>
@@ -397,18 +423,18 @@ if (!error && data) {
                   {order.status === "accepted" && (
                     <button
                       onClick={() => handleCheckOut(order.id)}
-                      className="flex-1 py-2.5 px-4 rounded-xl font-semibold text-white bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 transition-all duration-300 shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
+                      className="w-full py-2.5 px-4 rounded-xl font-semibold text-white bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 transition-all duration-300 shadow-md hover:shadow-lg transform hover:-translate-y-0.5 text-sm sm:text-base"
                     >
                       Check Out
                     </button>
                   )}
                   {order.status === "canceled" && (
-                    <div className="flex-1 text-center py-2.5 px-4 text-gray-500 text-sm font-semibold">
+                    <div className="w-full text-center py-2.5 px-4 text-gray-500 text-sm font-semibold">
                       Order was canceled
                     </div>
                   )}
                   {order.status === "completed" && (
-                    <div className="flex-1 text-center py-2.5 px-4 rounded-xl bg-blue-50 text-blue-600 text-sm font-semibold flex items-center justify-center gap-2">
+                    <div className="w-full text-center py-2.5 px-4 rounded-xl bg-blue-50 text-blue-600 text-sm font-semibold flex items-center justify-center gap-2">
                       <Check className="w-4 h-4" />
                       Order Completed
                     </div>

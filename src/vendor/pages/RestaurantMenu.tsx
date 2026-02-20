@@ -1,5 +1,11 @@
 import { useState, useEffect } from "react";
-import { addMenuItem, updateMenuItem, deleteMenuItem, getMenuItems, uploadMenuImage } from '../../services/api'
+import {
+  addMenuItem,
+  updateMenuItem,
+  deleteMenuItem,
+  getMenuItems,
+  uploadMenuImage,
+} from "../../services/api";
 import {
   ArrowLeft,
   Search,
@@ -27,9 +33,9 @@ type Category = "All" | "Desert" | "Breakfast" | "Add ons";
 
 const RestaurantMenu: React.FC = () => {
   const toast = useToast();
-   const [vendorId, setVendorId] = useState<string | null>(null);
-   // Add this near your other form states
-const [mealDiscount, setMealDiscount] = useState("0");
+  const [vendorId, setVendorId] = useState<string | null>(null);
+  // Add this near your other form states
+  const [mealDiscount, setMealDiscount] = useState("0");
   const [loading, setLoading] = useState(true);
   const [currentView, setCurrentView] = useState<View>("empty");
   const [selectedCategory, setSelectedCategory] = useState<Category>("All");
@@ -45,7 +51,7 @@ const [mealDiscount, setMealDiscount] = useState("0");
   const [priceDescription, setPriceDescription] = useState("");
   const [mealCategory, setMealCategory] = useState("Desert");
   const [mealDescription, setMealDescription] = useState("");
- const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>("");
   const [uploading, setUploading] = useState(false);
   const categories: Category[] = ["All", "Desert", "Breakfast", "Add ons"];
@@ -57,44 +63,44 @@ const [mealDiscount, setMealDiscount] = useState("0");
     { id: 4, name: "Fried Fish", image: "🐟" },
   ];
 
-  
-
-// Update the useEffect to get vendor ID first
+  // Update the useEffect to get vendor ID first
   useEffect(() => {
     const initializeVendor = async () => {
       try {
         // Get current user from session
-        const { data: { session } } = await supabase.auth.getSession();
-        
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+
         if (!session?.user) {
-          console.error('No user session found');
+          console.error("No user session found");
           setLoading(false);
           return;
         }
 
         // Get vendor ID from vendors table
         const { data: vendorData, error: vendorError } = await supabase
-          .from('vendors')
-          .select('id')
-          .eq('user_id', session.user.id)
+          .from("vendors")
+          .select("id")
+          .eq("user_id", session.user.id)
           .single();
 
         if (vendorError || !vendorData) {
-          console.error('Vendor not found:', vendorError);
+          console.error("Vendor not found:", vendorError);
           setLoading(false);
           return;
         }
 
         setVendorId(vendorData.id);
-        
+
         // Now load menu items with the vendor ID
         const { data, error } = await getMenuItems(vendorData.id);
         if (!error && data) {
           setMenuItems(data);
-          setCurrentView(data.length > 0 ? 'menu' : 'empty');
+          setCurrentView(data.length > 0 ? "menu" : "empty");
         }
       } catch (error) {
-        console.error('Error initializing:', error);
+        console.error("Error initializing:", error);
       } finally {
         setLoading(false);
         setIsVisible(true);
@@ -104,7 +110,7 @@ const [mealDiscount, setMealDiscount] = useState("0");
     initializeVendor();
   }, []);
 
-const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       setSelectedImage(file);
@@ -116,22 +122,25 @@ const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
       reader.readAsDataURL(file);
     }
   };
-const handleAddMeal = async () => {
+  const handleAddMeal = async () => {
     if (!vendorId) {
-      toast.error('Vendor ID not found. Please log in again.', 'Authentication Error');
+      toast.error(
+        "Vendor ID not found. Please log in again.",
+        "Authentication Error",
+      );
       return;
     }
-    
+
     setUploading(true);
-    let imageUrl = imagePreview || '🍚'; 
-    
+    let imageUrl = imagePreview || "🍚";
+
     if (selectedImage) {
       const { data, error } = await uploadMenuImage(selectedImage, vendorId);
       if (!error && data) {
         imageUrl = data;
       }
     }
-    
+
     const mealData = {
       vendor_id: vendorId,
       name: mealName,
@@ -140,40 +149,72 @@ const handleAddMeal = async () => {
       description: mealDescription,
       in_stock: inStock,
       image_url: imageUrl,
-      discount: parseInt(mealDiscount) || 0
+      discount: parseInt(mealDiscount) || 0,
     };
 
     if (editingItem) {
-      const { error } = await updateMenuItem(editingItem.id.toString(), mealData);
+      const { error } = await updateMenuItem(
+        editingItem.id.toString(),
+        mealData,
+      );
       if (!error) {
-        setMenuItems(menuItems.map(item => 
-          item.id === editingItem.id ? { ...item, ...mealData } : item
-        ));
-        toast.success('Meal updated successfully!', 'Menu Updated');
+        setMenuItems(
+          menuItems.map((item) =>
+            item.id === editingItem.id ? { ...item, ...mealData } : item,
+          ),
+        );
+        toast.success("Meal updated successfully!", "Menu Updated");
       } else {
-        // FIX: Use optional chaining and a fallback message
-        toast.error('Update failed: ' + (error?.message || 'An unknown error occurred'), 'Update Failed');
+        // Humanize error message
+        let errorMessage = "Unable to update the menu item. Please try again.";
+        if (error?.message) {
+          if (
+            error.message.includes("network") ||
+            error.message.includes("connection")
+          ) {
+            errorMessage =
+              "Network issue. Please check your connection and try again.";
+          } else if (
+            error.message.includes("permission") ||
+            error.message.includes("unauthorized")
+          ) {
+            errorMessage = "You don't have permission to update this item.";
+          }
+        }
+        toast.error(errorMessage, "Update Failed");
       }
     } else {
       const { data, error } = await addMenuItem(mealData);
       if (!error && data) {
         setMenuItems([...menuItems, data[0]]);
-        toast.success('Meal added to your menu!', 'Menu Updated');
+        toast.success("Meal added to your menu!", "Menu Updated");
       } else {
-        // FIX: Use optional chaining and a fallback message
-        toast.error('Add failed: ' + (error?.message || 'An unknown error occurred'), 'Failed');
+        // Humanize error message
+        let errorMessage = "Unable to add the menu item. Please try again.";
+        if (error?.message) {
+          if (
+            error.message.includes("network") ||
+            error.message.includes("connection")
+          ) {
+            errorMessage =
+              "Network issue. Please check your connection and try again.";
+          } else if (
+            error.message.includes("permission") ||
+            error.message.includes("unauthorized")
+          ) {
+            errorMessage = "You don't have permission to add menu items.";
+          }
+        }
+        toast.error(errorMessage, "Failed");
       }
     }
-    
+
     setUploading(false);
     resetForm();
-    setCurrentView('menu');
-}
+    setCurrentView("menu");
+  };
 
-
-
-
-const resetForm = () => {
+  const resetForm = () => {
     setMealName("");
     setMealPrice("");
     setPriceDescription("");
@@ -182,26 +223,26 @@ const resetForm = () => {
     setEditingItem(null);
     setSelectedImage(null);
     setImagePreview("");
-     setMealDiscount("0");
+    setMealDiscount("0");
   };
 
-    const handleEdit = (item: MenuItem) => {
+  const handleEdit = (item: MenuItem) => {
     setEditingItem(item);
     setMealName(item.name);
     setMealPrice(item.price.toString());
     setMealCategory(item.category as string);
     setMealDescription(item.description);
-      setImagePreview(item.image_url);
-       setMealDiscount(item.discount?.toString() || "0");
+    setImagePreview(item.image_url);
+    setMealDiscount(item.discount?.toString() || "0");
     setCurrentView("add-meal");
   };
 
-const handleRemove = async (id: number) => {
-  const { error } = await deleteMenuItem(id.toString())
-  if (!error) {
-    setMenuItems(menuItems.filter(item => item.id !== id))
-  }
-}
+  const handleRemove = async (id: number) => {
+    const { error } = await deleteMenuItem(id.toString());
+    if (!error) {
+      setMenuItems(menuItems.filter((item) => item.id !== id));
+    }
+  };
   const filteredItems = menuItems.filter((item) => {
     const matchesCategory =
       selectedCategory === "All" || item.category === selectedCategory;
@@ -210,12 +251,14 @@ const handleRemove = async (id: number) => {
       .includes(searchQuery.toLowerCase());
     return matchesCategory && matchesSearch;
   });
-if (loading) {
+  if (loading) {
     return (
       <div className="min-h-screen bg-white dark:bg-gray-950 flex items-center justify-center transition-colors duration-300">
         <div className="text-center">
           <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-green-600 dark:border-green-400 mx-auto mb-4"></div>
-          <p className="text-gray-600 dark:text-gray-400 font-semibold font-inter uppercase tracking-widest italic">Loading...</p>
+          <p className="text-gray-600 dark:text-gray-400 font-semibold font-inter uppercase tracking-widest italic">
+            Loading...
+          </p>
         </div>
       </div>
     );
@@ -225,8 +268,12 @@ if (loading) {
     return (
       <div className="min-h-screen bg-white dark:bg-gray-950 flex items-center justify-center transition-colors duration-300">
         <div className="text-center">
-          <p className="text-red-600 dark:text-red-400 font-bold text-lg mb-4 font-inter uppercase italic tracking-tighter">Vendor not found</p>
-          <p className="text-gray-600 dark:text-gray-400 font-medium">Please log in again</p>
+          <p className="text-red-600 dark:text-red-400 font-bold text-lg mb-4 font-inter uppercase italic tracking-tighter">
+            Vendor not found
+          </p>
+          <p className="text-gray-600 dark:text-gray-400 font-medium">
+            Please log in again
+          </p>
         </div>
       </div>
     );
@@ -252,7 +299,9 @@ if (loading) {
               <ArrowLeft className="w-5 h-5 sm:w-6 sm:h-6" />
             </button>
 
-            <h1 className="text-white text-lg sm:text-xl font-bold font-inter italic tracking-tighter uppercase">Menu</h1>
+            <h1 className="text-white text-lg sm:text-xl font-bold font-inter italic tracking-tighter uppercase">
+              Menu
+            </h1>
 
             <button
               onClick={() => {
@@ -380,7 +429,9 @@ if (loading) {
           {/* Add Ons Section */}
           {selectedCategory === "Add ons" && (
             <div className="mb-8 transform transition-all duration-500 delay-200">
-              <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100 mb-4 font-inter italic uppercase tracking-tighter">Add Ons</h2>
+              <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100 mb-4 font-inter italic uppercase tracking-tighter">
+                Add Ons
+              </h2>
               <div className="flex gap-4 overflow-x-auto pb-2">
                 {addOnItems.map((item, idx) => (
                   <div
@@ -433,15 +484,19 @@ if (loading) {
               >
                 <div className="flex flex-col sm:flex-row items-center gap-4 p-4 sm:p-5">
                   {/* Item Image */}
-                 {/* Item Image */}
-<div className="w-full sm:w-24 h-40 sm:h-24 md:w-28 md:h-28 rounded-2xl bg-gradient-to-br from-green-100 to-emerald-100 flex items-center justify-center text-5xl sm:flex-shrink-0 shadow-md">
-  {/* CHANGE item.image TO item.image_url */}
-  {item.image_url.startsWith('http') ? (
-    <img src={item.image_url} alt={item.name} className="w-full h-full object-cover rounded-2xl" />
-  ) : (
-    item.image_url
-  )}
-</div>
+                  {/* Item Image */}
+                  <div className="w-full sm:w-24 h-40 sm:h-24 md:w-28 md:h-28 rounded-2xl bg-gradient-to-br from-green-100 to-emerald-100 flex items-center justify-center text-5xl sm:flex-shrink-0 shadow-md">
+                    {/* CHANGE item.image TO item.image_url */}
+                    {item.image_url.startsWith("http") ? (
+                      <img
+                        src={item.image_url}
+                        alt={item.name}
+                        className="w-full h-full object-cover rounded-2xl"
+                      />
+                    ) : (
+                      item.image_url
+                    )}
+                  </div>
 
                   {/* Item Details */}
                   <div className="flex-1 w-full sm:min-w-0 text-center sm:text-left transition-all">
@@ -512,45 +567,50 @@ if (loading) {
               </button>
             </div>
 
-          {/* Upload Image */}
-<div className="bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-900/10 dark:to-cyan-900/10 rounded-3xl shadow-lg p-8 mb-6 text-center border-2 border-dashed border-blue-200 dark:border-blue-900/50">
-  <input
-    type="file"
-    id="imageUpload"
-    accept="image/jpeg,image/jpg,image/png"
-    onChange={handleImageSelect}
-    className="hidden"
-  />
-  
-  {imagePreview ? (
-    <div className="relative group overflow-hidden rounded-2xl shadow-xl">
-      <img 
-        src={imagePreview} 
-        alt="Preview" 
-        className="w-full h-48 sm:h-64 object-cover transition-transform duration-500 group-hover:scale-105"
-      />
-      <button
-        onClick={() => {
-          setSelectedImage(null);
-          setImagePreview("");
-        }}
-        className="absolute top-4 right-4 bg-red-500/80 backdrop-blur-md text-white rounded-full p-2.5 hover:bg-red-600 transition-all z-10"
-      >
-        ✕
-      </button>
-    </div>
-  ) : (
-    <label htmlFor="imageUpload" className="cursor-pointer group flex flex-col items-center">
-      <div className="w-24 h-24 mx-auto bg-white dark:bg-gray-800 rounded-3xl flex items-center justify-center mb-4 shadow-md group-hover:scale-110 transition-transform">
-        <Upload className="w-12 h-12 text-green-600 dark:text-green-400" />
-      </div>
-      <h3 className="text-green-600 dark:text-green-400 font-bold text-lg mb-2 font-inter italic uppercase tracking-tighter">
-        Upload Cover Image
-      </h3>
-      <p className="text-xs text-gray-500 dark:text-gray-400 mt-2 font-medium">Allowed formats: Jpeg, Jpg, Png (Max 1MB)</p>
-    </label>
-  )}
-</div>
+            {/* Upload Image */}
+            <div className="bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-900/10 dark:to-cyan-900/10 rounded-3xl shadow-lg p-8 mb-6 text-center border-2 border-dashed border-blue-200 dark:border-blue-900/50">
+              <input
+                type="file"
+                id="imageUpload"
+                accept="image/jpeg,image/jpg,image/png"
+                onChange={handleImageSelect}
+                className="hidden"
+              />
+
+              {imagePreview ? (
+                <div className="relative group overflow-hidden rounded-2xl shadow-xl">
+                  <img
+                    src={imagePreview}
+                    alt="Preview"
+                    className="w-full h-48 sm:h-64 object-cover transition-transform duration-500 group-hover:scale-105"
+                  />
+                  <button
+                    onClick={() => {
+                      setSelectedImage(null);
+                      setImagePreview("");
+                    }}
+                    className="absolute top-4 right-4 bg-red-500/80 backdrop-blur-md text-white rounded-full p-2.5 hover:bg-red-600 transition-all z-10"
+                  >
+                    ✕
+                  </button>
+                </div>
+              ) : (
+                <label
+                  htmlFor="imageUpload"
+                  className="cursor-pointer group flex flex-col items-center"
+                >
+                  <div className="w-24 h-24 mx-auto bg-white dark:bg-gray-800 rounded-3xl flex items-center justify-center mb-4 shadow-md group-hover:scale-110 transition-transform">
+                    <Upload className="w-12 h-12 text-green-600 dark:text-green-400" />
+                  </div>
+                  <h3 className="text-green-600 dark:text-green-400 font-bold text-lg mb-2 font-inter italic uppercase tracking-tighter">
+                    Upload Cover Image
+                  </h3>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-2 font-medium">
+                    Allowed formats: Jpeg, Jpg, Png (Max 1MB)
+                  </p>
+                </label>
+              )}
+            </div>
 
             {/* Info Alert */}
             <div className="bg-gradient-to-r from-amber-50 to-yellow-50 rounded-2xl p-4 mb-6 flex items-start gap-3 border-2 border-amber-100">
@@ -585,20 +645,20 @@ if (loading) {
                 onChange={(e) => setPriceDescription(e.target.value)}
                 className="w-full px-5 py-4 bg-white dark:bg-gray-900 rounded-2xl border-2 border-gray-200 dark:border-gray-800 text-gray-900 dark:text-gray-100 focus:border-green-500 dark:focus:border-green-400 focus:ring-4 focus:ring-green-100 dark:focus:ring-green-900/20 transition-all outline-none text-base font-inter"
               />
- <div>
-    <label className="block text-green-600 dark:text-green-400 font-bold mb-2 text-sm font-inter italic uppercase tracking-tighter">
-      Discount Percentage (%)
-    </label>
-    <input
-      type="number"
-      placeholder="e.g. 10"
-      value={mealDiscount}
-      onChange={(e) => setMealDiscount(e.target.value)}
-      className="w-full px-5 py-4 bg-white dark:bg-gray-900 rounded-2xl border-2 border-gray-200 dark:border-gray-800 text-gray-900 dark:text-gray-100 focus:border-green-500 dark:focus:border-green-400 focus:ring-4 focus:ring-green-100 dark:focus:ring-green-900/20 transition-all outline-none text-base font-inter"
-      min="0"
-      max="100"
-    />
-  </div>
+              <div>
+                <label className="block text-green-600 dark:text-green-400 font-bold mb-2 text-sm font-inter italic uppercase tracking-tighter">
+                  Discount Percentage (%)
+                </label>
+                <input
+                  type="number"
+                  placeholder="e.g. 10"
+                  value={mealDiscount}
+                  onChange={(e) => setMealDiscount(e.target.value)}
+                  className="w-full px-5 py-4 bg-white dark:bg-gray-900 rounded-2xl border-2 border-gray-200 dark:border-gray-800 text-gray-900 dark:text-gray-100 focus:border-green-500 dark:focus:border-green-400 focus:ring-4 focus:ring-green-100 dark:focus:ring-green-900/20 transition-all outline-none text-base font-inter"
+                  min="0"
+                  max="100"
+                />
+              </div>
               <div className="relative">
                 <select
                   value={mealCategory}
@@ -633,16 +693,20 @@ if (loading) {
             </div>
 
             {/* Submit Button */}
-          {/* Submit Button */}
-<button
-  onClick={handleAddMeal}
-  disabled={uploading}
-  className={`w-full mt-8 bg-gradient-to-r from-green-600 to-emerald-600 text-white py-5 rounded-2xl font-bold text-lg shadow-xl hover:shadow-2xl transform hover:-translate-y-1 transition-all duration-300 active:scale-95 ${
-    uploading ? 'opacity-50 cursor-not-allowed' : ''
-  }`}
->
-  {uploading ? 'Uploading...' : editingItem ? "Update meal" : "Add meal to menu"}
-</button>
+            {/* Submit Button */}
+            <button
+              onClick={handleAddMeal}
+              disabled={uploading}
+              className={`w-full mt-8 bg-gradient-to-r from-green-600 to-emerald-600 text-white py-5 rounded-2xl font-bold text-lg shadow-xl hover:shadow-2xl transform hover:-translate-y-1 transition-all duration-300 active:scale-95 ${
+                uploading ? "opacity-50 cursor-not-allowed" : ""
+              }`}
+            >
+              {uploading
+                ? "Uploading..."
+                : editingItem
+                  ? "Update meal"
+                  : "Add meal to menu"}
+            </button>
           </div>
         </div>
       )}
