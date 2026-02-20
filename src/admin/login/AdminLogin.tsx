@@ -69,7 +69,9 @@ export default function AdminLogin() {
                     className="w-16 h-16"
                   />
                 </div>
-                <h2 className="text-4xl font-black font-inter italic tracking-tighter uppercase">PickEATPickIT</h2>
+                <h2 className="text-4xl font-black font-inter italic tracking-tighter uppercase">
+                  PickEATPickIT
+                </h2>
               </div>
               <p className="text-xl text-white/80 font-inter italic font-medium">
                 Manage your food delivery empire with ease
@@ -80,27 +82,25 @@ export default function AdminLogin() {
 
         {/* Right side - Login Form */}
         <div className="relative">
-          <div className="bg-white/70 dark:bg-gray-900/70 backdrop-blur-2xl rounded-[2.5rem] shadow-2xl p-8 md:p-12 border border-white/20 dark:border-white/5 transform hover:scale-[1.02] transition-all duration-500">
+          <div className="bg-white/70 dark:bg-gray-900/70 backdrop-blur-2xl rounded-[2.5rem] shadow-2xl p-6 sm:p-8 md:p-12 border border-white/20 dark:border-white/5 transform hover:scale-[1.02] transition-all duration-500">
             {/* Mobile logo */}
-            <div className="lg:hidden flex flex-col items-center justify-center gap-4 mb-10">
+            <div className="lg:hidden flex flex-col items-center justify-center gap-4 mb-8 sm:mb-10">
               <div className="p-4 bg-white/10 backdrop-blur-md rounded-2xl border border-white/20">
                 <img
                   src={logo}
                   alt="PickEAT PickIT Logo"
-                  className="w-16 h-16"
+                  className="w-14 h-14 sm:w-16 sm:h-16"
                 />
               </div>
-
-              <h2 className="text-3xl font-black font-inter italic tracking-tighter uppercase bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent">
+              <h2 className="text-2xl sm:text-3xl font-black font-inter italic tracking-tighter uppercase bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent">
                 PickEATPickIT
               </h2>
             </div>
-
-            <div className="mb-10">
-              <h1 className="text-4xl font-black text-gray-800 dark:text-gray-100 mb-3 animate-fade-in font-inter italic tracking-tighter uppercase">
+            <div className="mb-8 sm:mb-10">
+              <h1 className="text-2xl sm:text-4xl font-black text-gray-800 dark:text-gray-100 mb-2 sm:mb-3 animate-fade-in font-inter italic tracking-tighter uppercase">
                 Welcome Back
               </h1>
-              <p className="text-gray-600 dark:text-gray-400 text-lg font-medium font-inter italic">
+              <p className="text-gray-600 dark:text-gray-400 text-base sm:text-lg font-medium font-inter italic">
                 Login as Admin
               </p>
             </div>
@@ -125,7 +125,7 @@ export default function AdminLogin() {
                   />
                 </div>
               </div>
- 
+
               {/* Password Input */}
               <div className="group">
                 <label className="block text-xs font-bold text-gray-700 dark:text-gray-400 mb-3 uppercase tracking-widest italic ml-1">
@@ -207,7 +207,10 @@ export default function AdminLogin() {
             {/* Social Login */}
             <div className="mt-8 grid grid-cols-2 gap-4">
               <button className="flex items-center justify-center gap-2 py-4 px-4 bg-white dark:bg-gray-800/50 border-2 border-gray-100 dark:border-gray-800 rounded-2xl hover:border-gray-300 dark:hover:border-gray-600 hover:shadow-lg transform hover:scale-[1.02] transition-all duration-300 active:scale-95 group">
-                <svg className="w-5 h-5 transition-transform group-hover:scale-110" viewBox="0 0 24 24">
+                <svg
+                  className="w-5 h-5 transition-transform group-hover:scale-110"
+                  viewBox="0 0 24 24"
+                >
                   <path
                     fill="#4285F4"
                     d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -230,7 +233,11 @@ export default function AdminLogin() {
                 </span>
               </button>
               <button className="flex items-center justify-center gap-2 py-4 px-4 bg-white dark:bg-gray-800/50 border-2 border-gray-100 dark:border-gray-800 rounded-2xl hover:border-gray-300 dark:hover:border-gray-600 hover:shadow-lg transform hover:scale-[1.02] transition-all duration-300 active:scale-95 group">
-                <svg className="w-5 h-5 transition-transform group-hover:scale-110" fill="#1877F2" viewBox="0 0 24 24">
+                <svg
+                  className="w-5 h-5 transition-transform group-hover:scale-110"
+                  fill="#1877F2"
+                  viewBox="0 0 24 24"
+                >
                   <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
                 </svg>
                 <span className="text-xs font-bold text-gray-700 dark:text-gray-300 uppercase italic tracking-widest transition-colors">
