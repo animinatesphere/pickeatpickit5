@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Menu, X, Home, Package, User, LocationEdit } from "lucide-react";
+import { Menu, X, Home, Package, User, LocationEdit, DollarSign, MessageSquare } from "lucide-react";
 import logo from "../../assets/Logo SVG 1.png";
 
 export const RiderNav = () => {
@@ -13,6 +13,8 @@ export const RiderNav = () => {
   const navLinks = [
     { to: "/rider-dashboard", label: "Home", icon: Home },
     { to: "/rider-order", label: "Order", icon: Package },
+    { to: "/rider-earning", label: "Earnings", icon: DollarSign },
+    { to: "/rider-chat", label: "Inbox", icon: MessageSquare },
     { to: "/map", label: "Map", icon: LocationEdit },
     { to: "/rider-profile", label: "Account", icon: User },
   ];

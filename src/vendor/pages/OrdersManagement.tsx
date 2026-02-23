@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { MapPin, Clock, Check, Package } from "lucide-react";
+import { MapPin, Check, Package } from "lucide-react";
 import { VendorNav } from "../component/VendorNav";
 import { supabase } from "../../services/authService"; // Add this import
 import {
@@ -17,6 +17,13 @@ interface OrderData {
   status: string;
   total_amount: number;
   order_items?: { menu_items?: { image_url?: string } }[];
+  rider_id?: string;
+  riders?: {
+    firstname: string;
+    lastname: string;
+    phone: string;
+    avatar_url?: string;
+  };
 }
 
 interface Order {
@@ -26,8 +33,12 @@ interface Order {
   address: string;
   time: string;
   image: string;
-  status: "pending" | "accepted" | "canceled" | "completed";
+  status: "pending" | "accepted" | "preparing" | "canceled" | "completed"; // Added preparing
   total: number;
+  rider?: {
+    name: string;
+    phone: string;
+  };
 }
 
 const OrdersManagement = () => {
@@ -87,6 +98,15 @@ const OrdersManagement = () => {
             ) {
               image = order.order_items[0].menu_items.image_url;
             }
+            
+            let riderInfo;
+            if (order.riders) {
+              riderInfo = {
+                name: `${order.riders.firstname} ${order.riders.lastname}`.trim(),
+                phone: order.riders.phone
+              };
+            }
+
             return {
               id: order.id,
               customerName,
@@ -96,6 +116,7 @@ const OrdersManagement = () => {
               image,
               status: order.status as Order["status"],
               total: order.total_amount || 0,
+              rider: riderInfo
             };
           });
 
@@ -396,9 +417,31 @@ const OrdersManagement = () => {
                     </div>
 
                     <div className="flex items-center justify-center sm:justify-start gap-2 text-green-600 text-sm font-semibold">
-                      <Clock className="w-4 h-4" />
                       <span>Time: {order.time}</span>
                     </div>
+
+                    {/* Rider Info Section */}
+                    {order.rider && (
+                      <div className="mt-4 p-4 bg-green-50 rounded-2xl border border-green-100 animate-in fade-in slide-in-from-top-2 duration-300">
+                        <p className="text-[10px] font-black uppercase text-green-600 tracking-widest mb-2 flex items-center gap-2">
+                          <Check className="w-3 h-3" /> Assigned Rider
+                        </p>
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="font-bold text-gray-800">{order.rider.name}</p>
+                            <a 
+                              href={`tel:${order.rider.phone}`}
+                              className="text-xs text-green-600 font-bold hover:underline"
+                            >
+                              📞 {order.rider.phone}
+                            </a>
+                          </div>
+                          <div className="w-10 h-10 bg-green-200 rounded-xl flex items-center justify-center font-bold text-green-700">
+                            {order.rider.name.charAt(0)}
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
 

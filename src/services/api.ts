@@ -192,7 +192,8 @@ export const getVendorOrders = async (vendorId: string) => {
       order_items (
         *,
         menu_items!order_items_menu_item_id_fkey (*)
-      )
+      ),
+      riders!orders_rider_id_fkey (*)
     `)
     .eq("vendor_id", vendorId)
     .order("created_at", { ascending: false });
@@ -628,4 +629,136 @@ export const getAdminRiders = async () => {
     .order('created_at', { ascending: false });
   
   return { data, error };
+};
+
+// RIDER EARNINGS & TRANSACTIONS
+export const getRiderTransactions = async (riderId: string) => {
+  const { data, error } = await supabase
+    .from("rider_transactions")
+    .select("*")
+    .eq("rider_id", riderId)
+    .order("created_at", { ascending: false });
+  return { data, error };
+};
+
+export const getRiderBankInfo = async (riderId: string) => {
+  const { data, error } = await supabase
+    .from("rider_bank_info")
+    .select("*")
+    .eq("rider_id", riderId)
+    .maybeSingle();
+  return { data, error };
+};
+
+export const saveRiderBankInfo = async (riderId: string, bankInfo: { bank_name: string, account_number: string, account_name: string }) => {
+  const { data, error } = await supabase
+    .from("rider_bank_info")
+    .upsert({
+      rider_id: riderId,
+      ...bankInfo
+    })
+    .select();
+  return { data, error };
+};
+
+export const getRiderEarningsHistory = async (riderId: string) => {
+  const { data, error } = await supabase
+    .from("orders")
+    .select("*")
+    .eq("rider_id", riderId)
+    .eq("status", "completed")
+    .order("created_at", { ascending: false });
+  return { data, error };
+};
+
+// --- CHAT SYSTEM API ---
+
+export const getConversations = async (userId: string) => {
+  const { data, error } = await supabase
+    .from("conversation_participants")
+    .select(`
+      conversation_id,
+      conversations (
+        id,
+        updated_at,
+        last_message_text,
+        last_message_time,
+        type,
+        metadata
+      )
+    `)
+    .eq("user_id", userId)
+    .order("conversations(updated_at)", { ascending: false });
+  return { data, error };
+};
+
+export const getConversationParticipants = async (conversationId: string) => {
+  const { data, error } = await supabase
+    .from("conversation_participants")
+    .select("user_id")
+    .eq("conversation_id", conversationId);
+  return { data, error };
+};
+
+export const getMessages = async (conversationId: string) => {
+  const { data, error } = await supabase
+    .from("messages")
+    .select("*")
+    .eq("conversation_id", conversationId)
+    .order("created_at", { ascending: true });
+  return { data, error };
+};
+
+export const sendMessage = async (conversationId: string, senderId: string, content: string, type: string = 'text', url?: string) => {
+  const { data, error } = await supabase
+    .from("messages")
+    .insert({
+      conversation_id: conversationId,
+      sender_id: senderId,
+      content,
+      type,
+      url
+    })
+    .select()
+    .single();
+  return { data, error };
+};
+
+export const createConversation = async (participants: string[], type: string = 'direct', metadata: any = {}) => {
+  // 1. Create conversation
+  const { data: conversation, error: convError } = await supabase
+    .from("conversations")
+    .insert({ type, metadata })
+    .select()
+    .single();
+
+  if (convError) return { error: convError };
+
+  // 2. Add participants
+  const participantData = participants.map(userId => ({
+    conversation_id: conversation.id,
+    user_id: userId
+  }));
+
+  const { error: partError } = await supabase
+    .from("conversation_participants")
+    .insert(participantData);
+
+  return { data: conversation, error: partError };
+};
+
+export const subscribeToMessages = (conversationId: string, callback: (payload: any) => void) => {
+  return supabase
+    .channel(`messages:${conversationId}`)
+    .on(
+      'postgres_changes',
+      {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'messages',
+        filter: `conversation_id=eq.${conversationId}`
+      },
+      callback
+    )
+    .subscribe();
 };

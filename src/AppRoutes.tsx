@@ -57,6 +57,7 @@ import AdminLogin from "./admin/login/AdminLogin";
 import VendorChat from "./vendor/pages/VendorChat";
 import ForgotPassword from "./auth/ForgotPassword";
 import Device from "./user/component/Device";
+import RiderChat from "./ride/pages/RiderChat";
 
 // Footer Pages
 import About from "./pages/About";
@@ -129,6 +130,7 @@ const AppRoutes = () => {
       <Route path="/rider-device" element={<RiderDevice />} />
       <Route path="/rider-support" element={<RiderSupport />} />
       <Route path="/rider-settings" element={<SettingsScreen />} />
+      <Route path="/rider-chat" element={<RiderChat />} />
 
       {/* Admin section */}
       <Route path="/admin-login" element={<AdminLogin />} />
