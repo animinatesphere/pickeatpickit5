@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { MapPin, Check, Package } from "lucide-react";
+import { MapPin, Check, Package, MessageSquare, Phone } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { VendorNav } from "../component/VendorNav";
 import { supabase } from "../../services/authService"; // Add this import
 import {
@@ -35,6 +36,8 @@ interface Order {
   image: string;
   status: "pending" | "accepted" | "preparing" | "canceled" | "completed"; // Added preparing
   total: number;
+  rider_id?: string;
+  rider_user_id?: string;
   rider?: {
     name: string;
     phone: string;
@@ -48,6 +51,11 @@ const OrdersManagement = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [vendorId, setVendorId] = useState<string | null>(null); // Add this
   const [loading, setLoading] = useState(true); // Add this
+  const navigate = useNavigate();
+
+  const handleMessage = (recipientId: string) => {
+    navigate(`/vendor-chat?recipientId=${recipientId}`);
+  };
 
   // Update useEffect to get vendor ID first
   useEffect(() => {
@@ -116,6 +124,8 @@ const OrdersManagement = () => {
               image,
               status: order.status as Order["status"],
               total: order.total_amount || 0,
+              rider_id: order.rider_id,
+              rider_user_id: (order.riders as any)?.user_id,
               rider: riderInfo
             };
           });
@@ -403,7 +413,7 @@ const OrdersManagement = () => {
                         href={`tel:${order.phone}`}
                         className="text-emerald-600 font-bold text-sm hover:underline flex items-center justify-center sm:justify-start gap-1"
                       >
-                        📞 {order.phone || "No phone provided"}
+                        <Phone className="w-3 h-3 text-emerald-600" /> {order.phone || "No phone provided"}
                       </a>
                     </div>
 
@@ -431,13 +441,21 @@ const OrdersManagement = () => {
                             <p className="font-bold text-gray-800">{order.rider.name}</p>
                             <a 
                               href={`tel:${order.rider.phone}`}
-                              className="text-xs text-green-600 font-bold hover:underline"
+                              className="text-xs text-green-600 font-bold hover:underline flex items-center gap-1"
                             >
-                              📞 {order.rider.phone}
+                              <Phone className="w-3 h-3" /> {order.rider.phone}
                             </a>
                           </div>
-                          <div className="w-10 h-10 bg-green-200 rounded-xl flex items-center justify-center font-bold text-green-700">
-                            {order.rider.name.charAt(0)}
+                          <div className="flex items-center gap-2">
+                            <button 
+                              onClick={() => handleMessage(order.rider_user_id || "")}
+                              className="w-10 h-10 bg-white shadow-sm border border-green-100 rounded-xl flex items-center justify-center text-green-600 hover:scale-110 transition-all active:scale-95"
+                            >
+                              <MessageSquare className="w-5 h-5" />
+                            </button>
+                            <div className="w-10 h-10 bg-green-200 rounded-xl flex items-center justify-center font-bold text-green-700">
+                              {order.rider.name.charAt(0)}
+                            </div>
                           </div>
                         </div>
                       </div>

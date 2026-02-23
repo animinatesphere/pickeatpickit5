@@ -674,30 +674,117 @@ export const getRiderEarningsHistory = async (riderId: string) => {
 // --- CHAT SYSTEM API ---
 
 export const getConversations = async (userId: string) => {
-  const { data, error } = await supabase
+  // Step 1: Get conversation IDs for this user
+  const { data: participantData, error: partError } = await supabase
     .from("conversation_participants")
-    .select(`
-      conversation_id,
-      conversations (
-        id,
-        updated_at,
-        last_message_text,
-        last_message_time,
-        type,
-        metadata
-      )
-    `)
-    .eq("user_id", userId)
-    .order("conversations(updated_at)", { ascending: false });
-  return { data, error };
+    .select("conversation_id")
+    .eq("user_id", userId);
+
+  if (partError || !participantData || participantData.length === 0) {
+    return { data: [], error: partError };
+  }
+
+  const convIds = participantData.map((p: any) => p.conversation_id);
+
+  // Step 2: Get the conversation details separately
+  const { data: convData, error: convError } = await supabase
+    .from("conversations")
+    .select("id, updated_at, last_message_text, last_message_time, type, metadata")
+    .in("id", convIds)
+    .order("updated_at", { ascending: false });
+
+  if (convError) return { data: [], error: convError };
+
+  // Format to match the shape the chat components expect
+  const formatted = (convData || []).map((conv: any) => ({
+    conversation_id: conv.id,
+    conversations: conv
+  }));
+
+  return { data: formatted, error: null };
 };
 
-export const getConversationParticipants = async (conversationId: string) => {
-  const { data, error } = await supabase
+
+// Add this to your api.ts
+export const getConversationWithParticipantNames = async (userId: string) => {
+  const { data: participantData, error: partError } = await supabase
     .from("conversation_participants")
-    .select("user_id")
-    .eq("conversation_id", conversationId);
-  return { data, error };
+    .select("conversation_id")
+    .eq("user_id", userId);
+
+  if (partError || !participantData || participantData.length === 0) {
+    return { data: [], error: partError };
+  }
+
+  const convIds = participantData.map((p: any) => p.conversation_id);
+
+  // Get conversations
+  const { data: convData, error: convError } = await supabase
+    .from("conversations")
+    .select("id, updated_at, last_message_text, last_message_time, type, metadata")
+    .in("id", convIds)
+    .order("updated_at", { ascending: false });
+
+  if (convError) return { data: [], error: convError };
+
+  // For each conversation, get the OTHER participant's name
+  const enriched = await Promise.all(
+    (convData || []).map(async (conv: any) => {
+      // Get all participants in this conversation
+      const { data: participants } = await supabase
+        .from("conversation_participants")
+        .select("user_id")
+        .eq("conversation_id", conv.id);
+
+      // Find the OTHER person (not you)
+      const otherUserId = participants?.find(
+        (p: any) => p.user_id !== userId
+      )?.user_id;
+
+      let otherName = "Unknown";
+
+      if (otherUserId) {
+        // Try all 3 tables to find the name
+        const { data: user } = await supabase
+          .from("users")
+          .select("firstname, lastname")
+          .eq("user_id", otherUserId)
+          .maybeSingle();
+
+        if (user) {
+          otherName = `${user.firstname} ${user.lastname}`.trim();
+        } else {
+          const { data: vendor } = await supabase
+            .from("vendors")
+            .select("business_name")
+            .eq("id", otherUserId)
+            .maybeSingle();
+
+          if (vendor) {
+            otherName = vendor.business_name;
+          } else {
+            const { data: rider } = await supabase
+              .from("riders")
+              .select("firstname, lastname")
+              .eq("id", otherUserId)
+              .maybeSingle();
+
+            if (rider) {
+              otherName = `${rider.firstname} ${rider.lastname}`.trim();
+            }
+          }
+        }
+      }
+
+      return {
+        conversation_id: conv.id,
+        conversations: conv,
+        otherName,
+      };
+    })
+  );
+
+  return { data: enriched, error: null };
 };
 
 export const getMessages = async (conversationId: string) => {
@@ -732,7 +819,7 @@ export const createConversation = async (participants: string[], type: string = 
     .select()
     .single();
 
-  if (convError) return { error: convError };
+  if (convError) return { data: null, error: convError };
 
   // 2. Add participants
   const participantData = participants.map(userId => ({
@@ -761,4 +848,32 @@ export const subscribeToMessages = (conversationId: string, callback: (payload: 
       callback
     )
     .subscribe();
+};
+// Use a SECURITY DEFINER RPC function to find or create a conversation
+// This bypasses RLS circular dependency issues entirely
+export const startDirectConversation = async (userId: string, recipientId: string) => {
+  const { data, error } = await supabase.rpc('find_or_create_direct_conversation', {
+    user_a: userId,
+    user_b: recipientId
+  });
+
+  if (error) return { data: null, error };
+
+  // data is the conversation UUID returned by the function
+  return { 
+    data: { 
+      id: data as string,
+      last_message_text: null,
+      last_message_time: null
+    }, 
+    error: null 
+  };
+};
+
+// Search users by phone number using the RPC function
+export const searchUserByPhone = async (phoneQuery: string) => {
+  const { data, error } = await supabase.rpc('search_user_by_phone', {
+    phone_query: phoneQuery
+  });
+  return { data, error };
 };

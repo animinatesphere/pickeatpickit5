@@ -5,14 +5,15 @@ import {
   ChevronRight,
   ArrowLeft,
   MapPin,
-  Phone,
   CheckCircle,
   XCircle,
   Loader2,
   Package,
   AlertTriangle,
   X,
+  MessageSquare
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { RiderNav } from "../component/RiderNav";
 import { supabase } from "../../services/authService";
 import { riderAcceptOrder, getAvailableDeliveries, riderRejectOrder } from "../../services/api";
@@ -28,6 +29,11 @@ const RiderOrder = () => {
   const [isRider, setIsRider] = useState(true);
   const [notification, setNotification] = useState<{ show: boolean, message: string, type: 'success' | 'error' }>({ show: false, message: '', type: 'success' });
   const [modal, setModal] = useState<{ show: boolean, type: 'accept' | 'reject' | null }>({ show: false, type: null });
+  const navigate = useNavigate();
+
+  const handleMessage = (recipientId: string) => {
+    navigate(`/rider-chat?recipientId=${recipientId}`);
+  };
 
   useEffect(() => {
     const init = async () => {
@@ -333,8 +339,13 @@ const RiderOrder = () => {
                 </div>
                 <p className="font-black text-gray-800 italic uppercase tracking-tighter">{selectedOrder.vendor_profiles?.business_name}</p>
                 <p className="text-xs text-gray-400 font-bold mt-1 uppercase leading-relaxed">{selectedOrder.vendor_profiles?.business_address}</p>
-                <div className="mt-4 flex items-center gap-2">
-                  <Phone size={14} className="text-green-600" />
+                <div className="mt-4 flex items-center gap-3">
+                  <button 
+                    onClick={() => handleMessage(selectedOrder.vendor_profiles?.user_id || "")}
+                    className="p-2 bg-green-50 text-green-600 rounded-xl hover:scale-110 transition-all border border-green-100"
+                  >
+                    <MessageSquare size={16} />
+                  </button>
                   <a href={`tel:${selectedOrder.vendor_profiles?.business_phone}`} className="text-xs text-green-600 font-black italic tracking-widest hover:underline">
                     {selectedOrder.vendor_profiles?.business_phone || "UNREACHABLE"}
                   </a>
@@ -358,8 +369,13 @@ const RiderOrder = () => {
               <div className="flex-1">
                 <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-1 italic">Target Contact</p>
                 <h3 className="font-black text-gray-800 text-2xl italic tracking-tighter uppercase">{selectedOrder.customer_name || "Unknown User"}</h3>
-                <div className="mt-2 text-green-600 flex items-center gap-2">
-                  <Phone className="w-4 h-4" />
+                <div className="mt-2 text-green-600 flex items-center gap-3">
+                  <button 
+                    onClick={() => handleMessage(selectedOrder.user_id || "")}
+                    className="p-2 bg-green-50 text-green-600 rounded-xl hover:scale-110 transition-all border border-green-100"
+                  >
+                    <MessageSquare size={16} />
+                  </button>
                   <a href={`tel:${selectedOrder.customer_phone}`} className="text-sm font-black italic tracking-widest hover:underline">{selectedOrder.customer_phone || "NO SIGNAL"}</a>
                 </div>
               </div>

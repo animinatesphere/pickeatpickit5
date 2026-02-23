@@ -9,9 +9,12 @@ import {
   MapPin,
   RefreshCw,
   ChevronRight,
+  MessageSquare,
+  Phone
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Navbar } from "../component/Navbar";
+import { useNavigate } from "react-router-dom";
 import { authService } from "../services/authService";
 import { supabase } from "../services/authService";
 import { getOrderTracking } from "../services/api";
@@ -24,6 +27,13 @@ interface Order {
   scheduled_time: string;
   status: "pending" | "completed" | "canceled" | "accepted" | "preparing";
   image_url: string;
+  vendor_id?: string;
+  vendor?: {
+    business_name: string;
+    business_address: string;
+    business_phone: string;
+    logo_url?: string;
+  };
 }
 
 interface OrderProgress {
@@ -50,6 +60,13 @@ const Booking: React.FC = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [trackingUpdates, setTrackingUpdates] = useState<TrackingUpdate[]>([]);
+  const navigate = useNavigate();
+
+  const handleMessageMerchant = async (vendorId: string | undefined) => {
+    if (!vendorId) return;
+    // For now, navigate to chat. Complex initiation logic will be added to api.ts
+    navigate(`/chat?recipientId=${vendorId}`);
+  };
 
   useEffect(() => {
     const fetchUserOrders = async () => {
@@ -60,7 +77,15 @@ const Booking: React.FC = () => {
 
         const { data, error } = await supabase
           .from("orders")
-          .select("*")
+          .select(`
+            *,
+            vendor_profiles (
+              business_name,
+              business_address,
+              business_phone,
+              logo_url
+            )
+          `)
           .eq("user_id", authUser.id)
           .order("created_at", { ascending: false });
 
@@ -88,6 +113,8 @@ const Booking: React.FC = () => {
               | "accepted"
               | "preparing",
             image_url: order.image_url,
+            vendor_id: (order as any).vendor_id,
+            vendor: (order as any).vendor_profiles
           }),
         );
 
@@ -430,6 +457,56 @@ const Booking: React.FC = () => {
                     <RefreshCw className="w-5 h-5" />
                   </button>
                 </div>
+
+                {/* Merchant Details */}
+                {selectedOrder.vendor && (
+                  <div className="bg-white dark:bg-gray-900 p-8 rounded-[2.5rem] border border-gray-50 dark:border-gray-800 shadow-xl overflow-hidden relative">
+                    <div className="flex items-start justify-between mb-6">
+                      <div className="flex gap-4">
+                        <div className="w-16 h-16 bg-gray-50 dark:bg-gray-800 rounded-2xl flex items-center justify-center text-2xl shadow-inner overflow-hidden border border-gray-100 dark:border-gray-700">
+                          {selectedOrder.vendor.logo_url ? (
+                            <img src={selectedOrder.vendor.logo_url} alt="Vendor" className="w-full h-full object-cover" />
+                          ) : (
+                            <span role="img" aria-label="shop">🏪</span>
+                          )}
+                        </div>
+                        <div>
+                          <p className="text-[10px] font-black uppercase italic tracking-widest text-gray-400 mb-1">Merchant</p>
+                          <h3 className="text-xl font-black italic tracking-tighter uppercase dark:text-white">
+                            {selectedOrder.vendor.business_name}
+                          </h3>
+                        </div>
+                      </div>
+                      <button 
+                        onClick={() => handleMessageMerchant(selectedOrder.vendor_id)}
+                        className="w-14 h-14 bg-green-500 text-white rounded-full flex items-center justify-center shadow-lg shadow-green-500/30 hover:scale-110 transition-all active:scale-95"
+                      >
+                        <MessageSquare className="w-6 h-6" />
+                      </button>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="flex items-center gap-3 p-4 bg-gray-50 dark:bg-gray-800/50 rounded-2xl border border-gray-100 dark:border-gray-800">
+                        <div className="w-10 h-10 bg-white dark:bg-gray-800 rounded-xl flex items-center justify-center text-green-500 shadow-sm">
+                          <MapPin className="w-5 h-5" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[8px] font-black uppercase italic text-gray-400">Address</p>
+                          <p className="text-xs font-bold dark:text-gray-300 truncate">{selectedOrder.vendor.business_address || "No address provided"}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3 p-4 bg-gray-50 dark:bg-gray-800/50 rounded-2xl border border-gray-100 dark:border-gray-800">
+                        <div className="w-10 h-10 bg-white dark:bg-gray-800 rounded-xl flex items-center justify-center text-green-500 shadow-sm">
+                          <Phone className="w-5 h-5" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[8px] font-black uppercase italic text-gray-400">Phone</p>
+                          <p className="text-xs font-bold dark:text-gray-300 truncate">{selectedOrder.vendor.business_phone || "No phone provided"}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </motion.div>
