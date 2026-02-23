@@ -7,10 +7,10 @@ import { motion, AnimatePresence } from "framer-motion";
 
 type Step = "email" | "otp" | "password" | "success";
 
-const THEMES: Record<string, { color: string; hex: string }> = {
-  user: { color: "green", hex: "#22c55e" },
-  rider: { color: "orange", hex: "#f97316" },
-  vendor: { color: "blue", hex: "#3b82f6" },
+const THEMES: Record<string, { color: string; hex: string; gradient: string }> = {
+  user: { color: "green", hex: "#22c55e", gradient: "from-green-500/20" },
+  rider: { color: "orange", hex: "#f97316", gradient: "from-orange-500/20" },
+  vendor: { color: "blue", hex: "#3b82f6", gradient: "from-blue-500/20" },
 };
 
 const ForgotPassword = () => {
@@ -88,11 +88,19 @@ const ForgotPassword = () => {
       <div className="min-h-screen relative overflow-hidden bg-black font-inter text-white">
         {/* Cinematic Background */}
         <div className="absolute inset-0 z-0 opacity-40">
-           <div className={`absolute inset-0 bg-gradient-to-br from-black via-transparent to-${theme.color}-500/20`} />
+           <div 
+             className="absolute inset-0 bg-gradient-to-br from-black via-transparent to-transparent" 
+             style={{ 
+               backgroundImage: `linear-gradient(to bottom right, black, transparent, ${theme.hex}33)` 
+             }}
+           />
         </div>
         
         {/* Ambient Lights */}
-        <div className={`absolute top-[-20%] right-[-10%] w-[50%] h-[50%] bg-${theme.color}-500/10 blur-[150px] rounded-full`} />
+        <div 
+          className="absolute top-[-20%] right-[-10%] w-[50%] h-[50%] blur-[150px] rounded-full" 
+          style={{ backgroundColor: `${theme.hex}1a` }}
+        />
 
         <div className="relative z-10 min-h-screen flex items-center justify-center p-6">
           <motion.div 
@@ -105,7 +113,11 @@ const ForgotPassword = () => {
                   <motion.div 
                     initial={{ width: "33%" }}
                     animate={{ width: step === "email" ? "33%" : step === "otp" ? "66%" : "100%" }}
-                    className={`h-full bg-${theme.color}-500 shadow-[0_0_15px_${theme.hex}80]`} 
+                    className="h-full transition-all duration-500"
+                    style={{ 
+                      backgroundColor: theme.hex,
+                      boxShadow: `0 0 15px ${theme.hex}80`
+                    }} 
                   />
                </div>
 
@@ -113,12 +125,16 @@ const ForgotPassword = () => {
                   <motion.div 
                     initial={{ scale: 0.8 }}
                     animate={{ scale: 1 }}
-                    className={`w-20 h-20 bg-${theme.color}-500/10 rounded-3xl flex items-center justify-center mx-auto mb-6 border border-${theme.color}-500/20`}
+                    className="w-20 h-20 rounded-3xl flex items-center justify-center mx-auto mb-6 border"
+                    style={{ 
+                      backgroundColor: `${theme.hex}1a`,
+                      borderColor: `${theme.hex}33`
+                    }}
                   >
-                     {step === "email" && <Mail className={`w-10 h-10 text-${theme.color}-500`} />}
-                     {step === "otp" && <Key className={`w-10 h-10 text-${theme.color}-500`} />}
-                     {step === "password" && <Lock className={`w-10 h-10 text-${theme.color}-500`} />}
-                     {step === "success" && <CheckCircle className={`w-10 h-10 text-${theme.color}-500`} />}
+                     {step === "email" && <Mail className="w-10 h-10" style={{ color: theme.hex }} />}
+                     {step === "otp" && <Key className="w-10 h-10" style={{ color: theme.hex }} />}
+                     {step === "password" && <Lock className="w-10 h-10" style={{ color: theme.hex }} />}
+                     {step === "success" && <CheckCircle className="w-10 h-10" style={{ color: theme.hex }} />}
                   </motion.div>
                   <h1 className="text-3xl font-black italic tracking-tighter uppercase mb-2">
                     {step === "success" ? "System Restored" : getTitle()}
@@ -136,18 +152,37 @@ const ForgotPassword = () => {
                     <motion.form key="e" initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 10 }} onSubmit={handleSendOTP} className="space-y-6">
                        <div className="space-y-2">
                           <label className={`text-[10px] font-black uppercase text-gray-500 ml-4`}>Account Email</label>
-                          <div className="relative">
-                             <Mail className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
-                             <input 
-                                value={email} onChange={e => setEmail(e.target.value)}
-                                className={`w-full pl-16 pr-6 py-5 bg-white/5 border border-white/10 rounded-2xl text-white font-bold focus:ring-4 focus:ring-${theme.color}-500/10 focus:border-${theme.color}-500/50 transition-all`}
-                                placeholder="name@domain.com"
-                             />
-                          </div>
+                           <div className="relative">
+                              <Mail className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
+                              <input 
+                                 value={email} onChange={e => setEmail(e.target.value)}
+                                 className="w-full pl-16 pr-6 py-5 bg-white/5 border border-white/10 rounded-2xl text-white font-bold focus:ring-4 transition-all"
+                                 style={{ 
+                                   outline: 'none',
+                                   borderColor: isLoading ? undefined : undefined // base color
+                                 }}
+                                 onFocus={(e) => {
+                                   e.currentTarget.style.borderColor = theme.hex;
+                                   e.currentTarget.style.boxShadow = `0 0 0 4px ${theme.hex}1a`;
+                                 }}
+                                 onBlur={(e) => {
+                                   e.currentTarget.style.borderColor = '';
+                                   e.currentTarget.style.boxShadow = '';
+                                 }}
+                                 placeholder="name@domain.com"
+                              />
+                           </div>
                        </div>
-                       <motion.button whileHover={{ scale: 1.02 }} className={`w-full bg-${theme.color}-500 text-white font-black italic uppercase tracking-widest py-5 rounded-2xl shadow-xl shadow-${theme.color}-500/20`}>
-                          {isLoading ? "Broadcasting..." : "Request Signal"}
-                       </motion.button>
+                        <motion.button 
+                          whileHover={{ scale: 1.02 }} 
+                          className="w-full text-white font-black italic uppercase tracking-widest py-5 rounded-2xl shadow-xl transition-all"
+                          style={{ 
+                            backgroundColor: theme.hex,
+                            boxShadow: `0 20px 25px -5px ${theme.hex}33`
+                          }}
+                        >
+                           {isLoading ? "Broadcasting..." : "Request Signal"}
+                        </motion.button>
                        <Link to={getLoginPath()} className="flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest text-gray-500 hover:text-white transition-colors">
                           <ArrowLeft className="w-3 h-3" /> Abort mission
                        </Link>
@@ -158,16 +193,26 @@ const ForgotPassword = () => {
                     <motion.form key="o" initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 10 }} onSubmit={handleVerifyOTP} className="space-y-8">
                        <div className="text-center">
                           <p className="text-sm text-gray-400 font-medium mb-8">Verification signal sent to <span className="text-white">{email}</span></p>
-                          <input 
-                            value={otp} onChange={e => setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
-                            className={`w-full bg-white/5 border border-white/10 rounded-2xl py-6 text-4xl font-black text-center text-${theme.color}-500 tracking-[0.4em] focus:outline-none focus:border-${theme.color}-500`}
-                            placeholder="000000" maxLength={6}
-                          />
+                           <input 
+                             value={otp} onChange={e => setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                             className="w-full bg-white/5 border border-white/10 rounded-2xl py-6 text-4xl font-black text-center tracking-[0.4em] focus:outline-none transition-all"
+                             style={{ color: theme.hex }}
+                             onFocus={(e) => e.currentTarget.style.borderColor = theme.hex}
+                             onBlur={(e) => e.currentTarget.style.borderColor = ''}
+                             placeholder="000000" maxLength={6}
+                           />
                        </div>
                        <div className="flex flex-col gap-4">
-                          <motion.button whileHover={{ scale: 1.02 }} className={`w-full bg-${theme.color}-500 text-white font-black italic uppercase tracking-widest py-5 rounded-2xl shadow-xl shadow-${theme.color}-500/20`}>
-                             {isLoading ? "Authenticating..." : "Unlock Terminal"}
-                          </motion.button>
+                           <motion.button 
+                             whileHover={{ scale: 1.02 }} 
+                             className="w-full text-white font-black italic uppercase tracking-widest py-5 rounded-2xl shadow-xl transition-all"
+                             style={{ 
+                               backgroundColor: theme.hex,
+                               boxShadow: `0 20px 25px -5px ${theme.hex}33`
+                             }}
+                           >
+                              {isLoading ? "Authenticating..." : "Unlock Terminal"}
+                           </motion.button>
                           <button type="button" onClick={() => setStep("email")} className="text-[10px] font-black uppercase tracking-widest text-gray-500 hover:text-white transition-colors">Wrong address?</button>
                        </div>
                     </motion.form>
@@ -178,36 +223,53 @@ const ForgotPassword = () => {
                        <div className="space-y-4">
                           <div className="relative">
                              <Lock className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
-                             <input 
-                                type={showPassword ? "text" : "password"} value={password} onChange={e => setPassword(e.target.value)}
-                                className={`w-full pl-16 pr-14 py-5 bg-white/5 border border-white/10 rounded-2xl text-white font-bold focus:border-${theme.color}-500/50`}
-                                placeholder="New Access Key"
-                             />
+                              <input 
+                                 type={showPassword ? "text" : "password"} value={password} onChange={e => setPassword(e.target.value)}
+                                 className="w-full pl-16 pr-14 py-5 bg-white/5 border border-white/10 rounded-2xl text-white font-bold focus:outline-none transition-all"
+                                 onFocus={(e) => e.currentTarget.style.borderColor = `${theme.hex}80`}
+                                 onBlur={(e) => e.currentTarget.style.borderColor = ''}
+                                 placeholder="New Access Key"
+                              />
                              <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-6 top-1/2 -translate-y-1/2 text-gray-500">{showPassword ? <EyeOff size={20} /> : <Eye size={20} />}</button>
                           </div>
                           <div className="relative">
-                             <input 
-                                type={showConfirmPassword ? "text" : "password"} value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)}
-                                className={`w-full px-8 py-5 bg-white/5 border border-white/10 rounded-2xl text-white font-bold focus:border-${theme.color}-500/50`}
-                                placeholder="Confirm New Key"
-                             />
+                              <input 
+                                 type={showConfirmPassword ? "text" : "password"} value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)}
+                                 className="w-full px-8 py-5 bg-white/5 border border-white/10 rounded-2xl text-white font-bold focus:outline-none transition-all"
+                                 onFocus={(e) => e.currentTarget.style.borderColor = `${theme.hex}80`}
+                                 onBlur={(e) => e.currentTarget.style.borderColor = ''}
+                                 placeholder="Confirm New Key"
+                              />
                              <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute right-6 top-1/2 -translate-y-1/2 text-gray-500">{showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}</button>
                           </div>
                        </div>
-                       <motion.button whileHover={{ scale: 1.02 }} className={`w-full bg-${theme.color}-500 text-white font-black italic uppercase tracking-widest py-5 rounded-2xl shadow-xl shadow-${theme.color}-500/20`}>
-                          {isLoading ? "Syncing..." : "Finalize Reset"}
-                       </motion.button>
+                        <motion.button 
+                          whileHover={{ scale: 1.02 }} 
+                          className="w-full text-white font-black italic uppercase tracking-widest py-5 rounded-2xl shadow-xl transition-all"
+                          style={{ 
+                            backgroundColor: theme.hex,
+                            boxShadow: `0 20px 25px -5px ${theme.hex}33`
+                          }}
+                        >
+                           {isLoading ? "Syncing..." : "Finalize Reset"}
+                        </motion.button>
                     </motion.form>
                   )}
 
                   {step === "success" && (
                     <motion.div key="s" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="text-center space-y-8">
                        <p className="text-gray-400 font-medium">Your credentials have been updated across the network. Redirecting to terminal...</p>
-                       <div className="flex justify-center gap-2">
+                        <div className="flex justify-center gap-2">
                           {[0, 1, 2].map(i => (
-                            <motion.div key={i} animate={{ scale: [1, 1.5, 1], opacity: [0.5, 1, 0.5] }} transition={{ repeat: Infinity, duration: 1, delay: i * 0.2 }} className={`w-2 h-2 rounded-full bg-${theme.color}-500`} />
+                            <motion.div 
+                              key={i} 
+                              animate={{ scale: [1, 1.5, 1], opacity: [0.5, 1, 0.5] }} 
+                              transition={{ repeat: Infinity, duration: 1, delay: i * 0.2 }} 
+                              className="w-2 h-2 rounded-full" 
+                              style={{ backgroundColor: theme.hex }}
+                            />
                           ))}
-                       </div>
+                        </div>
                     </motion.div>
                   )}
                </AnimatePresence>

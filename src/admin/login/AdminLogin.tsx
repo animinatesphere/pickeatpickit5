@@ -157,7 +157,7 @@ export default function AdminLogin() {
                 </div>
               </div>
 
-              {/* Remember Me & Forgot Password */}
+              {/* Remember Me */}
               <div className="flex items-center justify-between font-inter">
                 <label className="flex items-center cursor-pointer group">
                   <input
@@ -168,12 +168,6 @@ export default function AdminLogin() {
                     Remember me
                   </span>
                 </label>
-                <a
-                  href="#"
-                  className="text-sm font-bold text-orange-500 dark:text-orange-400 hover:text-orange-600 dark:hover:text-orange-300 transition-all uppercase italic tracking-widest"
-                >
-                  Forgot password?
-                </a>
               </div>
 
               {/* Submit Button */}
