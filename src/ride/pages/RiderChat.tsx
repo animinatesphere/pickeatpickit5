@@ -15,10 +15,10 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useLocation } from "react-router-dom";
 import { RiderNav } from "../component/RiderNav";
 import { supabase } from "../../services/authService";
-import { 
-  getConversations, 
-  getMessages, 
-  sendMessage, 
+import {
+  getConversationWithParticipantNames,
+  getMessages,
+  sendMessage,
   subscribeToMessages,
   startDirectConversation,
   searchUserByPhone
@@ -80,7 +80,7 @@ export default function RiderChat() {
           const res = await startDirectConversation(session.user.id, recipientId);
           if (res && !res.error && res.data) {
             const conv = res.data;
-            setActiveChat({ id: conv.id, name: "New Conversation", message: conv.last_message_text || "Starting secure link...", time: "Just now", unread: 0, online: true });
+            setActiveChat({ id: conv.id, name: "New Chat", message: conv.last_message_text || "Starting secure link...", time: "Just now", unread: 0, online: true });
             setActiveView("chat");
           }
         }
@@ -93,6 +93,7 @@ export default function RiderChat() {
   useEffect(() => {
     if (activeChat) {
       loadMessages(activeChat.id);
+      setConversations(prev => prev.map(c => c.id === activeChat.id ? { ...c, unread: 0 } : c));
       const subscription = subscribeToMessages(activeChat.id, (payload) => {
         const newMessage = payload.new as Message;
         setChatMessages((prev) => [...prev, newMessage]);
@@ -101,6 +102,30 @@ export default function RiderChat() {
       return () => { supabase.removeChannel(subscription); };
     }
   }, [activeChat]);
+
+  // Listen for new messages across ALL conversations for unread badges
+  useEffect(() => {
+    if (!userId) return;
+    const channel = supabase
+      .channel('rider-chat-unread-listener')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'messages' },
+        (payload: any) => {
+          const msg = payload.new;
+          if (msg.sender_id === userId) return;
+          if (!activeChat || msg.conversation_id !== activeChat.id) {
+            setConversations(prev => prev.map(c =>
+              c.id === msg.conversation_id
+                ? { ...c, unread: c.unread + 1, message: msg.content, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }
+                : c
+            ));
+          }
+        }
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [userId, activeChat]);
 
   // Debounced phone search
   useEffect(() => {
@@ -117,11 +142,11 @@ export default function RiderChat() {
   const scrollToBottom = () => messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
 
   const loadConversations = async (uid: string) => {
-    const { data, error } = await getConversations(uid);
+    const { data, error } = await getConversationWithParticipantNames(uid);
     if (!error && data) {
       setConversations(data.map((item: any) => ({
         id: item.conversations.id,
-        name: "Conversation",
+        name: item.otherName || "Unknown",
         message: item.conversations.last_message_text || "No messages yet",
         time: item.conversations.last_message_time ? new Date(item.conversations.last_message_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "",
         unread: 0, online: true
@@ -241,9 +266,16 @@ export default function RiderChat() {
                   <div className="flex-1 min-w-0">
                     <div className="flex justify-between items-start mb-2">
                       <h3 className="font-black italic uppercase text-sm tracking-tight truncate">{conv.name}</h3>
-                      <span className="text-[9px] font-black uppercase tracking-widest pt-1 opacity-50">{conv.time}</span>
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        {conv.unread > 0 && activeChat?.id !== conv.id && (
+                          <span className="min-w-[20px] h-5 px-1.5 bg-green-500 text-black rounded-full flex items-center justify-center text-[10px] font-black">
+                            {conv.unread > 99 ? '99+' : conv.unread}
+                          </span>
+                        )}
+                        <span className="text-[9px] font-black uppercase tracking-widest pt-1 opacity-50">{conv.time}</span>
+                      </div>
                     </div>
-                    <p className="text-[11px] font-bold truncate opacity-60">{conv.message}</p>
+                    <p className={`text-[11px] truncate ${conv.unread > 0 && activeChat?.id !== conv.id ? 'font-black opacity-90' : 'font-bold opacity-60'}`}>{conv.message}</p>
                   </div>
                 </motion.div>
               ))

@@ -8,7 +8,7 @@ const GlobalThemeToggle: React.FC = () => {
   return (
     <button
       onClick={toggleTheme}
-      className="fixed bottom-8 right-8 z-[9999] p-4 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-full shadow-2xl hover:scale-110 active:scale-95 transition-all duration-300 group flex items-center justify-center"
+      className="fixed bottom-8 left-8 z-[9998] p-3 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-full shadow-lg hover:scale-110 active:scale-95 transition-all duration-300 group flex items-center justify-center"
       title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
     >
       <div className="relative">

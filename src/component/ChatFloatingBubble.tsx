@@ -12,7 +12,7 @@ export const ChatFloatingBubble = () => {
   const location = useLocation();
 
   // Don't show on login/signup pages or the main inbox pages to avoid clutter
-  const hideOnPaths = ["/login", "/signup", "/vendor-login", "/vendor-signup", "/rider-login", "/inbox", "/vendor-chat", "/admin-login", "/forgot-password"];
+  const hideOnPaths = ["/login", "/signup", "/vendor-login", "/vendor-signup", "/rider-login", "/inbox", "/vendor-chat", "/rider-chat", "/admin-login", "/forgot-password"];
   const shouldHide = hideOnPaths.includes(location.pathname) || location.pathname.startsWith("/admin");
 
   useEffect(() => {
@@ -32,12 +32,38 @@ export const ChatFloatingBubble = () => {
     checkUser();
   }, [location.pathname]);
 
+  // Listen for new messages globally to bump unread count
+  useEffect(() => {
+    if (!userId) return;
+    const channel = supabase
+      .channel('global-new-messages')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'messages' },
+        (payload: any) => {
+          // Only count messages from others, not ones we sent
+          if (payload.new?.sender_id !== userId) {
+            setUnreadCount((prev) => prev + 1);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [userId]);
+
+  // Reset unread when navigating to a chat page
+  useEffect(() => {
+    if (["/inbox", "/vendor-chat", "/rider-chat"].includes(location.pathname)) {
+      setUnreadCount(0);
+    }
+  }, [location.pathname]);
+
   const fetchUnreadCount = async (id: string) => {
     try {
       const { data } = await getConversations(id);
       if (data) {
-        // Simplified: in a real app, query unread count from participation table
-        setUnreadCount(0); 
+        setUnreadCount(0);
       }
     } catch (err) {
       console.error("Error fetching unread count:", err);

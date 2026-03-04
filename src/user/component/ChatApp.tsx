@@ -16,10 +16,10 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useLocation } from "react-router-dom";
 import { Navbar } from "../../component/Navbar";
 import { supabase } from "../../services/authService";
-import { 
-  getConversations, 
-  getMessages, 
-  sendMessage, 
+import {
+  getConversationWithParticipantNames,
+  getMessages,
+  sendMessage,
   subscribeToMessages,
   startDirectConversation,
   searchUserByPhone
@@ -84,7 +84,7 @@ export default function ChatApp() {
             const conv = res.data;
             const formattedConv = {
               id: conv.id,
-              name: "Chat Session",
+              name: "New Chat",
               message: conv.last_message_text || "Starting conversation...",
               time: conv.last_message_time ? new Date(conv.last_message_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "Just now",
               unread: 0,
@@ -103,6 +103,8 @@ export default function ChatApp() {
   useEffect(() => {
     if (activeChat) {
       loadMessages(activeChat.id);
+      // Clear unread for the active conversation
+      setConversations(prev => prev.map(c => c.id === activeChat.id ? { ...c, unread: 0 } : c));
       const subscription = subscribeToMessages(activeChat.id, (payload) => {
         const newMessage = payload.new as Message;
         setChatMessages((prev) => [...prev, newMessage]);
@@ -111,6 +113,31 @@ export default function ChatApp() {
       return () => { supabase.removeChannel(subscription); };
     }
   }, [activeChat]);
+
+  // Listen for new messages across ALL conversations to update unread badges
+  useEffect(() => {
+    if (!userId) return;
+    const channel = supabase
+      .channel('chat-unread-listener')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'messages' },
+        (payload: any) => {
+          const msg = payload.new;
+          if (msg.sender_id === userId) return;
+          // If the message is in a conversation we're NOT currently viewing, bump unread
+          if (!activeChat || msg.conversation_id !== activeChat.id) {
+            setConversations(prev => prev.map(c =>
+              c.id === msg.conversation_id
+                ? { ...c, unread: c.unread + 1, message: msg.content, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }
+                : c
+            ));
+          }
+        }
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [userId, activeChat]);
 
   // Debounced phone search
   useEffect(() => {
@@ -132,11 +159,11 @@ export default function ChatApp() {
   };
 
   const loadConversations = async (uid: string) => {
-    const { data, error } = await getConversations(uid);
+    const { data, error } = await getConversationWithParticipantNames(uid);
     if (!error && data) {
       const formatted = data.map((item: any) => ({
         id: item.conversations.id,
-        name: "Chat",
+        name: item.otherName || "Unknown",
         message: item.conversations.last_message_text || "No messages yet",
         time: item.conversations.last_message_time ? new Date(item.conversations.last_message_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "",
         unread: 0,
@@ -197,32 +224,32 @@ export default function ChatApp() {
   };
 
   return (
-    <div className="flex flex-col h-screen bg-[#F8FAFC] overflow-hidden">
+    <div className="flex flex-col h-screen bg-gray-50 dark:bg-gray-950 overflow-hidden">
       <Navbar />
-      
-      <div className="flex-1 flex flex-col md:flex-row max-w-7xl mx-auto w-full overflow-hidden bg-white md:my-4 md:rounded-[2.5rem] md:shadow-2xl md:border md:border-gray-100">
-        
+
+      <div className="flex-1 flex flex-col md:flex-row max-w-7xl mx-auto w-full overflow-hidden bg-white dark:bg-gray-900 md:my-4 md:rounded-2xl md:shadow-xl md:border md:border-gray-200 dark:md:border-gray-800">
+
         {/* Sidebar */}
-        <div className={`flex-col w-full md:w-80 lg:w-96 border-r border-gray-100 bg-white ${activeView === "chat" ? "hidden md:flex" : "flex"}`}>
-          <div className="p-6 border-b border-gray-50 bg-white sticky top-0 z-10">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-black italic uppercase tracking-tighter text-gray-800">Messages</h2>
-              <div className="w-10 h-10 bg-gray-50 rounded-2xl flex items-center justify-center text-gray-400">
-                <MoreVertical size={20} />
+        <div className={`flex-col w-full md:w-80 lg:w-96 border-r border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 ${activeView === "chat" ? "hidden md:flex" : "flex"}`}>
+          <div className="p-5 border-b border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 sticky top-0 z-10">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white">Messages</h2>
+              <div className="w-9 h-9 bg-gray-100 dark:bg-gray-800 rounded-xl flex items-center justify-center text-gray-400">
+                <MoreVertical size={18} />
               </div>
             </div>
             {/* Search by phone */}
             <div className="relative">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-              <input 
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+              <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search by phone number..." 
-                className="w-full pl-12 pr-10 py-4 bg-gray-50 rounded-2xl text-xs font-bold placeholder:text-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500/20"
+                placeholder="Search by phone number..."
+                className="w-full pl-10 pr-10 py-3 bg-gray-100 dark:bg-gray-800 rounded-xl text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500/30 transition-all"
               />
               {searchQuery && (
-                <button onClick={() => { setSearchQuery(""); setSearchResults([]); }} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400">
+                <button onClick={() => { setSearchQuery(""); setSearchResults([]); }} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">
                   <X size={16} />
                 </button>
               )}
@@ -230,26 +257,26 @@ export default function ChatApp() {
               <AnimatePresence>
                 {(searchResults.length > 0 || searching) && (
                   <motion.div
-                    initial={{ opacity: 0, y: -10 }}
+                    initial={{ opacity: 0, y: -5 }}
                     animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
-                    className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden z-50"
+                    exit={{ opacity: 0, y: -5 }}
+                    className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 overflow-hidden z-50"
                   >
                     {searching ? (
-                      <div className="p-4 text-center text-xs text-gray-400 font-bold">Searching...</div>
+                      <div className="p-4 text-center text-sm text-gray-400">Searching...</div>
                     ) : (
                       searchResults.map((result) => (
                         <button
                           key={result.user_id}
                           onClick={() => handleSearchSelect(result)}
-                          className="w-full flex items-center gap-3 p-4 hover:bg-green-50 transition-colors text-left"
+                          className="w-full flex items-center gap-3 p-3 hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors text-left"
                         >
-                          <div className="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center font-black text-green-700 italic flex-shrink-0">
-                            {result.name.charAt(0)}
+                          <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center font-semibold text-green-700 dark:text-green-400 flex-shrink-0">
+                            {result.name.charAt(0).toUpperCase()}
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="font-black italic uppercase text-sm text-gray-800 truncate">{result.name}</p>
-                            <p className="text-xs text-gray-400 font-bold flex items-center gap-1"><Phone size={10}/> {result.phone} · {result.role}</p>
+                            <p className="font-semibold text-sm text-gray-900 dark:text-white truncate">{result.name}</p>
+                            <p className="text-xs text-gray-400 flex items-center gap-1"><Phone size={10}/> {result.phone} · {result.role}</p>
                           </div>
                         </button>
                       ))
@@ -260,49 +287,55 @@ export default function ChatApp() {
             </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto px-2 py-4 space-y-2">
+          <div className="flex-1 overflow-y-auto px-2 py-2 space-y-1">
             {loading ? (
-              <div className="flex flex-col gap-4 p-4">
+              <div className="flex flex-col gap-3 p-3">
                 {[1,2,3].map(i => (
-                  <div key={i} className="animate-pulse flex items-center gap-4">
-                    <div className="w-14 h-14 bg-gray-100 rounded-2xl" />
+                  <div key={i} className="animate-pulse flex items-center gap-3 p-3">
+                    <div className="w-12 h-12 bg-gray-100 dark:bg-gray-800 rounded-full" />
                     <div className="flex-1 space-y-2">
-                      <div className="h-4 bg-gray-100 rounded w-1/2" />
-                      <div className="h-3 bg-gray-100 rounded w-full" />
+                      <div className="h-4 bg-gray-100 dark:bg-gray-800 rounded w-1/2" />
+                      <div className="h-3 bg-gray-100 dark:bg-gray-800 rounded w-3/4" />
                     </div>
                   </div>
                 ))}
               </div>
             ) : conversations.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-20 px-6 text-center">
-                <div className="w-20 h-20 bg-green-50 rounded-3xl flex items-center justify-center mb-6">
-                  <MessageCircle size={40} className="text-green-600" />
+              <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
+                <div className="w-16 h-16 bg-green-50 dark:bg-green-900/20 rounded-full flex items-center justify-center mb-4">
+                  <MessageCircle size={32} className="text-green-600 dark:text-green-400" />
                 </div>
-                <h3 className="font-black italic uppercase text-gray-800 tracking-tight">No Chats Yet</h3>
-                <p className="text-xs text-gray-400 font-bold mt-2 leading-relaxed">Search for someone by phone number above to start a conversation.</p>
+                <h3 className="font-semibold text-gray-800 dark:text-white">No Chats Yet</h3>
+                <p className="text-sm text-gray-400 mt-2">Search by phone number to start chatting.</p>
               </div>
             ) : (
               conversations.map((conv) => (
                 <motion.div
-                  layoutId={conv.id}
                   key={conv.id}
                   onClick={() => openChat(conv)}
-                  className={`group flex items-center gap-4 p-4 rounded-3xl cursor-pointer transition-all ${activeChat?.id === conv.id ? 'bg-green-600 text-white shadow-xl shadow-green-600/20' : 'hover:bg-gray-50'}`}
+                  className={`group flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all ${activeChat?.id === conv.id ? 'bg-green-600 text-white' : 'hover:bg-gray-50 dark:hover:bg-gray-800'}`}
                 >
-                  <div className="relative">
-                    <div className={`w-14 h-14 rounded-2xl flex items-center justify-center font-black text-xl italic ${activeChat?.id === conv.id ? 'bg-white/20' : 'bg-gradient-to-br from-gray-100 to-gray-200 text-gray-800'}`}>
-                      {conv.name.charAt(0)}
+                  <div className="relative flex-shrink-0">
+                    <div className={`w-12 h-12 rounded-full flex items-center justify-center font-semibold text-lg ${activeChat?.id === conv.id ? 'bg-white/20 text-white' : 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'}`}>
+                      {conv.name.charAt(0).toUpperCase()}
                     </div>
                     {conv.online && (
-                      <div className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-4 ${activeChat?.id === conv.id ? 'bg-green-400 border-green-600' : 'bg-green-500 border-white'}`} />
+                      <div className={`absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full border-2 ${activeChat?.id === conv.id ? 'bg-green-300 border-green-600' : 'bg-green-500 border-white dark:border-gray-900'}`} />
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="flex justify-between items-start mb-1">
-                      <h3 className={`font-black italic uppercase text-sm tracking-tight truncate ${activeChat?.id === conv.id ? 'text-white' : 'text-gray-800'}`}>{conv.name}</h3>
-                      <span className={`text-[10px] font-bold uppercase tracking-widest ${activeChat?.id === conv.id ? 'text-green-200' : 'text-gray-400'}`}>{conv.time}</span>
+                    <div className="flex justify-between items-center mb-0.5">
+                      <h3 className={`font-semibold text-sm truncate ${activeChat?.id === conv.id ? 'text-white' : 'text-gray-900 dark:text-white'}`}>{conv.name}</h3>
+                      <div className="flex items-center gap-2 flex-shrink-0 ml-2">
+                        {conv.unread > 0 && activeChat?.id !== conv.id && (
+                          <span className="min-w-[20px] h-5 px-1.5 bg-green-600 text-white rounded-full flex items-center justify-center text-[10px] font-bold">
+                            {conv.unread > 99 ? '99+' : conv.unread}
+                          </span>
+                        )}
+                        <span className={`text-[11px] ${activeChat?.id === conv.id ? 'text-green-200' : 'text-gray-400'}`}>{conv.time}</span>
+                      </div>
                     </div>
-                    <p className={`text-xs font-bold truncate ${activeChat?.id === conv.id ? 'text-green-100' : 'text-gray-500'}`}>{conv.message}</p>
+                    <p className={`text-xs truncate ${activeChat?.id === conv.id ? 'text-green-100' : conv.unread > 0 ? 'font-semibold text-gray-700 dark:text-gray-300' : 'text-gray-500 dark:text-gray-400'}`}>{conv.message}</p>
                   </div>
                 </motion.div>
               ))
@@ -311,54 +344,54 @@ export default function ChatApp() {
         </div>
 
         {/* Chat Area */}
-        <div className={`flex-1 flex flex-col bg-gray-50/30 h-full overflow-hidden ${activeView === "messages" ? "hidden md:flex" : "flex"}`}>
+        <div className={`flex-1 flex flex-col bg-gray-50 dark:bg-gray-950 h-full overflow-hidden ${activeView === "messages" ? "hidden md:flex" : "flex"}`}>
           {activeChat ? (
             <>
-              <div className="p-6 bg-white border-b border-gray-100 flex items-center justify-between sticky top-0 z-10">
-                <div className="flex items-center gap-4">
-                  <button onClick={() => setActiveView("messages")} className="md:hidden p-3 bg-gray-50 rounded-2xl text-gray-500">
+              <div className="px-4 py-3 sm:px-6 sm:py-4 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between sticky top-0 z-10">
+                <div className="flex items-center gap-3">
+                  <button onClick={() => setActiveView("messages")} className="md:hidden p-2 bg-gray-100 dark:bg-gray-800 rounded-xl text-gray-500">
                     <ArrowLeft size={20} />
                   </button>
-                  <div className="w-12 h-12 bg-green-100 rounded-2xl flex items-center justify-center font-black text-green-700 italic">
-                    {activeChat.name.charAt(0)}
+                  <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center font-semibold text-green-700 dark:text-green-400">
+                    {activeChat.name.charAt(0).toUpperCase()}
                   </div>
                   <div>
-                    <h3 className="font-black italic uppercase text-gray-800 tracking-tight flex items-center gap-2">
+                    <h3 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
                       {activeChat.name}
-                      <Circle size={8} fill="#22c55e" className="text-green-500" />
+                      <span className="w-2 h-2 bg-green-500 rounded-full inline-block" />
                     </h3>
-                    <p className="text-[10px] font-black text-green-600 uppercase tracking-widest italic">Active Now</p>
+                    <p className="text-xs text-green-600 dark:text-green-400">Online</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <button className="w-11 h-11 bg-gray-50 rounded-2xl flex items-center justify-center text-gray-400 hover:bg-green-100 hover:text-green-600 transition-all">
+                <div className="flex items-center gap-1">
+                  <button className="w-10 h-10 bg-gray-100 dark:bg-gray-800 rounded-xl flex items-center justify-center text-gray-400 hover:bg-green-100 hover:text-green-600 dark:hover:bg-green-900/30 transition-all">
                     <Phone size={18} />
                   </button>
-                  <button className="w-11 h-11 bg-gray-50 rounded-2xl flex items-center justify-center text-gray-400 hover:bg-gray-100 transition-all">
+                  <button className="w-10 h-10 bg-gray-100 dark:bg-gray-800 rounded-xl flex items-center justify-center text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 transition-all">
                     <MoreVertical size={18} />
                   </button>
                 </div>
               </div>
 
-              <div className="flex-1 overflow-y-auto p-6 space-y-6 scroll-smooth">
+              <div className="flex-1 overflow-y-auto px-4 py-4 sm:px-6 space-y-4 scroll-smooth">
                 {chatMessages.map((msg) => {
                   const isMe = msg.sender_id === userId;
                   return (
-                    <motion.div 
-                      initial={{ opacity: 0, y: 10 }}
+                    <motion.div
+                      initial={{ opacity: 0, y: 8 }}
                       animate={{ opacity: 1, y: 0 }}
-                      key={msg.id} 
+                      key={msg.id}
                       className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}
                     >
-                      <div className={`max-w-[80%] ${isMe ? 'order-2' : ''}`}>
-                        <div className={`px-5 py-4 rounded-[1.5rem] shadow-sm ${isMe ? 'bg-green-600 text-white rounded-br-none' : 'bg-white text-gray-800 rounded-bl-none border border-gray-100'}`}>
-                          <p className="text-sm font-bold leading-relaxed">{msg.content}</p>
+                      <div className={`max-w-[75%] sm:max-w-[65%]`}>
+                        <div className={`px-4 py-3 rounded-2xl ${isMe ? 'bg-green-600 text-white rounded-br-sm' : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white rounded-bl-sm shadow-sm border border-gray-100 dark:border-gray-700'}`}>
+                          <p className="text-sm leading-relaxed">{msg.content}</p>
                         </div>
-                        <div className={`flex items-center gap-2 mt-2 ${isMe ? 'justify-end' : 'justify-start'}`}>
-                          <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest">
+                        <div className={`flex items-center gap-1.5 mt-1 px-1 ${isMe ? 'justify-end' : 'justify-start'}`}>
+                          <span className="text-[11px] text-gray-400">
                             {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                           </span>
-                          {isMe && <Check size={12} className="text-green-500" />}
+                          {isMe && <Check size={12} className="text-green-400" />}
                         </div>
                       </div>
                     </motion.div>
@@ -367,44 +400,42 @@ export default function ChatApp() {
                 <div ref={messagesEndRef} />
               </div>
 
-              <div className="p-6 bg-white border-t border-gray-50">
-                <form onSubmit={handleSendMessage} className="relative flex items-center gap-3">
-                  <div className="relative flex-1 group">
-                    <input 
-                      type="text" 
+              <div className="px-4 py-3 sm:px-6 sm:py-4 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800">
+                <form onSubmit={handleSendMessage} className="flex items-center gap-2">
+                  <button type="button" className="p-2 text-gray-400 hover:text-green-600 flex-shrink-0 hidden sm:block"><Paperclip size={20} /></button>
+                  <div className="relative flex-1">
+                    <input
+                      type="text"
                       value={messageInput}
                       onChange={(e) => setMessageInput(e.target.value)}
-                      placeholder="Type a message..." 
-                      className="w-full pl-6 pr-24 py-5 bg-gray-50 rounded-[1.5rem] text-sm font-bold text-gray-900 placeholder:text-gray-300 focus:outline-none focus:ring-4 focus:ring-green-500/5 transition-all"
+                      placeholder="Type a message..."
+                      className="w-full px-4 py-3 bg-gray-100 dark:bg-gray-800 rounded-xl text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500/30 transition-all"
                     />
-                    <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-2">
-                      <button type="button" className="p-2 text-gray-400 hover:text-green-600"><Smile size={20} /></button>
-                      <button type="button" className="p-2 text-gray-400 hover:text-green-600"><Paperclip size={20} /></button>
-                    </div>
+                    <button type="button" className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-green-600"><Smile size={20} /></button>
                   </div>
-                  <button 
+                  <button
                     type="submit"
                     disabled={!messageInput.trim()}
-                    className="w-16 h-16 bg-green-600 text-white rounded-[1.5rem] flex items-center justify-center hover:bg-green-700 transition-all shadow-xl shadow-green-600/20 disabled:opacity-50 active:scale-90 flex-shrink-0"
+                    className="w-11 h-11 bg-green-600 text-white rounded-xl flex items-center justify-center hover:bg-green-700 transition-all disabled:opacity-40 active:scale-95 flex-shrink-0"
                   >
-                    <Send size={24} className="transform rotate-12" />
+                    <Send size={18} />
                   </button>
                 </form>
               </div>
             </>
           ) : (
-            <div className="flex-1 flex flex-col items-center justify-center p-12 text-center bg-gray-50/50">
-              <div className="w-32 h-32 bg-white rounded-[3rem] shadow-2xl flex items-center justify-center mb-10 transform -rotate-6">
-                <MessageCircle size={60} className="text-green-600 opacity-20" />
+            <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
+              <div className="w-20 h-20 bg-green-50 dark:bg-green-900/20 rounded-full flex items-center justify-center mb-6">
+                <MessageCircle size={40} className="text-green-600 dark:text-green-400 opacity-50" />
               </div>
-              <h3 className="text-3xl font-black italic uppercase tracking-tighter text-gray-800">Start Chatting</h3>
-              <p className="text-xs text-gray-400 font-bold mt-4 max-w-xs leading-relaxed">Search for someone by their phone number to start a secure conversation.</p>
-              <div className="mt-8 p-6 bg-green-50 rounded-[2rem] border border-green-100 w-full max-w-sm">
+              <h3 className="text-xl font-bold text-gray-800 dark:text-white">Start a Conversation</h3>
+              <p className="text-sm text-gray-400 mt-2 max-w-xs">Search for someone by their phone number to start chatting.</p>
+              <div className="mt-6 p-4 bg-green-50 dark:bg-green-900/20 rounded-xl w-full max-w-sm">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-green-600 rounded-xl flex items-center justify-center text-white">
-                    <User size={20} />
+                  <div className="w-9 h-9 bg-green-600 rounded-lg flex items-center justify-center text-white flex-shrink-0">
+                    <User size={18} />
                   </div>
-                  <p className="text-xs font-black text-green-700 uppercase tracking-widest">Type a phone number in the search box to find someone</p>
+                  <p className="text-xs font-medium text-green-700 dark:text-green-400 text-left">Type a phone number in the search box to find someone</p>
                 </div>
               </div>
             </div>
