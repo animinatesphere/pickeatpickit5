@@ -9,7 +9,6 @@ import {
   Send,
   Search,
   MoreVertical,
-  Circle,
   X
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
