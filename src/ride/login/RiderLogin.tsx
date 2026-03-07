@@ -81,7 +81,7 @@ export default function RiderLogin() {
              <div className="inline-block px-4 py-1 bg-orange-500/10 text-orange-400 border border-orange-500/20 rounded-full text-[10px] font-black uppercase tracking-[0.3em] mb-8">
                 Logistics Terminal
              </div>
-             <h2 className="text-6xl xl:text-8xl font-black uppercase italic leading-[0.9] text-white mb-8 tracking-tighter">
+             <h2 className="text-6xl xl:text-8xl font-black uppercase leading-[0.9] text-white mb-8 tracking-tighter">
                 OWN THE <br />
                 <span className="text-orange-500">STREETS</span>
              </h2>
@@ -91,11 +91,11 @@ export default function RiderLogin() {
              
              <div className="flex gap-12">
                 <div>
-                   <div className="text-3xl font-black text-white italic">24/7</div>
+                   <div className="text-3xl font-black text-white">24/7</div>
                    <div className="text-[10px] uppercase tracking-widest text-orange-500 font-bold">Operational Window</div>
                 </div>
                 <div>
-                   <div className="text-3xl font-black text-white italic">FAST</div>
+                   <div className="text-3xl font-black text-white">FAST</div>
                    <div className="text-[10px] uppercase tracking-widest text-orange-500 font-bold">Payout Cycles</div>
                 </div>
              </div>
@@ -114,7 +114,7 @@ export default function RiderLogin() {
               <div className="relative z-10">
                 <div className="flex justify-between items-start mb-12">
                    <div>
-                      <h2 className="text-3xl font-black italic tracking-tighter uppercase text-white mb-2">
+                      <h2 className="text-3xl font-black tracking-tighter uppercase text-white mb-2">
                          Rider Login
                       </h2>
                       <p className="text-gray-400 text-sm font-medium">Enter your details to start your shift</p>
@@ -186,7 +186,7 @@ export default function RiderLogin() {
                     whileTap={{ scale: 0.98 }}
                     onClick={handleLogin}
                     disabled={isLoading}
-                    className="w-full bg-white text-black font-black italic uppercase tracking-widest py-5 rounded-2xl shadow-xl hover:shadow-orange-500/20 transition-all disabled:opacity-50 flex items-center justify-center gap-3"
+                    className="w-full bg-white text-black font-black uppercase tracking-widest py-5 rounded-2xl shadow-xl hover:shadow-orange-500/20 transition-all disabled:opacity-50 flex items-center justify-center gap-3"
                   >
                     {isLoading ? (
                        <div className="w-5 h-5 border-2 border-black border-t-transparent rounded-full animate-spin" />
@@ -208,7 +208,7 @@ export default function RiderLogin() {
             </div>
 
             <div className="mt-10 text-center">
-               <p className="text-gray-500 font-bold uppercase italic tracking-tighter">
+               <p className="text-gray-500 font-bold uppercase tracking-tighter">
                  Request Fleet Access?{" "}
                  <Link to="/rider-registration">
                    <span className="text-orange-500 hover:text-white transition-colors cursor-pointer border-b border-orange-500/30">Submit Application</span>

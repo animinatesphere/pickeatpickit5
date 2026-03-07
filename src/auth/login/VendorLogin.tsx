@@ -78,7 +78,7 @@ const VendorLogin = () => {
                <div className="inline-block px-4 py-1 bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-full text-[10px] font-black uppercase tracking-[0.3em] mb-8">
                   Enterprise Portal
                </div>
-               <h2 className="text-6xl xl:text-8xl font-black uppercase italic leading-[0.9] text-white mb-8 tracking-tighter">
+               <h2 className="text-6xl xl:text-8xl font-black uppercase leading-[0.9] text-white mb-8 tracking-tighter">
                   SCALE YOUR <br />
                   <span className="text-blue-500">KITCHEN</span>
                </h2>
@@ -92,7 +92,7 @@ const VendorLogin = () => {
                     { label: "Uptime Rate", value: "99.9%" }
                   ].map((stat, i) => (
                     <div key={i}>
-                       <div className="text-3xl font-black text-white italic">{stat.value}</div>
+                       <div className="text-3xl font-black text-white">{stat.value}</div>
                        <div className="text-[10px] uppercase tracking-widest text-blue-500 font-bold">{stat.label}</div>
                     </div>
                   ))}
@@ -112,7 +112,7 @@ const VendorLogin = () => {
                 <div className="relative z-10">
                   <div className="flex justify-between items-start mb-12">
                      <div>
-                        <h2 className="text-3xl font-black italic tracking-tighter uppercase text-white mb-2">
+                        <h2 className="text-3xl font-black tracking-tighter uppercase text-white mb-2">
                            Vendor Login
                         </h2>
                         <p className="text-gray-400 text-sm font-medium">Enter your details to access your account</p>
@@ -174,7 +174,7 @@ const VendorLogin = () => {
                       whileTap={{ scale: 0.98 }}
                       onClick={handleLogin}
                       disabled={isLoading}
-                      className="w-full bg-white text-black font-black italic uppercase tracking-widest py-5 rounded-2xl shadow-xl hover:shadow-blue-500/20 transition-all disabled:opacity-50 flex items-center justify-center gap-3"
+                      className="w-full bg-white text-black font-black uppercase tracking-widest py-5 rounded-2xl shadow-xl hover:shadow-blue-500/20 transition-all disabled:opacity-50 flex items-center justify-center gap-3"
                     >
                       {isLoading ? (
                          <div className="w-5 h-5 border-2 border-black border-t-transparent rounded-full animate-spin" />
@@ -196,7 +196,7 @@ const VendorLogin = () => {
               </div>
 
               <div className="mt-10 text-center">
-                 <p className="text-gray-500 font-bold uppercase italic tracking-tighter">
+                 <p className="text-gray-500 font-bold uppercase tracking-tighter">
                     <Link to="/welcome1">
                       <span className="text-blue-500 hover:text-white transition-colors cursor-pointer border-b border-blue-500/30">Sign Up Now</span>
                     </Link>

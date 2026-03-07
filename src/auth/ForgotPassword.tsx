@@ -136,7 +136,7 @@ const ForgotPassword = () => {
                      {step === "password" && <Lock className="w-10 h-10" style={{ color: theme.hex }} />}
                      {step === "success" && <CheckCircle className="w-10 h-10" style={{ color: theme.hex }} />}
                   </motion.div>
-                  <h1 className="text-3xl font-black italic tracking-tighter uppercase mb-2">
+                  <h1 className="text-3xl font-black tracking-tighter uppercase mb-2">
                     {step === "success" ? "System Restored" : getTitle()}
                   </h1>
                   <p className="text-[10px] tracking-[0.3em] uppercase text-gray-500 font-black">
@@ -175,7 +175,7 @@ const ForgotPassword = () => {
                        </div>
                         <motion.button 
                           whileHover={{ scale: 1.02 }} 
-                          className="w-full text-white font-black italic uppercase tracking-widest py-5 rounded-2xl shadow-xl transition-all"
+                          className="w-full text-white font-black uppercase tracking-widest py-5 rounded-2xl shadow-xl transition-all"
                           style={{ 
                             backgroundColor: theme.hex,
                             boxShadow: `0 20px 25px -5px ${theme.hex}33`
@@ -205,7 +205,7 @@ const ForgotPassword = () => {
                        <div className="flex flex-col gap-4">
                            <motion.button 
                              whileHover={{ scale: 1.02 }} 
-                             className="w-full text-white font-black italic uppercase tracking-widest py-5 rounded-2xl shadow-xl transition-all"
+                             className="w-full text-white font-black uppercase tracking-widest py-5 rounded-2xl shadow-xl transition-all"
                              style={{ 
                                backgroundColor: theme.hex,
                                boxShadow: `0 20px 25px -5px ${theme.hex}33`
@@ -245,7 +245,7 @@ const ForgotPassword = () => {
                        </div>
                         <motion.button 
                           whileHover={{ scale: 1.02 }} 
-                          className="w-full text-white font-black italic uppercase tracking-widest py-5 rounded-2xl shadow-xl transition-all"
+                          className="w-full text-white font-black uppercase tracking-widest py-5 rounded-2xl shadow-xl transition-all"
                           style={{ 
                             backgroundColor: theme.hex,
                             boxShadow: `0 20px 25px -5px ${theme.hex}33`

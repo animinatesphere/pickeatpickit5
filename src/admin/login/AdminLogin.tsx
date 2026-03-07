@@ -69,11 +69,11 @@ export default function AdminLogin() {
                     className="w-16 h-16"
                   />
                 </div>
-                <h2 className="text-4xl font-black font-inter italic tracking-tighter uppercase">
+                <h2 className="text-4xl font-black font-inter tracking-tighter uppercase">
                   PickEATPickIT
                 </h2>
               </div>
-              <p className="text-xl text-white/80 font-inter italic font-medium">
+              <p className="text-xl text-white/80 font-inter font-medium">
                 Manage your food delivery empire with ease
               </p>
             </div>
@@ -92,15 +92,15 @@ export default function AdminLogin() {
                   className="w-14 h-14 sm:w-16 sm:h-16"
                 />
               </div>
-              <h2 className="text-2xl sm:text-3xl font-black font-inter italic tracking-tighter uppercase bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent">
+              <h2 className="text-2xl sm:text-3xl font-black font-inter tracking-tighter uppercase bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent">
                 PickEATPickIT
               </h2>
             </div>
             <div className="mb-8 sm:mb-10">
-              <h1 className="text-2xl sm:text-4xl font-black text-gray-800 dark:text-gray-100 mb-2 sm:mb-3 animate-fade-in font-inter italic tracking-tighter uppercase">
+              <h1 className="text-2xl sm:text-4xl font-black text-gray-800 dark:text-gray-100 mb-2 sm:mb-3 animate-fade-in font-inter tracking-tighter uppercase">
                 Welcome Back
               </h1>
-              <p className="text-gray-600 dark:text-gray-400 text-base sm:text-lg font-medium font-inter italic">
+              <p className="text-gray-600 dark:text-gray-400 text-base sm:text-lg font-medium font-inter">
                 Login as Admin
               </p>
             </div>
@@ -108,7 +108,7 @@ export default function AdminLogin() {
             <div className="space-y-6">
               {/* Email Input */}
               <div className="group">
-                <label className="block text-xs font-bold text-gray-700 dark:text-gray-400 mb-3 uppercase tracking-widest italic ml-1">
+                <label className="block text-xs font-bold text-gray-700 dark:text-gray-400 mb-3 uppercase tracking-widest ml-1">
                   Email Address
                 </label>
                 <div className="relative">
@@ -128,7 +128,7 @@ export default function AdminLogin() {
 
               {/* Password Input */}
               <div className="group">
-                <label className="block text-xs font-bold text-gray-700 dark:text-gray-400 mb-3 uppercase tracking-widest italic ml-1">
+                <label className="block text-xs font-bold text-gray-700 dark:text-gray-400 mb-3 uppercase tracking-widest ml-1">
                   Password
                 </label>
                 <div className="relative">
@@ -164,7 +164,7 @@ export default function AdminLogin() {
                     type="checkbox"
                     className="w-5 h-5 text-orange-500 dark:bg-gray-800 border-gray-300 dark:border-gray-700 rounded focus:ring-orange-500 cursor-pointer"
                   />
-                  <span className="ml-2 text-sm text-gray-600 dark:text-gray-400 font-bold uppercase italic tracking-widest group-hover:text-gray-800 dark:group-hover:text-gray-200 transition-colors">
+                  <span className="ml-2 text-sm text-gray-600 dark:text-gray-400 font-bold uppercase tracking-widest group-hover:text-gray-800 dark:group-hover:text-gray-200 transition-colors">
                     Remember me
                   </span>
                 </label>
@@ -175,7 +175,7 @@ export default function AdminLogin() {
                 <button
                   onClick={handleSubmit}
                   disabled={isLoading}
-                  className="w-full bg-gradient-to-r from-orange-500 to-red-500 text-white font-black py-5 px-6 rounded-2xl hover:from-orange-600 hover:to-red-600 transform hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 shadow-xl shadow-orange-500/20 disabled:opacity-50 disabled:cursor-not-allowed uppercase italic tracking-tighter text-lg"
+                  className="w-full bg-gradient-to-r from-orange-500 to-red-500 text-white font-black py-5 px-6 rounded-2xl hover:from-orange-600 hover:to-red-600 transform hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 shadow-xl shadow-orange-500/20 disabled:opacity-50 disabled:cursor-not-allowed uppercase tracking-tighter text-lg"
                 >
                   {isLoading ? (
                     <div className="flex items-center justify-center gap-3">
@@ -192,7 +192,7 @@ export default function AdminLogin() {
             {/* Divider */}
             <div className="mt-10 flex items-center">
               <div className="flex-1 border-t border-gray-200 dark:border-gray-800"></div>
-              <span className="px-5 text-[10px] font-bold text-gray-400 dark:text-gray-600 uppercase tracking-[0.2em] italic">
+              <span className="px-5 text-[10px] font-bold text-gray-400 dark:text-gray-600 uppercase tracking-[0.2em]">
                 Or continue with
               </span>
               <div className="flex-1 border-t border-gray-200 dark:border-gray-800"></div>
@@ -222,7 +222,7 @@ export default function AdminLogin() {
                     d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
                   />
                 </svg>
-                <span className="text-xs font-bold text-gray-700 dark:text-gray-300 uppercase italic tracking-widest transition-colors">
+                <span className="text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-widest transition-colors">
                   Google
                 </span>
               </button>
@@ -234,7 +234,7 @@ export default function AdminLogin() {
                 >
                   <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
                 </svg>
-                <span className="text-xs font-bold text-gray-700 dark:text-gray-300 uppercase italic tracking-widest transition-colors">
+                <span className="text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-widest transition-colors">
                   Facebook
                 </span>
               </button>

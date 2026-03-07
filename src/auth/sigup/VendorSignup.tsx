@@ -78,7 +78,7 @@ const SignUpPage = ({ onNavigate }: PageProps) => {
     <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="w-full max-w-xl">
       <div className="text-center mb-10">
         <motion.img src={logo} alt="Logo" className="w-20 h-20 mx-auto mb-6 drop-shadow-[0_0_15px_rgba(59,130,246,0.2)]" />
-        <h1 className="text-3xl font-black italic tracking-tighter uppercase mb-2">Vendor <span className="text-blue-500">Sign Up</span></h1>
+        <h1 className="text-3xl font-black tracking-tighter uppercase mb-2">Vendor <span className="text-blue-500">Sign Up</span></h1>
         <p className="text-[10px] tracking-[0.3em] uppercase text-gray-500 font-black">Step 01: Personal Information</p>
       </div>
 
@@ -150,7 +150,7 @@ const SignUpPage = ({ onNavigate }: PageProps) => {
           whileTap={{ scale: 0.98 }}
           onClick={handleSignUp}
           disabled={isLoading}
-          className="w-full bg-white text-black font-black italic uppercase tracking-widest py-5 rounded-2xl shadow-xl hover:shadow-blue-500/20 transition-all flex items-center justify-center gap-2 group"
+          className="w-full bg-white text-black font-black uppercase tracking-widest py-5 rounded-2xl shadow-xl hover:shadow-blue-500/20 transition-all flex items-center justify-center gap-2 group"
         >
           {isLoading ? "Creating Account..." : <><Sparkles className="w-5 h-5" /> Create Vendor Account</>}
         </motion.button>
@@ -197,7 +197,7 @@ const EmailOTPScreen = ({ onNavigate }: PageProps) => {
   return (
     <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="w-full max-w-lg">
       <div className="text-center mb-10">
-        <h1 className="text-3xl font-black italic tracking-tighter uppercase mb-2">Verify <span className="text-blue-500">Email</span></h1>
+        <h1 className="text-3xl font-black tracking-tighter uppercase mb-2">Verify <span className="text-blue-500">Email</span></h1>
         <p className="text-xs text-gray-500 font-medium">Verification signal sent to <span className="text-white">{email}</span></p>
       </div>
 
@@ -227,7 +227,7 @@ const EmailOTPScreen = ({ onNavigate }: PageProps) => {
            whileHover={{ scale: 1.02 }}
            onClick={handleVerify}
            disabled={isLoading}
-           className="w-full bg-white text-black font-black italic uppercase tracking-widest py-5 rounded-2xl shadow-xl"
+           className="w-full bg-white text-black font-black uppercase tracking-widest py-5 rounded-2xl shadow-xl"
         >
           {isLoading ? "Verifying..." : "Verify Code"}
         </motion.button>
@@ -277,7 +277,7 @@ const CreateProfile1 = ({ onNavigate }: PageProps) => {
   return (
     <motion.div initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} className="w-full max-w-4xl">
        <div className="text-center mb-10">
-        <h1 className="text-3xl font-black italic tracking-tighter uppercase mb-2">Business <span className="text-blue-500">Information</span></h1>
+        <h1 className="text-3xl font-black tracking-tighter uppercase mb-2">Business <span className="text-blue-500">Information</span></h1>
         <p className="text-[10px] tracking-[0.3em] uppercase text-gray-500 font-black">Step 03: Business Details</p>
       </div>
 
@@ -346,11 +346,11 @@ const CreateProfile1 = ({ onNavigate }: PageProps) => {
             whileHover={{ scale: 1.02 }}
             onClick={handleSave}
             disabled={isLoading || !agreed}
-            className="flex-1 bg-white text-black font-black italic uppercase tracking-widest py-5 rounded-2xl shadow-xl transition-all"
+            className="flex-1 bg-white text-black font-black uppercase tracking-widest py-5 rounded-2xl shadow-xl transition-all"
           >
             {isLoading ? "Saving Details..." : "Save and Continue"}
           </motion.button>
-          <button onClick={() => onNavigate("main")} className="px-8 font-black uppercase italic tracking-widest text-gray-500 hover:text-white transition-colors">Abort</button>
+          <button onClick={() => onNavigate("main")} className="px-8 font-black uppercase tracking-widest text-gray-500 hover:text-white transition-colors">Abort</button>
         </div>
       </div>
     </motion.div>
@@ -389,7 +389,7 @@ const CreateProfile2 = ({ onNavigate }: PageProps) => {
   return (
     <motion.div initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} className="w-full max-w-2xl">
       <div className="text-center mb-10">
-        <h1 className="text-3xl font-black italic tracking-tighter uppercase mb-2">Business <span className="text-blue-500">Photos</span></h1>
+        <h1 className="text-3xl font-black tracking-tighter uppercase mb-2">Business <span className="text-blue-500">Photos</span></h1>
         <p className="text-[10px] tracking-[0.3em] uppercase text-gray-500 font-black">Step 04: Upload Photos</p>
       </div>
 
@@ -420,7 +420,7 @@ const CreateProfile2 = ({ onNavigate }: PageProps) => {
            whileHover={{ scale: 1.02 }}
            onClick={handleSave}
            disabled={isLoading}
-           className="w-full bg-blue-500 text-white font-black italic uppercase tracking-widest py-6 rounded-2xl shadow-xl transition-all flex items-center justify-center gap-2"
+           className="w-full bg-blue-500 text-white font-black uppercase tracking-widest py-6 rounded-2xl shadow-xl transition-all flex items-center justify-center gap-2"
         >
           {isLoading ? "Saving Photos..." : "Save and Continue"}
         </motion.button>
@@ -452,7 +452,7 @@ const AvailabilityScreen = ({ onNavigate }: PageProps) => {
   return (
     <motion.div initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} className="w-full max-w-2xl">
       <div className="text-center mb-10">
-        <h1 className="text-3xl font-black italic tracking-tighter uppercase mb-2">Opening <span className="text-blue-500">Hours</span></h1>
+        <h1 className="text-3xl font-black tracking-tighter uppercase mb-2">Opening <span className="text-blue-500">Hours</span></h1>
         <p className="text-[10px] tracking-[0.3em] uppercase text-gray-500 font-black">Step 05: Set Availability</p>
       </div>
 
@@ -486,7 +486,7 @@ const AvailabilityScreen = ({ onNavigate }: PageProps) => {
            whileHover={{ scale: 1.02 }}
            onClick={handleSave}
            disabled={isLoading}
-           className="w-full bg-white text-black font-black italic uppercase tracking-widest py-6 rounded-2xl shadow-xl transition-all"
+           className="w-full bg-white text-black font-black uppercase tracking-widest py-6 rounded-2xl shadow-xl transition-all"
         >
           {isLoading ? "Saving Hours..." : "Save Availability"}
         </motion.button>
@@ -516,7 +516,7 @@ const PaymentOption = ({ onNavigate }: PageProps) => {
   return (
     <motion.div initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} className="w-full max-w-xl">
       <div className="text-center mb-10">
-        <h1 className="text-3xl font-black italic tracking-tighter uppercase mb-2">Bank <span className="text-blue-500">Details</span></h1>
+        <h1 className="text-3xl font-black tracking-tighter uppercase mb-2">Bank <span className="text-blue-500">Details</span></h1>
         <p className="text-[10px] tracking-[0.3em] uppercase text-gray-500 font-black">Step 06: Payment Information</p>
       </div>
 
@@ -540,7 +540,7 @@ const PaymentOption = ({ onNavigate }: PageProps) => {
            whileHover={{ scale: 1.02 }}
            onClick={handleSave}
            disabled={isLoading}
-           className="w-full bg-blue-500 text-white font-black italic uppercase tracking-widest py-6 rounded-2xl shadow-xl transition-all flex items-center justify-center gap-2"
+           className="w-full bg-blue-500 text-white font-black uppercase tracking-widest py-6 rounded-2xl shadow-xl transition-all flex items-center justify-center gap-2"
         >
           {isLoading ? "Saving Bank Details..." : "Save Bank Details"}
         </motion.button>
@@ -557,13 +557,13 @@ const ConfirmationScreen = () => {
        <div className="w-24 h-24 bg-blue-500 rounded-full flex items-center justify-center mx-auto mb-8 shadow-[0_0_50px_rgba(59,130,246,0.4)]">
           <CheckCircle2 className="w-12 h-12 text-white" />
        </div>
-       <h1 className="text-4xl font-black uppercase italic tracking-tighter mb-4">VENDOR SIGN UP <span className="text-blue-500">COMPLETE</span></h1>
+       <h1 className="text-4xl font-black uppercase tracking-tighter mb-4">VENDOR SIGN UP <span className="text-blue-500">COMPLETE</span></h1>
        <p className="text-gray-400 font-medium mb-12">Your account has been created successfully. Welcome to PickEAT PickIT.</p>
        <motion.button
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           onClick={() => navigate("/vendor-login")}
-          className="bg-white text-black font-black italic uppercase tracking-widest py-6 px-12 rounded-2xl shadow-2xl"
+          className="bg-white text-black font-black uppercase tracking-widest py-6 px-12 rounded-2xl shadow-2xl"
        >
           Go to Dashboard
        </motion.button>

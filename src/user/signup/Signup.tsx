@@ -75,7 +75,7 @@ const EmailInputScreen = ({ onContinue, toast }: { onContinue: (email: string) =
     <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="w-full max-w-lg">
       <div className="text-center mb-10">
         <motion.img src={logo} alt="Logo" className="w-20 h-20 mx-auto mb-6 drop-shadow-[0_0_15px_rgba(34,197,94,0.2)]" />
-        <h1 className="text-3xl font-black italic tracking-tighter uppercase mb-2">User <span className="text-green-500">Sign Up</span></h1>
+        <h1 className="text-3xl font-black tracking-tighter uppercase mb-2">User <span className="text-green-500">Sign Up</span></h1>
         <p className="text-[10px] tracking-[0.3em] uppercase text-gray-500 font-black">Step 01: Your Details</p>
       </div>
 
@@ -113,7 +113,7 @@ const EmailInputScreen = ({ onContinue, toast }: { onContinue: (email: string) =
           whileTap={{ scale: 0.98 }}
           onClick={handleCreate}
           disabled={isLoading}
-          className="w-full bg-white text-black font-black italic uppercase tracking-widest py-5 rounded-2xl shadow-xl hover:shadow-green-500/20 transition-all flex items-center justify-center gap-2 group disabled:opacity-50"
+          className="w-full bg-white text-black font-black uppercase tracking-widest py-5 rounded-2xl shadow-xl hover:shadow-green-500/20 transition-all flex items-center justify-center gap-2 group disabled:opacity-50"
         >
           {isLoading ? "Starting Process..." : <>Create Account <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" /></>}
         </motion.button>
@@ -151,7 +151,7 @@ const EmailOTPScreen = ({ email, onContinue, onBack, toast }: { email: string, o
       </button>
 
       <div className="text-center mb-10">
-        <h1 className="text-3xl font-black italic tracking-tighter uppercase mb-2">Verify <span className="text-green-500">Email</span></h1>
+        <h1 className="text-3xl font-black tracking-tighter uppercase mb-2">Verify <span className="text-green-500">Email</span></h1>
         <p className="text-xs text-gray-500 font-medium">Authentication code sent to <span className="text-white">{email}</span></p>
       </div>
 
@@ -186,7 +186,7 @@ const EmailOTPScreen = ({ email, onContinue, onBack, toast }: { email: string, o
           whileTap={{ scale: 0.98 }}
           onClick={handleVerify}
           disabled={isLoading}
-          className="w-full bg-white text-black font-black italic uppercase tracking-widest py-5 rounded-2xl shadow-xl hover:shadow-green-500/20 transition-all flex items-center justify-center gap-2"
+          className="w-full bg-white text-black font-black uppercase tracking-widest py-5 rounded-2xl shadow-xl hover:shadow-green-500/20 transition-all flex items-center justify-center gap-2"
         >
           {isLoading ? "Verifying..." : "Verify Code"}
         </motion.button>
@@ -218,7 +218,7 @@ const CompleteProfileScreen = ({ onContinue, toast }: { onContinue: (data: UserD
   return (
     <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="w-full max-w-xl">
       <div className="text-center mb-10">
-        <h1 className="text-3xl font-black italic tracking-tighter uppercase mb-2">Profile <span className="text-green-500">Details</span></h1>
+        <h1 className="text-3xl font-black tracking-tighter uppercase mb-2">Profile <span className="text-green-500">Details</span></h1>
         <p className="text-[10px] tracking-[0.3em] uppercase text-gray-500 font-black">Step 03: Your Information</p>
       </div>
 
@@ -266,7 +266,7 @@ const CompleteProfileScreen = ({ onContinue, toast }: { onContinue: (data: UserD
               if (!fName || !lName || ph.length < 10) return toast.error("Incomplete parameters");
               onContinue({ firstName: fName, lastName: lName, phone: `+234${ph}` });
             }}
-            className="w-full bg-green-500 text-white font-black italic uppercase tracking-widest py-5 rounded-2xl shadow-[0_10px_30px_rgba(34,197,94,0.3)] transition-all flex items-center justify-center gap-2"
+            className="w-full bg-green-500 text-white font-black uppercase tracking-widest py-5 rounded-2xl shadow-[0_10px_30px_rgba(34,197,94,0.3)] transition-all flex items-center justify-center gap-2"
           >
             Save and Continue <ShieldCheck className="w-5 h-5" />
           </motion.button>
@@ -282,7 +282,7 @@ const AddressInputScreen = ({ onComplete, toast }: { onComplete: (addr: string) 
   return (
     <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-lg">
       <div className="text-center mb-10">
-        <h1 className="text-3xl font-black italic tracking-tighter uppercase mb-2">Delivery <span className="text-green-500">Address</span></h1>
+        <h1 className="text-3xl font-black tracking-tighter uppercase mb-2">Delivery <span className="text-green-500">Address</span></h1>
         <p className="text-[10px] tracking-[0.3em] uppercase text-gray-500 font-black">Step 04: Your Location</p>
       </div>
 
@@ -306,7 +306,7 @@ const AddressInputScreen = ({ onComplete, toast }: { onComplete: (addr: string) 
             if (addr.length < 10) return toast.error("Address signal too weak (min 10 chars)");
             onComplete(addr);
           }}
-          className="w-full bg-white text-black font-black italic uppercase tracking-widest py-6 rounded-2xl shadow-xl transition-all flex items-center justify-center gap-2 group"
+          className="w-full bg-white text-black font-black uppercase tracking-widest py-6 rounded-2xl shadow-xl transition-all flex items-center justify-center gap-2 group"
         >
           Finish Registration <CheckCircle2 className="w-6 h-6 text-green-500 group-hover:scale-125 transition-transform" />
         </motion.button>
@@ -353,7 +353,7 @@ const Signup: React.FC = () => {
         {isFinalizing && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center">
             <div className="w-16 h-16 border-4 border-green-500 border-t-transparent rounded-full animate-spin mx-auto mb-6" />
-            <h2 className="text-xl font-black uppercase italic tracking-widest animate-pulse">Creating Account...</h2>
+            <h2 className="text-xl font-black uppercase tracking-widest animate-pulse">Creating Account...</h2>
           </motion.div>
         )}
       </AnimatePresence>

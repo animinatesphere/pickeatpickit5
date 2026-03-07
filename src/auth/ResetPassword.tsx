@@ -130,7 +130,7 @@ const ResetPassword = () => {
                        <Lock className="w-10 h-10" style={{ color: theme.hex }} />
                      )}
                   </motion.div>
-                  <h1 className="text-3xl font-black italic tracking-tighter uppercase mb-2">
+                  <h1 className="text-3xl font-black tracking-tighter uppercase mb-2">
                     {resetSuccess ? "Security Restored" : "Re-Authorization"}
                   </h1>
                   <p className="text-[10px] tracking-[0.3em] uppercase text-gray-500 font-black">
@@ -214,7 +214,7 @@ const ResetPassword = () => {
 
                        <motion.button 
                           whileHover={{ scale: 1.02 }} 
-                          className="w-full text-white font-black italic uppercase tracking-widest py-5 rounded-2xl shadow-xl transition-all"
+                          className="w-full text-white font-black uppercase tracking-widest py-5 rounded-2xl shadow-xl transition-all"
                           style={{ 
                             backgroundColor: theme.hex,
                             boxShadow: `0 20px 25px -5px ${theme.hex}33`
@@ -234,7 +234,7 @@ const ResetPassword = () => {
                       animate={{ opacity: 1, scale: 1 }} 
                       className="text-center space-y-8"
                     >
-                       <p className="text-gray-400 font-medium italic">Terminal access restored. Security layers updated. Redirecting to main node...</p>
+                       <p className="text-gray-400 font-medium">Terminal access restored. Security layers updated. Redirecting to main node...</p>
                        <div className="flex justify-center gap-2">
                           {[0, 1, 2].map(i => (
                             <motion.div 

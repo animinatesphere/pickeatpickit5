@@ -100,7 +100,7 @@ const Login = () => {
                 alt="Logo"
                 className="w-24 h-24 mb-6 drop-shadow-[0_0_20px_rgba(34,197,94,0.3)]"
               />
-              <h1 className="text-4xl font-black italic tracking-tighter uppercase text-white mb-2">
+              <h1 className="text-4xl font-black tracking-tighter uppercase text-white mb-2">
                 PickEAT <span className="text-green-500">PickIT</span>
               </h1>
               <p className="text-xs tracking-[0.3em] uppercase text-gray-500 font-bold">
@@ -115,7 +115,7 @@ const Login = () => {
 
               <div className="relative z-10">
                 <div className="mb-10">
-                  <h2 className="text-2xl font-black italic tracking-tighter uppercase text-white mb-2">
+                  <h2 className="text-2xl font-black tracking-tighter uppercase text-white mb-2">
                     Welcome Back
                   </h2>
                   <p className="text-gray-400 text-sm font-medium">Enter your email and password to login</p>
@@ -177,7 +177,7 @@ const Login = () => {
                     whileTap={{ scale: 0.98 }}
                     onClick={handleLogin}
                     disabled={isLoading}
-                    className="w-full bg-white text-black font-black italic uppercase tracking-widest py-5 rounded-2xl shadow-[0_10px_30px_rgba(255,255,255,0.1)] hover:shadow-green-500/20 transition-all disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-3"
+                    className="w-full bg-white text-black font-black uppercase tracking-widest py-5 rounded-2xl shadow-[0_10px_30px_rgba(255,255,255,0.1)] hover:shadow-green-500/20 transition-all disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-3"
                   >
                     {isLoading ? (
                        <div className="w-5 h-5 border-2 border-black border-t-transparent rounded-full animate-spin" />
@@ -205,7 +205,7 @@ const Login = () => {
                transition={{ delay: 0.5 }}
                className="text-center mt-10"
             >
-              <p className="text-gray-500 font-bold uppercase italic tracking-tighter">
+              <p className="text-gray-500 font-bold uppercase tracking-tighter">
                     <Link to="/signup">
                       <span className="text-green-500 hover:text-white transition-colors cursor-pointer border-b border-green-500/30">
                         Sign Up Now
