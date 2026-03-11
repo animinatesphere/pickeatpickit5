@@ -112,11 +112,17 @@ const ProfileScreen: React.FC = () => {
         <div className="relative px-6 pt-8 pb-6 text-center">
           <div className="relative inline-block animate-float">
             <div className="absolute inset-0 bg-green-400 rounded-full blur-xl opacity-30 animate-pulse" />
-            <img
-              src={riderData?.profile_image || "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&h=200&fit=crop"}
-              alt="Profile"
-              className="w-28 h-28 rounded-full object-cover border-4 border-white shadow-xl relative z-10 hover:scale-110 transition-transform duration-300"
-            />
+            {riderData?.profile_image ? (
+              <img
+                src={riderData.profile_image}
+                alt="Profile"
+                className="w-28 h-28 rounded-full object-cover border-4 border-white shadow-xl relative z-10 hover:scale-110 transition-transform duration-300"
+              />
+            ) : (
+              <div className="w-28 h-28 rounded-full bg-gradient-to-br from-green-500 to-green-700 border-4 border-white shadow-xl relative z-10 hover:scale-110 transition-transform duration-300 flex items-center justify-center text-white text-4xl font-bold">
+                {riderData?.firstname?.charAt(0)?.toUpperCase() || "R"}
+              </div>
+            )}
             <div className={`absolute -bottom-1 -right-1 w-8 h-8 ${riderData?.is_active ? "bg-green-500" : "bg-gray-400"} rounded-full border-4 border-white z-20 animate-bounce`} />
           </div>
 

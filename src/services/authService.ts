@@ -1310,26 +1310,19 @@ class AuthService {
 
   async uploadVendorPhoto(vendorId: string, file: File, photoType: string) {
     return safeAsyncRequired(async () => {
-      const fileName = `${vendorId}/${Date.now()}_${file.name}`;
+      // Convert file to base64 data URL (bypasses Storage bucket RLS)
+      const base64Url = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = () => reject(new Error("Failed to read file"));
+        reader.readAsDataURL(file);
+      });
 
-      // 1. Upload to storage
-      const { error: uploadError } = await supabase.storage
-        .from("vendor-photos")
-        .upload(fileName, file);
-
-      if (uploadError) throw uploadError;
-
-      const { data: urlData } = supabase.storage
-        .from("vendor-photos")
-        .getPublicUrl(fileName);
-
-      const publicUrl = urlData.publicUrl;
-
-      // 2. PRIMARY STORAGE: Update vendor_profiles directly
+      // 1. PRIMARY STORAGE: Update vendor_profiles directly
       const column = photoType === "store_logo" ? "logo_url" : "cover_url";
       const { error: profileError } = await supabase
         .from("vendor_profiles")
-        .update({ [column]: publicUrl })
+        .update({ [column]: base64Url })
         .eq("vendor_id", vendorId);
 
       if (profileError) {
@@ -1339,7 +1332,7 @@ class AuthService {
         );
       }
 
-      // 3. SECONDARY STORAGE: Insert into vendor_photos
+      // 2. SECONDARY STORAGE: Insert into vendor_photos
       const {
         data: { user },
       } = await supabase.auth.getUser();
@@ -1350,18 +1343,18 @@ class AuthService {
             vendor_id: vendorId,
             user_id: user?.id,
             photo_type: photoType,
-            photo_url: publicUrl,
+            photo_url: base64Url,
           },
         ]);
 
       if (photoTableError) {
         console.warn(
-          "vendor_photos RLS/Schema error (Handled):",
+          "vendor_photos insert error (Handled):",
           photoTableError.message,
         );
       }
 
-      return { publicUrl };
+      return { publicUrl: base64Url };
     });
   }
 

@@ -115,7 +115,7 @@ const PaymentComponent: React.FC = () => {
           onClose: handlePaystackClose,
         });
       } catch (error) {
-        console.error("Paystack init error:", error);
+        // Paystack init error
         toast.error("Failed to initialize payment", "Payment Error");
         setLoading(false);
       }
@@ -126,7 +126,6 @@ const PaymentComponent: React.FC = () => {
   };
 
   const handlePaystackSuccess = async (reference: { reference: string }) => {
-    console.log("Paystack Reference:", reference);
     await processOrderCreation(reference.reference);
   };
 
@@ -150,7 +149,7 @@ const PaymentComponent: React.FC = () => {
         .single();
 
       if (profileError) {
-        console.error("Profile fetch error:", profileError);
+        // Profile fetch failed, will use defaults
       }
 
       // Build fullName and phoneNum from the fetched profile
@@ -159,8 +158,6 @@ const PaymentComponent: React.FC = () => {
           "Customer"
         : "Customer";
       const phoneNum = userProfile?.phone || "No phone";
-
-      console.log("Customer Info:", { fullName, phoneNum }); // Debug log
 
       // 2. Fetch vendor business name correctly
       const firstItemId = orderData!.items[0].id;
@@ -205,8 +202,6 @@ const PaymentComponent: React.FC = () => {
         is_paid: paymentMethod === "online",
       };
 
-      console.log("Order Payload:", orderPayload); // Debug log
-
       const orderItems = orderData!.items.map((item) => ({
         menu_item_id: item.id,
         quantity: item.quantity,
@@ -224,7 +219,6 @@ const PaymentComponent: React.FC = () => {
         sessionStorage.removeItem("checkoutItems");
         setTrackingCode(createdOrder.order.id);
       } else {
-        console.error("Order Error:", orderError);
         // Humanize error messages instead of showing technical database errors
         let errorMessage =
           "Unable to place your order at this time. Please try again.";
@@ -254,7 +248,7 @@ const PaymentComponent: React.FC = () => {
         toast.error(errorMessage, "Order Failed");
       }
     } catch (error) {
-      console.error("Payment error:", error);
+      // Payment processing error
       toast.error("An error occurred. Please try again.", "Payment Error");
     } finally {
       setLoading(false);

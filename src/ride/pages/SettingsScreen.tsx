@@ -1,9 +1,17 @@
 import { useState } from "react";
 import { ChevronRight, LogOut, Trash2, Book, Lock } from "lucide-react";
 import { RiderNav } from "../component/RiderNav";
+import { supabase } from "../../services/authService";
+import { useNavigate } from "react-router-dom";
 
 export default function SettingsScreen() {
   const [activeItem, setActiveItem] = useState<number | null>(null);
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    navigate("/rider-login");
+  };
 
   const menuItems = [
     {
@@ -99,7 +107,12 @@ export default function SettingsScreen() {
               `}
               />
 
-              <div className="relative flex items-center justify-between p-5">
+              <div
+                className="relative flex items-center justify-between p-5"
+                onClick={() => {
+                  if (item.title === "Log Out") handleLogout();
+                }}
+              >
                 <div className="flex items-center space-x-4">
                   {/* Icon container */}
                   <div

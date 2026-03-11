@@ -1,12 +1,14 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   ArrowLeft,
   Calendar,
   ArrowUpCircle,
   Eye,
   ChevronDown,
+  Loader2,
 } from "lucide-react";
 import { VendorNav } from "../component/VendorNav";
+import { supabase } from "../../services/authService";
 
 const EarningsPayment = () => {
   const [activeTab, setActiveTab] = useState<"transactions" | "orders">(
@@ -15,86 +17,82 @@ const EarningsPayment = () => {
   const [showEarnings, setShowEarnings] = useState(true);
   const [currentPage, setCurrentPage] = useState<"main" | "payment">("main");
   const [selectedBank, setSelectedBank] = useState("Guaranty Trust Bank");
-  const [bankName, setBankName] = useState("The Ibeto Hotels");
-  const [accountNo, setAccountNo] = useState("0123456789");
+  const [bankName, setBankName] = useState("");
+  const [accountNo, setAccountNo] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [totalEarnings, setTotalEarnings] = useState(0);
+  const [transactions, setTransactions] = useState<any[]>([]);
+  const [orders, setOrders] = useState<any[]>([]);
 
-  const transactions = [
-    {
-      id: 1,
-      title: "Transfer to LACE RESTAURANT LIMITED",
-      amount: 15350,
-      commission: 1250,
-      date: "Oct 21st, 11:00:33",
-      status: "successful",
-    },
-    {
-      id: 2,
-      title: "Transfer to LACE RESTAURANT LIMITED",
-      amount: 15350,
-      commission: 1250,
-      date: "Oct 21st, 11:00:33",
-      status: "successful",
-    },
-    {
-      id: 3,
-      title: "Transfer to LACE RESTAURANT LIMITED",
-      amount: 15350,
-      commission: 1250,
-      date: "Oct 21st, 11:00:33",
-      status: "successful",
-    },
-    {
-      id: 4,
-      title: "Transfer to LACE RESTAURANT LIMITED",
-      amount: 15350,
-      commission: 1250,
-      date: "Oct 21st, 11:00:33",
-      status: "successful",
-    },
-    {
-      id: 5,
-      title: "Transfer to LACE RESTAURANT LIMITED",
-      amount: 15350,
-      commission: 1250,
-      date: "Oct 21st, 11:00:33",
-      status: "successful",
-    },
-    {
-      id: 6,
-      title: "Transfer to LACE RESTAURANT LIMITED",
-      amount: 15350,
-      commission: 1250,
-      date: "Oct 21st, 11:00:33",
-      status: "successful",
-    },
-  ];
+  useEffect(() => {
+    const fetchEarningsData = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) return;
 
-  const orders = [
-    {
-      id: 1,
-      orderNo: "#2356",
-      amount: 15350,
-      commission: 1250,
-      date: "Oct 21st, 11:00:33",
-      status: "completed",
-    },
-    {
-      id: 2,
-      orderNo: "#2356",
-      amount: 15350,
-      commission: 1250,
-      date: "Oct 21st, 11:00:33",
-      status: "completed",
-    },
-    {
-      id: 3,
-      orderNo: "#2356",
-      amount: 15350,
-      commission: 1250,
-      date: "Oct 21st, 11:00:33",
-      status: "completed",
-    },
-  ];
+        const { data: vendor } = await supabase
+          .from("vendors")
+          .select("id, business_name")
+          .eq("user_id", session.user.id)
+          .single();
+
+        if (!vendor) return;
+
+        // Fetch all completed orders as transactions
+        const { data: orderData } = await supabase
+          .from("orders")
+          .select("id, total_amount, status, created_at, customer_name")
+          .eq("vendor_id", vendor.id)
+          .order("created_at", { ascending: false });
+
+        if (orderData) {
+          const total = orderData
+            .filter(o => o.status === "completed" || o.status === "delivered")
+            .reduce((acc, o) => acc + (Number(o.total_amount) || 0), 0);
+          setTotalEarnings(total);
+
+          // Format as transactions
+          setTransactions(orderData.map((o, i) => ({
+            id: i + 1,
+            title: `Order from ${o.customer_name || "Customer"}`,
+            amount: Number(o.total_amount) || 0,
+            commission: Math.round((Number(o.total_amount) || 0) * 0.1),
+            date: new Date(o.created_at).toLocaleDateString("en-NG", { month: "short", day: "numeric", year: "numeric" }),
+            status: o.status,
+          })));
+
+          // Format as orders list
+          setOrders(orderData.map((o, i) => ({
+            id: i + 1,
+            orderNo: `#${o.id.slice(0, 5).toUpperCase()}`,
+            amount: Number(o.total_amount) || 0,
+            commission: Math.round((Number(o.total_amount) || 0) * 0.1),
+            date: new Date(o.created_at).toLocaleDateString("en-NG", { month: "short", day: "numeric", year: "numeric" }),
+            status: o.status,
+          })));
+        }
+
+        // Fetch bank info if exists
+        const { data: bankData } = await supabase
+          .from("vendor_bank_info")
+          .select("*")
+          .eq("vendor_id", vendor.id)
+          .maybeSingle();
+
+        if (bankData) {
+          setSelectedBank(bankData.bank_name || "Guaranty Trust Bank");
+          setBankName(bankData.account_name || "");
+          setAccountNo(bankData.account_number || "");
+        }
+      } catch (err) {
+        // silently fail
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchEarningsData();
+  }, []);
 
   const banks = [
     "Guaranty Trust Bank",
@@ -109,6 +107,17 @@ const EarningsPayment = () => {
     // Save logic here
     setCurrentPage("main");
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-white dark:bg-gray-950 flex items-center justify-center transition-colors duration-300">
+        <div className="text-center">
+          <Loader2 className="w-12 h-12 text-green-600 animate-spin mx-auto mb-4" />
+          <p className="text-gray-600 dark:text-gray-400 font-medium">Loading earnings...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (currentPage === "payment") {
     return (
@@ -146,12 +155,12 @@ const EarningsPayment = () => {
                 </div>
                 <div>
                   <h2 className="text-2xl sm:text-4xl font-bold text-gray-800 tracking-tight">
-                    {showEarnings ? "₦ 3,027.87" : "₦ ••••••"}
+                    {showEarnings ? `₦ ${totalEarnings.toLocaleString()}` : "₦ ••••••"}
                   </h2>
                   <p className="text-xs sm:text-sm text-gray-500 mt-1">
                     Pending Payout -{" "}
                     <span className="text-green-600 font-semibold">
-                      ₦ 2859.87
+                      ₦ {Math.round(totalEarnings * 0.9).toLocaleString()}
                     </span>
                   </p>
                 </div>

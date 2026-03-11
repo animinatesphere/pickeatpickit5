@@ -67,7 +67,6 @@ const OrdersManagement = () => {
         } = await supabase.auth.getSession();
 
         if (!session?.user) {
-          console.error("No user session found");
           setLoading(false);
           return;
         }
@@ -80,20 +79,13 @@ const OrdersManagement = () => {
           .single();
 
         if (vendorError || !vendorData) {
-          console.error("Vendor not found:", vendorError);
           setLoading(false);
           return;
         }
 
         setVendorId(vendorData.id);
 
-        // Now load orders with the vendor ID
-        // Inside OrdersManagement.tsx -> initializeOrders
-        // Inside OrdersManagement.tsx -> initializeOrders
-        // Inside OrdersManagement.tsx -> initializeOrders
         const { data, error } = await getVendorOrders(vendorData.id);
-
-        console.log("📦 Raw Orders Data:", data); // Debug log
 
         if (!error && data) {
           const formattedOrders: Order[] = data.map((order: OrderData) => {
@@ -130,11 +122,10 @@ const OrdersManagement = () => {
             };
           });
 
-          console.log("✅ Formatted Orders:", formattedOrders); // Debug log
           setOrders(formattedOrders);
         }
-      } catch (error) {
-        console.error("Error initializing orders:", error);
+      } catch {
+        // Error loading orders
       } finally {
         setLoading(false);
       }

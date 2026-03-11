@@ -26,6 +26,10 @@ const Account = () => {
     const [, setIsOpen] = useState(true);
   const [, setIsLoading] = useState(true);
   const [, setVendorId] = useState<string | null>(null);
+  const [profileImage, setProfileImage] = useState<string>("");
+  const [totalOrders, setTotalOrders] = useState(0);
+  const [revenue, setRevenue] = useState(0);
+  const [avgRating, setAvgRating] = useState(0);
    const [formData, setFormData] = useState({
       restaurantName: "",
       category: "Restaurant",
@@ -47,10 +51,8 @@ const Account = () => {
         const {
           data: { session },
         } = await supabase.auth.getSession();
-        console.log("Session:", session);
 
         if (!session) {
-          console.log("No active session, redirecting to login");
           window.location.href = "/vendor-login";
           return;
         }
@@ -67,10 +69,8 @@ const Account = () => {
 
         // Get current user
         const user = await apiService.getCurrentUser();
-        console.log("Current User:", user);
 
         if (!user) {
-          console.error("No user found - redirecting to login");
           window.location.href = "/vendor-login";
           return;
         }
@@ -84,15 +84,57 @@ const Account = () => {
           .eq("user_id", user.id)
           .single();
 
-        console.log("Vendor Data:", vendorData);
-        console.log("Vendor Error:", vendorError);
-
         if (vendorError) {
-          console.error("Error fetching vendor:", vendorError);
           return;
         }
 
         setVendorId(vendorData.id);
+
+        // Fetch profile photo
+        const { data: photoData } = await supabase
+          .from("vendor_photos")
+          .select("photo_url")
+          .eq("vendor_id", vendorData.id)
+          .eq("photo_type", "store_logo")
+          .order("uploaded_at", { ascending: false })
+          .limit(1);
+
+        if (photoData && photoData.length > 0) {
+          setProfileImage(photoData[0].photo_url);
+        } else {
+          // Fallback: check logo_url in vendor_profiles
+          const { data: profileLogoData } = await supabase
+            .from("vendor_profiles")
+            .select("logo_url")
+            .eq("vendor_id", vendorData.id)
+            .single();
+          if (profileLogoData?.logo_url) {
+            setProfileImage(profileLogoData.logo_url);
+          }
+        }
+
+        // Fetch orders for total orders & revenue
+        const { data: orders } = await supabase
+          .from("orders")
+          .select("total_amount")
+          .eq("vendor_id", vendorData.id);
+
+        if (orders) {
+          setTotalOrders(orders.length);
+          setRevenue(orders.reduce((acc, o) => acc + (Number(o.total_amount) || 0), 0));
+        }
+
+        // Fetch average rating from order ratings
+        const { data: ratingData } = await supabase
+          .from("orders")
+          .select("rating")
+          .eq("vendor_id", vendorData.id)
+          .not("rating", "is", null);
+
+        if (ratingData && ratingData.length > 0) {
+          const avg = ratingData.reduce((acc, o) => acc + Number(o.rating), 0) / ratingData.length;
+          setAvgRating(Math.round(avg * 10) / 10);
+        }
 
         // Fetch vendor profile
         const { data: profileData, error: profileError } = await supabase
@@ -101,18 +143,12 @@ const Account = () => {
           .eq("vendor_id", vendorData.id)
           .single();
 
-        console.log("Profile Data:", profileData);
-        console.log("Profile Error:", profileError);
-
         // Fetch vendor availability
-        const { data: availabilityData, error: availError } = await supabase
+        const { data: availabilityData } = await supabase
           .from("vendor_availability")
           .select("*")
           .eq("vendor_id", vendorData.id)
           .single();
-
-        console.log("Availability Data:", availabilityData);
-        console.log("Availability Error:", availError);
 
         // Update formData with fetched data
         setFormData({
@@ -142,8 +178,6 @@ const Account = () => {
           setIsOpen(availabilityData.is_open);
         }
       } catch (error) {
-        console.error("Error loading vendor data:", error);
-
         // Check for email confirmation error
         if (
           error instanceof Error &&
@@ -236,20 +270,26 @@ const Account = () => {
     },
   ];
 
+  const formatRevenue = (amount: number) => {
+    if (amount >= 1000000) return `₦${(amount / 1000000).toFixed(1)}M`;
+    if (amount >= 1000) return `₦${(amount / 1000).toFixed(1)}K`;
+    return `₦${amount.toLocaleString()}`;
+  };
+
   const stats = [
     {
       icon: ShoppingBag,
       label: "Total Orders",
-      value: "1,284",
+      value: totalOrders.toLocaleString(),
       color: "text-blue-600",
     },
     {
       icon: TrendingUp,
       label: "Revenue",
-      value: "₦3.2M",
+      value: formatRevenue(revenue),
       color: "text-green-600",
     },
-    { icon: Award, label: "Rating", value: "4.0", color: "text-yellow-600" },
+    { icon: Award, label: "Rating", value: avgRating > 0 ? avgRating.toString() : "N/A", color: "text-yellow-600" },
   ];
 
   return (
@@ -283,13 +323,17 @@ const Account = () => {
             {/* Profile Image and Rating */}
             <div className="flex justify-center mb-4 relative">
               <div className="relative">
-                <div className="w-32 h-32 rounded-full bg-gradient-to-br from-green-400 to-green-600 p-1 shadow-2xl animate-pulse">
+                <div className="w-32 h-32 rounded-full bg-gradient-to-br from-green-400 to-green-600 p-1 shadow-2xl">
                   <div className="w-full h-full rounded-full bg-gradient-to-br from-gray-800 to-gray-600 flex items-center justify-center text-white text-4xl font-bold overflow-hidden">
-                    <img
-                      src="https://images.unsplash.com/photo-1577219491135-ce391730fb2c?w=400&h=400&fit=crop"
-                      alt="Profile"
-                      className="w-full h-full object-cover"
-                    />
+                    {profileImage ? (
+                      <img
+                        src={profileImage}
+                        alt="Profile"
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <span>{formData.restaurantName?.charAt(0)?.toUpperCase() || "V"}</span>
+                    )}
                   </div>
                 </div>
                 {/* Crown Badge */}
@@ -300,7 +344,7 @@ const Account = () => {
 
               {/* Rating Badge */}
               <div className="absolute right-8 top-0 bg-white dark:bg-gray-800 rounded-full px-4 py-2 shadow-xl flex items-center gap-2 border-2 border-green-200 dark:border-green-900/50">
-                <span className="text-2xl font-bold text-gray-800 dark:text-gray-100 font-inter">4.0</span>
+                <span className="text-2xl font-bold text-gray-800 dark:text-gray-100 font-inter">{avgRating > 0 ? avgRating : "N/A"}</span>
                 <Star className="w-6 h-6 fill-yellow-400 text-yellow-400" />
               </div>
             </div>
@@ -392,7 +436,13 @@ const Account = () => {
         </div>
 
         {/* Logout Button */}
-        <button className="w-full mt-6 py-4 px-6 bg-gradient-to-r from-green-600 to-green-700 dark:from-green-700 dark:to-green-800 hover:from-green-700 hover:to-green-800 dark:hover:from-green-800 dark:hover:to-green-900 text-white rounded-2xl font-bold text-lg shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center gap-3 group transform hover:scale-[1.02]">
+        <button
+          onClick={async () => {
+            await supabase.auth.signOut();
+            window.location.href = "/vendor-login";
+          }}
+          className="w-full mt-6 py-4 px-6 bg-gradient-to-r from-red-600 to-red-700 dark:from-red-700 dark:to-red-800 hover:from-red-700 hover:to-red-800 dark:hover:from-red-800 dark:hover:to-red-900 text-white rounded-2xl font-bold text-lg shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center gap-3 group transform hover:scale-[1.02]"
+        >
           <span>Log out</span>
           <LogOut className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
         </button>

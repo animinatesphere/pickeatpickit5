@@ -6,7 +6,7 @@ export const Rider6 = () => {
       {/* container */}
       <div>
         {/* skip */}
-        <Link to="/signup">
+        <Link to="/vendor-signup">
           <p className="text-[10px] sm:text-[12px] md:text-[14px] lg:text-[16px] text-[#228B22] font-sans font-bold text-right p-4 cursor-pointer">
             Skip
           </p>

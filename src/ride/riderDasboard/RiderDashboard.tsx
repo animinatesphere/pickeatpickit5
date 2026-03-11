@@ -39,7 +39,7 @@ export default function RiderDashboard() {
             const riderStats = await getRiderStats(rider.id);
             setStats(riderStats);
           } catch (err) {
-            console.error("Error fetching rider stats", err);
+            // Failed to fetch rider stats
           }
         }
       }
@@ -172,20 +172,20 @@ export default function RiderDashboard() {
               <div className="p-2 bg-blue-50 rounded-lg">
                 <Clock className="w-4 h-4 text-blue-500" />
               </div>
-              <span className="text-[10px] font-black uppercase text-gray-400 italic">Avg. Pulse</span>
+              <span className="text-[10px] font-black uppercase text-gray-400 italic">Completed</span>
             </div>
-            <p className="text-3xl font-black text-gray-800 italic tracking-tighter">24 <span className="text-sm">MIN</span></p>
-            <p className="text-[10px] font-bold text-gray-400 mt-2 uppercase italic">Operational speed</p>
+            <p className="text-3xl font-black text-gray-800 italic tracking-tighter">{stats?.completedToday || 0}</p>
+            <p className="text-[10px] font-bold text-gray-400 mt-2 uppercase italic">Deliveries today</p>
           </div>
           <div className="bg-white rounded-[1.5rem] p-6 shadow-lg border border-gray-50">
             <div className="flex items-center gap-2 mb-4">
               <div className="p-2 bg-yellow-50 rounded-lg">
                 <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
               </div>
-              <span className="text-[10px] font-black uppercase text-gray-400 italic">Reputation</span>
+              <span className="text-[10px] font-black uppercase text-gray-400 italic">In Transit</span>
             </div>
-            <p className="text-3xl font-black text-gray-800 italic tracking-tighter">4.8</p>
-            <p className="text-[10px] font-bold text-gray-400 mt-2 uppercase italic">From 156 nodes</p>
+            <p className="text-3xl font-black text-gray-800 italic tracking-tighter">{stats?.inProgressToday || 0}</p>
+            <p className="text-[10px] font-bold text-gray-400 mt-2 uppercase italic">Active deliveries</p>
           </div>
         </div>
       </div>

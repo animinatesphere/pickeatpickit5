@@ -61,7 +61,7 @@ export default function UserDashboard() {
         await supabase.from("user_favorites").insert([{ user_id: session.user.id, vendor_id: vendorId }]);
       }
     } catch (error) {
-      console.error("Error updating favorite:", error);
+      // Revert on error
       setLiked(prev => ({ ...prev, [vendorId]: isCurrentlyLiked }));
     }
   };
@@ -107,7 +107,7 @@ export default function UserDashboard() {
       if (offerData) setOffers(offerData);
 
     } catch (error) {
-      console.error("Dashboard error:", error);
+      // Dashboard fetch error
     } finally {
       setTimeout(() => setLoading(false), 800);
     }
@@ -122,7 +122,7 @@ export default function UserDashboard() {
         const profile = await authService.getCurrentUserProfile();
         setUserProfile(profile);
       } catch (error) {
-        console.error("Failed to fetch user profile:", error);
+        // Profile fetch error
       } finally {
         setTimeout(() => setLoading(false), 600);
       }
