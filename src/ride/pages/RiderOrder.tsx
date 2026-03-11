@@ -195,7 +195,7 @@ const RiderOrder = () => {
               }`}>
                 {modal.type === 'accept' ? <CheckCircle className="w-10 h-10" /> : <XCircle className="w-10 h-10" />}
               </div>
-              <h2 className="text-2xl font-black italic uppercase tracking-tighter mb-2 text-gray-800">
+              <h2 className="text-2xl font-black  uppercase tracking-tighter mb-2 text-gray-800">
                 {modal.type === 'accept' ? "Accept Mission?" : "Reject Order?"}
               </h2>
               <p className="text-gray-500 text-sm mb-8">
@@ -228,7 +228,7 @@ const RiderOrder = () => {
         <>
           <div className="bg-white shadow-sm sticky top-0 z-10 transition-all">
             <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
-              <h1 className="text-xl font-bold text-gray-800 italic uppercase tracking-tighter">My Orders</h1>
+              <h1 className="text-xl font-bold text-gray-800  uppercase tracking-tighter">My Orders</h1>
               <Bell className="w-6 h-6 text-gray-700 hover:text-green-600 cursor-pointer transition-colors" />
             </div>
           </div>
@@ -237,7 +237,7 @@ const RiderOrder = () => {
             <div className="flex gap-4">
               <button
                 onClick={() => setActiveTab("pending")}
-                className={`flex-1 py-4 rounded-2xl font-black italic uppercase tracking-widest transition-all ${
+                className={`flex-1 py-4 rounded-2xl font-black  uppercase tracking-widest transition-all ${
                   activeTab === "pending" 
                   ? "bg-green-600 text-white shadow-xl shadow-green-600/20 scale-105" 
                   : "bg-white text-gray-400 border border-gray-100 shadow-sm"
@@ -247,7 +247,7 @@ const RiderOrder = () => {
               </button>
               <button
                 onClick={() => setActiveTab("ongoing")}
-                className={`flex-1 py-4 rounded-2xl font-black italic uppercase tracking-widest transition-all ${
+                className={`flex-1 py-4 rounded-2xl font-black  uppercase tracking-widest transition-all ${
                   activeTab === "ongoing" 
                   ? "bg-green-600 text-white shadow-xl shadow-green-600/20 scale-105" 
                   : "bg-white text-gray-400 border border-gray-100 shadow-sm"
@@ -260,7 +260,7 @@ const RiderOrder = () => {
             {loading && (pendingOrders.length === 0 && ongoingOrders.length === 0) ? (
               <div className="flex flex-col items-center py-32 text-gray-300">
                 <Loader2 className="w-12 h-12 animate-spin mb-4" />
-                <p className="font-bold italic uppercase tracking-widest">Scanning network...</p>
+                <p className="font-bold  uppercase tracking-widest">Scanning network...</p>
               </div>
             ) : (
               <div className="space-y-4">
@@ -286,14 +286,14 @@ const RiderOrder = () => {
                           )}
                         </div>
                         <div>
-                          <h3 className="text-lg font-black italic text-gray-800 uppercase tracking-tighter">
+                          <h3 className="text-lg font-black  text-gray-800 uppercase tracking-tighter">
                             {order.vendor_profiles?.business_name}
                           </h3>
-                          <div className="flex items-center gap-1.5 text-gray-400 text-xs mt-1 font-bold italic uppercase">
+                          <div className="flex items-center gap-1.5 text-gray-400 text-xs mt-1 font-bold  uppercase">
                             <MapPin size={12} className="text-green-500" />
                             <span className="truncate max-w-[150px]">{order.delivery_address}</span>
                           </div>
-                          <p className="text-xl font-black text-green-600 italic mt-2 tracking-tighter">
+                          <p className="text-xl font-black text-green-600  mt-2 tracking-tighter">
                             ₦{(order.total_amount || 0).toLocaleString()}
                           </p>
                         </div>
@@ -307,7 +307,7 @@ const RiderOrder = () => {
                 {(activeTab === "pending" ? pendingOrders : ongoingOrders).length === 0 && (
                   <div className="text-center py-32 bg-white rounded-[3rem] border-2 border-dashed border-gray-100">
                     <Package size={64} className="mx-auto text-gray-100 mb-4" />
-                    <p className="text-gray-300 font-bold italic uppercase tracking-widest">No active deployments</p>
+                    <p className="text-gray-300 font-bold  uppercase tracking-widest">No active deployments</p>
                   </div>
                 )}
               </div>
@@ -324,7 +324,7 @@ const RiderOrder = () => {
               >
                 <ArrowLeft className="w-6 h-6" />
               </button>
-              <h1 className="text-lg font-black italic uppercase tracking-tighter text-gray-800">Deployment Intel</h1>
+              <h1 className="text-lg font-black  uppercase tracking-tighter text-gray-800">Deployment Intel</h1>
               <div className="w-12"></div>
             </div>
           </div>
@@ -335,9 +335,9 @@ const RiderOrder = () => {
               <div className="bg-white rounded-[2rem] p-6 shadow-xl border-l-[6px] border-green-500">
                 <div className="flex items-center gap-3 mb-4">
                   <div className="p-3 bg-green-50 rounded-2xl"><MapPin className="w-5 h-5 text-green-600" /></div>
-                  <h3 className="font-black italic uppercase tracking-widest text-green-600 text-xs">Origin Node</h3>
+                  <h3 className="font-black  uppercase tracking-widest text-green-600 text-xs">Origin Node</h3>
                 </div>
-                <p className="font-black text-gray-800 italic uppercase tracking-tighter">{selectedOrder.vendor_profiles?.business_name}</p>
+                <p className="font-black text-gray-800  uppercase tracking-tighter">{selectedOrder.vendor_profiles?.business_name}</p>
                 <p className="text-xs text-gray-400 font-bold mt-1 uppercase leading-relaxed">{selectedOrder.vendor_profiles?.business_address}</p>
                 <div className="mt-4 flex items-center gap-3">
                   <button 
@@ -346,7 +346,7 @@ const RiderOrder = () => {
                   >
                     <MessageSquare size={16} />
                   </button>
-                  <a href={`tel:${selectedOrder.vendor_profiles?.business_phone}`} className="text-xs text-green-600 font-black italic tracking-widest hover:underline">
+                  <a href={`tel:${selectedOrder.vendor_profiles?.business_phone}`} className="text-xs text-green-600 font-black  tracking-widest hover:underline">
                     {selectedOrder.vendor_profiles?.business_phone || "UNREACHABLE"}
                   </a>
                 </div>
@@ -355,7 +355,7 @@ const RiderOrder = () => {
               <div className="bg-white rounded-[2rem] p-6 shadow-xl border-l-[6px] border-blue-500">
                 <div className="flex items-center gap-3 mb-4">
                   <div className="p-3 bg-blue-50 rounded-2xl"><MapPin className="w-5 h-5 text-blue-600" /></div>
-                  <h3 className="font-black italic uppercase tracking-widest text-blue-600 text-xs">Target Destination</h3>
+                  <h3 className="font-black  uppercase tracking-widest text-blue-600 text-xs">Target Destination</h3>
                 </div>
                 <p className="text-sm text-gray-700 font-bold uppercase leading-relaxed">{selectedOrder.delivery_address}</p>
               </div>
@@ -363,12 +363,12 @@ const RiderOrder = () => {
 
             {/* Target Contact */}
             <div className="bg-white rounded-[2rem] p-8 shadow-xl border border-gray-100 flex items-center gap-6">
-              <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center text-3xl font-black text-gray-300 italic shadow-inner">
+              <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center text-3xl font-black text-gray-300  shadow-inner">
                 {selectedOrder.customer_name?.charAt(0) || "U"}
               </div>
               <div className="flex-1">
-                <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-1 italic">Target Contact</p>
-                <h3 className="font-black text-gray-800 text-2xl italic tracking-tighter uppercase">{selectedOrder.customer_name || "Unknown User"}</h3>
+                <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-1 ">Target Contact</p>
+                <h3 className="font-black text-gray-800 text-2xl  tracking-tighter uppercase">{selectedOrder.customer_name || "Unknown User"}</h3>
                 <div className="mt-2 text-green-600 flex items-center gap-3">
                   <button 
                     onClick={() => handleMessage(selectedOrder.user_id || "")}
@@ -376,7 +376,7 @@ const RiderOrder = () => {
                   >
                     <MessageSquare size={16} />
                   </button>
-                  <a href={`tel:${selectedOrder.customer_phone}`} className="text-sm font-black italic tracking-widest hover:underline">{selectedOrder.customer_phone || "NO SIGNAL"}</a>
+                  <a href={`tel:${selectedOrder.customer_phone}`} className="text-sm font-black  tracking-widest hover:underline">{selectedOrder.customer_phone || "NO SIGNAL"}</a>
                 </div>
               </div>
             </div>
@@ -389,32 +389,32 @@ const RiderOrder = () => {
               
               <div className="flex items-center justify-between mb-10">
                 <div>
-                  <h3 className="text-2xl font-black italic tracking-tighter uppercase text-gray-800">Deployment Manifest</h3>
-                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em] italic">REF ID: {selectedOrder.id.slice(0, 12)}</p>
+                  <h3 className="text-2xl font-black  tracking-tighter uppercase text-gray-800">Deployment Manifest</h3>
+                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em] ">REF ID: {selectedOrder.id.slice(0, 12)}</p>
                 </div>
-                <span className="text-[10px] font-black bg-gray-100 px-4 py-2 rounded-full uppercase tracking-widest italic text-gray-500">Verified Protocol</span>
+                <span className="text-[10px] font-black bg-gray-100 px-4 py-2 rounded-full uppercase tracking-widest  text-gray-500">Verified Protocol</span>
               </div>
 
               <div className="space-y-6 mb-10 border-b border-dashed border-gray-100 pb-10">
                 {selectedOrder.order_items?.map((item: any, idx: number) => (
                   <div key={idx} className="flex justify-between items-center group">
                     <div className="flex items-center gap-4">
-                      <span className="w-10 h-10 bg-gray-50 rounded-xl flex items-center justify-center font-black italic text-green-600 border border-gray-100">x{item.quantity}</span>
-                      <span className="text-gray-800 font-bold italic uppercase tracking-tight">{item.menu_items?.name}</span>
+                      <span className="w-10 h-10 bg-gray-50 rounded-xl flex items-center justify-center font-black  text-green-600 border border-gray-100">x{item.quantity}</span>
+                      <span className="text-gray-800 font-bold  uppercase tracking-tight">{item.menu_items?.name}</span>
                     </div>
-                    <span className="font-black text-gray-800 italic tracking-tighter">₦{(item.price_at_order || 0).toLocaleString()}</span>
+                    <span className="font-black text-gray-800  tracking-tighter">₦{(item.price_at_order || 0).toLocaleString()}</span>
                   </div>
                 ))}
               </div>
 
               <div className="space-y-4">
-                <div className="flex justify-between text-xs text-gray-400 font-black uppercase tracking-widest italic">
+                <div className="flex justify-between text-xs text-gray-400 font-black uppercase tracking-widest ">
                   <span>Subtotal</span>
                   <span>₦{(selectedOrder.total_amount || 0).toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between items-baseline pt-4 border-t-2 border-gray-50">
-                  <span className="text-xs font-black uppercase tracking-[0.3em] text-gray-400 italic">Total Value</span>
-                  <span className="text-5xl font-black italic tracking-tighter text-green-600">₦{(selectedOrder.total_amount || 0).toLocaleString()}</span>
+                  <span className="text-xs font-black uppercase tracking-[0.3em] text-gray-400 ">Total Value</span>
+                  <span className="text-5xl font-black  tracking-tighter text-green-600">₦{(selectedOrder.total_amount || 0).toLocaleString()}</span>
                 </div>
               </div>
             </div>
@@ -424,8 +424,8 @@ const RiderOrder = () => {
               <div className="bg-amber-50/50 rounded-[2rem] p-8 border border-amber-100 flex gap-4">
                 <div className="p-3 bg-amber-100 rounded-2xl h-fit"><AlertTriangle className="w-5 h-5 text-amber-600" /></div>
                 <div>
-                  <h4 className="font-black italic uppercase tracking-widest text-amber-700 text-xs mb-2">Operation Briefing</h4>
-                  <p className="text-sm text-amber-800 italic font-medium leading-relaxed">"{selectedOrder.special_instructions}"</p>
+                  <h4 className="font-black  uppercase tracking-widest text-amber-700 text-xs mb-2">Operation Briefing</h4>
+                  <p className="text-sm text-amber-800  font-medium leading-relaxed">"{selectedOrder.special_instructions}"</p>
                 </div>
               </div>
             )}
@@ -438,13 +438,13 @@ const RiderOrder = () => {
                 <>
                   <button 
                     onClick={() => setModal({ show: true, type: 'reject' })} 
-                    className="flex-1 py-5 border-2 border-red-500 text-red-500 font-black italic uppercase tracking-widest rounded-2xl active:scale-95 transition-all hover:bg-red-50"
+                    className="flex-1 py-5 border-2 border-red-500 text-red-500 font-black  uppercase tracking-widest rounded-2xl active:scale-95 transition-all hover:bg-red-50"
                   >
                     Reject
                   </button>
                   <button 
                     onClick={() => setModal({ show: true, type: 'accept' })} 
-                    className="flex-[2] py-5 bg-green-600 text-white font-black italic uppercase tracking-widest rounded-2xl shadow-2xl shadow-green-600/30 active:scale-95 transition-all hover:bg-green-700"
+                    className="flex-[2] py-5 bg-green-600 text-white font-black  uppercase tracking-widest rounded-2xl shadow-2xl shadow-green-600/30 active:scale-95 transition-all hover:bg-green-700"
                   >
                     Accept Mission
                   </button>
@@ -453,21 +453,21 @@ const RiderOrder = () => {
                 <>
                   <button 
                     onClick={() => setModal({ show: true, type: 'reject' })} 
-                    className="flex-1 py-5 border-2 border-red-500 text-red-500 font-black italic uppercase tracking-widest rounded-2xl active:scale-95 transition-all"
+                    className="flex-1 py-5 border-2 border-red-500 text-red-500 font-black  uppercase tracking-widest rounded-2xl active:scale-95 transition-all"
                   >
                     Reject
                   </button>
                   {selectedOrder.status === 'accepted' ? (
                     <button 
                       onClick={() => updateStatus('picked_up')} 
-                      className="flex-[2] py-5 bg-orange-500 text-white font-black italic uppercase tracking-widest rounded-2xl shadow-2xl shadow-orange-500/30 active:scale-95 transition-all"
+                      className="flex-[2] py-5 bg-orange-500 text-white font-black  uppercase tracking-widest rounded-2xl shadow-2xl shadow-orange-500/30 active:scale-95 transition-all"
                     >
                       Secure Package
                     </button>
                   ) : (
                     <button 
                       onClick={() => updateStatus('completed')} 
-                      className="flex-[2] py-5 bg-blue-600 text-white font-black italic uppercase tracking-widest rounded-2xl shadow-2xl shadow-blue-600/30 active:scale-95 transition-all"
+                      className="flex-[2] py-5 bg-blue-600 text-white font-black  uppercase tracking-widest rounded-2xl shadow-2xl shadow-blue-600/30 active:scale-95 transition-all"
                     >
                       Complete Deployment
                     </button>

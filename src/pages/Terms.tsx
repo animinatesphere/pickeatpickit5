@@ -20,7 +20,7 @@ const Terms: React.FC = () => {
             <div className="w-12 h-12 bg-white/5 rounded-xl flex items-center justify-center border border-white/10">
               <FileText className="w-6 h-6 text-white" />
             </div>
-            <h1 className="text-4xl font-black uppercase italic tracking-tighter">Terms of <span className="text-gray-500">Service</span></h1>
+            <h1 className="text-4xl font-black uppercase  tracking-tighter">Terms of <span className="text-gray-500">Service</span></h1>
           </div>
 
           <p className="text-sm text-gray-500 font-bold uppercase mb-12 tracking-widest">Effective Date: February 2026</p>

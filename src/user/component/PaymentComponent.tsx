@@ -256,10 +256,10 @@ const PaymentComponent: React.FC = () => {
   };
   if (!orderData) {
     return (
-      <div className="min-h-screen bg-white dark:bg-gray-950 flex items-center justify-center transition-colors duration-300">
+      <div className="min-h-screen bg-white flex items-center justify-center transition-colors duration-300">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-green-600 dark:border-green-400 mx-auto mb-4"></div>
-          <p className="text-gray-600 dark:text-gray-400 font-semibold font-inter">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-green-600 mx-auto mb-4"></div>
+          <p className="text-gray-600 font-semibold font-inter">
             Loading order details...
           </p>
         </div>
@@ -270,13 +270,13 @@ const PaymentComponent: React.FC = () => {
   // Success screen with tracking code
   if (trackingCode) {
     return (
-      <div className="min-h-screen bg-white dark:bg-gray-950 flex items-center justify-center p-4 transition-colors duration-300">
+      <div className="min-h-screen bg-white flex items-center justify-center p-4 transition-colors duration-300">
         <div className="max-w-md w-full">
           {/* Success Animation */}
           <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-20 h-20 bg-green-100 dark:bg-green-900/30 rounded-full mb-6 animate-bounce">
+            <div className="inline-flex items-center justify-center w-20 h-20 bg-green-100 rounded-full mb-6 animate-bounce">
               <svg
-                className="w-10 h-10 text-green-600 dark:text-green-400"
+                className="w-10 h-10 text-green-600"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -289,22 +289,22 @@ const PaymentComponent: React.FC = () => {
                 />
               </svg>
             </div>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2 font-inter">
+            <h1 className="text-3xl font-bold text-gray-900 mb-2 font-inter">
               Order Placed!
             </h1>
-            <p className="text-gray-600 dark:text-gray-400 mb-6 font-medium">
+            <p className="text-gray-600 mb-6 font-medium">
               Your order has been confirmed successfully
             </p>
           </div>
 
           {/* Tracking Code Card */}
-          <div className="bg-white dark:bg-gray-900 rounded-2xl p-8 shadow-xl mb-6 border-2 border-green-100 dark:border-green-900/30">
+          <div className="bg-white rounded-2xl p-8 shadow-xl mb-6 border-2 border-green-100">
             <div className="text-center mb-6">
-              <p className="text-sm text-gray-600 dark:text-gray-400 font-medium mb-3 uppercase tracking-wider">
+              <p className="text-sm text-gray-600 font-medium mb-3 uppercase tracking-wider">
                 Your Tracking Code
               </p>
-              <div className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-xl p-6 border-2 border-green-300 dark:border-green-800">
-                <p className="text-4xl font-bold text-green-600 dark:text-green-400 font-mono tracking-widest uppercase">
+              <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-6 border-2 border-green-300">
+                <p className="text-4xl font-bold text-green-600 font-mono tracking-widest uppercase">
                   {trackingCode.slice(0, 8).toUpperCase()}
                 </p>
               </div>
@@ -315,41 +315,41 @@ const PaymentComponent: React.FC = () => {
                   );
                   toast.success("Tracking code copied to clipboard!", "Copied");
                 }}
-                className="mt-4 text-sm text-green-600 dark:text-green-400 hover:text-green-700 dark:hover:text-green-300 font-semibold transition-colors font-inter"
+                className="mt-4 text-sm text-green-600 hover:text-green-700 font-semibold transition-colors font-inter"
               >
                 Copy Code
               </button>
             </div>
 
-            <div className="pt-6 border-t border-gray-100 dark:border-gray-800">
-              <p className="text-xs text-gray-600 dark:text-gray-400 text-center font-medium">
+            <div className="pt-6 border-t border-gray-100">
+              <p className="text-xs text-gray-600 text-center font-medium">
                 📱 Show this code to your rider when they arrive
               </p>
             </div>
           </div>
 
           {/* Order Details */}
-          <div className="bg-white dark:bg-gray-900 rounded-xl p-6 shadow-sm border border-gray-100 dark:border-gray-800 mb-6">
+          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 mb-6">
             <div className="space-y-4 font-inter">
               <div className="flex justify-between">
-                <span className="text-gray-600 dark:text-gray-400">
+                <span className="text-gray-600">
                   Restaurant
                 </span>
-                <span className="font-semibold text-gray-900 dark:text-gray-100">
+                <span className="font-semibold text-gray-900">
                   {orderData.items[0]?.name || "Order"}
                 </span>
               </div>
-              <div className="flex justify-between border-t dark:border-gray-800 pt-4">
-                <span className="text-gray-600 dark:text-gray-400">Items</span>
-                <span className="font-semibold text-gray-900 dark:text-gray-100">
+              <div className="flex justify-between border-t pt-4">
+                <span className="text-gray-600">Items</span>
+                <span className="font-semibold text-gray-900">
                   {orderData.items.length} items
                 </span>
               </div>
-              <div className="flex justify-between border-t dark:border-gray-800 pt-4">
-                <span className="text-gray-600 dark:text-gray-400">
+              <div className="flex justify-between border-t pt-4">
+                <span className="text-gray-600">
                   Delivery Address
                 </span>
-                <span className="font-semibold text-gray-900 dark:text-gray-100 text-right max-w-xs text-sm truncate">
+                <span className="font-semibold text-gray-900 text-right max-w-xs text-sm truncate">
                   {deliveryAddress}
                 </span>
               </div>
@@ -365,7 +365,7 @@ const PaymentComponent: React.FC = () => {
           </button>
           <button
             onClick={() => navigate("/market")}
-            className="w-full bg-white dark:bg-gray-900 text-green-600 dark:text-green-400 font-bold py-4 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 border-2 border-green-200 dark:border-green-900/50 transition-colors shadow-sm"
+            className="w-full bg-white text-green-600 font-bold py-4 rounded-xl hover:bg-gray-50 border-2 border-green-200 transition-colors shadow-sm"
           >
             Continue Shopping
           </button>
@@ -377,17 +377,17 @@ const PaymentComponent: React.FC = () => {
   const { subtotal, delivery } = totals;
 
   return (
-    <div className="min-h-screen bg-white dark:bg-gray-950 transition-colors duration-300">
+    <div className="min-h-screen bg-white transition-colors duration-300">
       <Navbar />
 
       {/* Header */}
-      <div className="bg-gradient-to-r from-green-600 to-emerald-600 dark:from-green-700 dark:to-emerald-800 shadow-lg sticky top-0 z-20">
+      <div className="bg-gradient-to-r from-green-600 to-emerald-600 shadow-lg sticky top-0 z-20">
         <div className="max-w-3xl mx-auto px-4 py-4 flex items-center gap-4">
           <ChevronLeft
             className="w-6 h-6 cursor-pointer text-white hover:bg-white/10 rounded-full p-1 transition-all"
             onClick={() => navigate(-1)}
           />
-          <h1 className="text-xl font-bold text-white flex-1 font-inter italic tracking-tight">
+          <h1 className="text-xl font-bold text-white flex-1 font-inter  tracking-tight">
             Payment
           </h1>
           <Package className="w-6 h-6 text-white" />
@@ -396,10 +396,10 @@ const PaymentComponent: React.FC = () => {
 
       <div className="max-w-3xl mx-auto p-4 pb-24">
         {/* Delivery Address */}
-        <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 mb-4 shadow-lg hover:shadow-xl transition-all border border-transparent dark:border-gray-800">
+        <div className="bg-white rounded-2xl p-6 mb-4 shadow-lg hover:shadow-xl transition-all border border-transparent">
           <div className="flex items-center gap-2 mb-4">
-            <MapPin className="w-5 h-5 text-green-600 dark:text-green-400" />
-            <h2 className="font-bold text-gray-900 dark:text-gray-100 text-lg font-inter italic uppercase tracking-tighter">
+            <MapPin className="w-5 h-5 text-green-600" />
+            <h2 className="font-bold text-gray-900 text-lg font-inter  uppercase tracking-tighter">
               Delivery Address
             </h2>
           </div>
@@ -408,23 +408,23 @@ const PaymentComponent: React.FC = () => {
             placeholder="Enter your delivery address"
             value={deliveryAddress}
             onChange={(e) => setDeliveryAddress(e.target.value)}
-            className="w-full px-4 py-3 bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-800 rounded-xl text-gray-900 dark:text-gray-100 focus:outline-none focus:border-green-500 dark:focus:border-green-400 focus:ring-4 focus:ring-green-100 dark:focus:ring-green-900/20 transition-all font-inter"
+            className="w-full px-4 py-3 bg-white border-2 border-gray-200 rounded-xl text-gray-900 focus:outline-none focus:border-green-500 focus:ring-4 focus:ring-green-100 transition-all font-inter"
           />
         </div>
 
         {/* Order Items */}
-        <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 mb-4 shadow-lg border border-transparent dark:border-gray-800">
-          <h2 className="font-bold text-gray-900 dark:text-gray-100 text-lg mb-4 flex items-center gap-2 font-inter italic uppercase tracking-tighter">
-            <Package className="w-5 h-5 text-green-600 dark:text-green-400" />
+        <div className="bg-white rounded-2xl p-6 mb-4 shadow-lg border border-transparent">
+          <h2 className="font-bold text-gray-900 text-lg mb-4 flex items-center gap-2 font-inter  uppercase tracking-tighter">
+            <Package className="w-5 h-5 text-green-600" />
             Order Items ({orderData.items.length})
           </h2>
           <div className="space-y-4">
             {orderData.items.map((item, i) => (
               <div
                 key={i}
-                className="flex gap-4 items-center pb-4 border-b border-gray-100 dark:border-gray-800 last:border-b-0 last:pb-0"
+                className="flex gap-4 items-center pb-4 border-b border-gray-100 last:border-b-0 last:pb-0"
               >
-                <div className="w-20 h-20 bg-gradient-to-br from-green-100 to-emerald-100 dark:from-green-900/40 dark:to-emerald-900/40 rounded-xl overflow-hidden flex-shrink-0 shadow-md">
+                <div className="w-20 h-20 bg-gradient-to-br from-green-100 to-emerald-100 rounded-xl overflow-hidden flex-shrink-0 shadow-md">
                   {item.image_url?.startsWith("http") ? (
                     <img
                       src={item.image_url}
@@ -438,15 +438,15 @@ const PaymentComponent: React.FC = () => {
                   )}
                 </div>
                 <div className="flex-1">
-                  <p className="font-bold text-gray-900 dark:text-gray-100 text-lg font-inter">
+                  <p className="font-bold text-gray-900 text-lg font-inter">
                     {item.name}
                   </p>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                  <p className="text-sm text-gray-600">
                     Quantity:{" "}
                     <span className="font-semibold">{item.quantity}</span>
                   </p>
                 </div>
-                <p className="font-bold text-green-600 dark:text-green-400 text-lg font-inter">
+                <p className="font-bold text-green-600 text-lg font-inter">
                   ₦{(item.price * item.quantity).toLocaleString()}
                 </p>
               </div>
@@ -455,28 +455,28 @@ const PaymentComponent: React.FC = () => {
         </div>
 
         {/* Order Summary */}
-        <div className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/10 dark:to-emerald-900/10 rounded-2xl p-6 mb-4 shadow-lg border-2 border-green-100 dark:border-green-900/30">
-          <h2 className="font-bold text-gray-900 dark:text-gray-100 text-lg mb-4 font-inter italic uppercase tracking-tighter">
+        <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-2xl p-6 mb-4 shadow-lg border-2 border-green-100">
+          <h2 className="font-bold text-gray-900 text-lg mb-4 font-inter  uppercase tracking-tighter">
             Order Summary
           </h2>
           <div className="space-y-3 text-base font-inter">
-            <div className="flex justify-between text-gray-700 dark:text-gray-300">
+            <div className="flex justify-between text-gray-700">
               <span>Subtotal</span>
               <span className="font-semibold">
                 {" "}
                 ₦{subtotal.toFixed(2).toLocaleString()}
               </span>
             </div>
-            <div className="flex justify-between text-gray-700 dark:text-gray-300">
+            <div className="flex justify-between text-gray-700">
               <span>Delivery Fee</span>
               <span className="font-semibold">
                 ₦{delivery.toFixed(2).toLocaleString()}
               </span>
             </div>
             {orderData.spiceLevel && (
-              <div className="flex justify-between text-gray-600 dark:text-gray-400 text-sm pt-2 border-t dark:border-gray-800 font-medium">
+              <div className="flex justify-between text-gray-600 text-sm pt-2 border-t font-medium">
                 <span>Spice Level</span>
-                <span className="font-semibold text-green-600 dark:text-green-400">
+                <span className="font-semibold text-green-600">
                   {orderData.spiceLevel === 0
                     ? "Mild"
                     : orderData.spiceLevel > 50
@@ -486,20 +486,20 @@ const PaymentComponent: React.FC = () => {
               </div>
             )}
             {orderData.specialInstructions && (
-              <div className="pt-2 border-t dark:border-gray-800">
-                <p className="text-gray-600 dark:text-gray-400 text-sm mb-1 font-medium italic">
+              <div className="pt-2 border-t">
+                <p className="text-gray-600 text-sm mb-1 font-medium ">
                   Special Instructions:
                 </p>
-                <p className="text-gray-800 dark:text-gray-200 text-sm bg-white dark:bg-gray-800 p-3 rounded-lg border dark:border-gray-700">
+                <p className="text-gray-800 text-sm bg-white p-3 rounded-lg border">
                   {orderData.specialInstructions}
                 </p>
               </div>
             )}
-            <div className="border-t-2 border-green-200 dark:border-green-800 pt-4 mt-4 flex justify-between font-bold text-xl uppercase italic tracking-tighter">
-              <span className="text-gray-900 dark:text-gray-100">
+            <div className="border-t-2 border-green-200 pt-4 mt-4 flex justify-between font-bold text-xl uppercase  tracking-tighter">
+              <span className="text-gray-900">
                 Total Amount
               </span>
-              <span className="text-green-600 dark:text-green-400">
+              <span className="text-green-600">
                 ₦{total.toFixed(2).toLocaleString()}
               </span>
             </div>
@@ -507,16 +507,16 @@ const PaymentComponent: React.FC = () => {
         </div>
 
         {/* Payment Method Seçimi */}
-        <div className="bg-white dark:bg-gray-900 rounded-2xl p-5 mb-6 shadow-lg border border-transparent dark:border-gray-800">
-          <h2 className="font-bold text-gray-900 dark:text-gray-100 text-lg mb-4 font-inter italic uppercase tracking-tighter">
+        <div className="bg-white rounded-2xl p-5 mb-6 shadow-lg border border-transparent">
+          <h2 className="font-bold text-gray-900 text-lg mb-4 font-inter  uppercase tracking-tighter">
             Choose Payment Method
           </h2>
           <div className="space-y-3">
             <label
               className={`flex items-center gap-4 p-4 rounded-xl border-2 cursor-pointer transition-all ${
                 paymentMethod === "online"
-                  ? "border-green-500 bg-green-50 dark:bg-green-900/20"
-                  : "border-gray-100 dark:border-gray-800 hover:border-green-200"
+                  ? "border-green-500 bg-green-50"
+                  : "border-gray-100 hover:border-green-200"
               }`}
               onClick={() => setPaymentMethod("online")}
             >
@@ -532,10 +532,10 @@ const PaymentComponent: React.FC = () => {
                 )}
               </div>
               <div className="flex-1 font-inter">
-                <p className="font-bold text-gray-900 dark:text-gray-100 italic">
+                <p className="font-bold text-gray-900 ">
                   Pay Online (Paystack)
                 </p>
-                <p className="text-xs text-gray-600 dark:text-gray-400">
+                <p className="text-xs text-gray-600">
                   Secure payment with Card, Transfer, USSD
                 </p>
               </div>
@@ -545,8 +545,8 @@ const PaymentComponent: React.FC = () => {
             <label
               className={`flex items-center gap-4 p-4 rounded-xl border-2 cursor-pointer transition-all ${
                 paymentMethod === "cod"
-                  ? "border-green-500 bg-green-50 dark:bg-green-900/20"
-                  : "border-gray-100 dark:border-gray-800 hover:border-green-200"
+                  ? "border-green-500 bg-green-50"
+                  : "border-gray-100 hover:border-green-200"
               }`}
               onClick={() => setPaymentMethod("cod")}
             >
@@ -562,10 +562,10 @@ const PaymentComponent: React.FC = () => {
                 )}
               </div>
               <div className="flex-1 font-inter">
-                <p className="font-bold text-gray-900 dark:text-gray-100 italic">
+                <p className="font-bold text-gray-900 ">
                   Cash on Delivery
                 </p>
-                <p className="text-xs text-gray-600 dark:text-gray-400">
+                <p className="text-xs text-gray-600">
                   Pay when you receive your food
                 </p>
               </div>
@@ -578,7 +578,7 @@ const PaymentComponent: React.FC = () => {
         <button
           onClick={handlePayment}
           disabled={loading || !deliveryAddress.trim()}
-          className="w-full bg-gradient-to-r from-green-600 to-emerald-600 dark:from-green-700 dark:to-emerald-800 text-white font-bold py-5 rounded-2xl hover:from-green-700 hover:to-emerald-700 dark:hover:from-green-800 dark:hover:to-emerald-900 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-xl hover:shadow-2xl transform hover:-translate-y-1 active:scale-95 text-lg uppercase font-inter italic tracking-tighter"
+          className="w-full bg-gradient-to-r from-green-600 to-emerald-600 text-white font-bold py-5 rounded-2xl hover:from-green-700 hover:to-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-xl hover:shadow-2xl transform hover:-translate-y-1 active:scale-95 text-lg uppercase font-inter  tracking-tighter"
         >
           {loading ? (
             <span className="flex items-center justify-center gap-2">

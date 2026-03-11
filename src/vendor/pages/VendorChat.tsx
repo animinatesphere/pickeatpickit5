@@ -203,8 +203,8 @@ export default function VendorChat() {
           <div className="p-8 border-b border-gray-50 bg-white">
             <div className="flex justify-between items-center mb-8">
               <div>
-                <h2 className="text-[12px] sm:text-[14px] md:text-[16px] lg:text-[18px] font-black italic uppercase tracking-tighter text-gray-800">Tactical Comms</h2>
-                <p className="text-[10px] font-black text-green-600 uppercase tracking-widest mt-1 italic">Channel Encryption: Active</p>
+                <h2 className="text-[12px] sm:text-[14px] md:text-[16px] lg:text-[18px] font-black  uppercase tracking-tighter text-gray-800">Tactical Comms</h2>
+                <p className="text-[10px] font-black text-green-600 uppercase tracking-widest mt-1 ">Channel Encryption: Active</p>
               </div>
               <div className="w-10 h-10 bg-gray-50 rounded-2xl flex items-center justify-center text-gray-400"><MoreVertical size={24} /></div>
             </div>
@@ -229,11 +229,11 @@ export default function VendorChat() {
                       <div className="p-4 text-center text-xs text-gray-400 font-black uppercase tracking-widest">Scanning...</div>
                     ) : searchResults.map((result) => (
                       <button key={result.user_id} onClick={() => handleSearchSelect(result)} className="w-full flex items-center gap-3 p-4 hover:bg-green-50 transition-colors text-left">
-                        <div className="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center font-black text-green-700 italic flex-shrink-0">
+                        <div className="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center font-black text-green-700  flex-shrink-0">
                           {result.name.charAt(0)}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="font-black italic uppercase text-sm text-gray-800 truncate">{result.name}</p>
+                          <p className="font-black  uppercase text-sm text-gray-800 truncate">{result.name}</p>
                           <p className="text-xs text-gray-400 font-bold flex items-center gap-1"><Phone size={10} /> {result.phone} · {result.role}</p>
                         </div>
                       </button>
@@ -259,7 +259,7 @@ export default function VendorChat() {
                 <div className="w-24 h-24 bg-white rounded-[2rem] shadow-xl flex items-center justify-center mb-8 rotate-3">
                   <MessageCircle size={48} className="text-green-600 opacity-20" />
                 </div>
-                <h3 className="font-black italic uppercase text-gray-800 tracking-tight text-xl">Silence on Frequency</h3>
+                <h3 className="font-black  uppercase text-gray-800 tracking-tight text-xl">Silence on Frequency</h3>
                 <p className="text-[10px] text-gray-400 font-black uppercase tracking-widest mt-4 leading-loose">Search by phone number to establish a link.</p>
               </div>
             ) : (
@@ -267,14 +267,14 @@ export default function VendorChat() {
                 <motion.div whileHover={{ x: 5 }} whileTap={{ scale: 0.98 }} key={conv.id} onClick={() => { setActiveChat(conv); setActiveView("chat"); }}
                   className={`group flex items-center gap-5 p-5 rounded-[2rem] cursor-pointer transition-all ${activeChat?.id === conv.id ? 'bg-green-700 text-white shadow-2xl shadow-green-700/30' : 'hover:bg-gray-50'}`}>
                   <div className="relative">
-                    <div className={`w-16 h-16 rounded-2xl flex items-center justify-center font-black text-[10px] sm:text-[12px] md:text-[14px] lg:text-[16px] italic transform transition-transform group-hover:rotate-6 ${activeChat?.id === conv.id ? 'bg-white/20' : 'bg-gradient-to-br from-gray-100 to-gray-200 text-gray-800 border-2 border-white shadow-lg'}`}>
+                    <div className={`w-16 h-16 rounded-2xl flex items-center justify-center font-black text-[10px] sm:text-[12px] md:text-[14px] lg:text-[16px]  transform transition-transform group-hover:rotate-6 ${activeChat?.id === conv.id ? 'bg-white/20' : 'bg-gradient-to-br from-gray-100 to-gray-200 text-gray-800 border-2 border-white shadow-lg'}`}>
                       {conv.name.charAt(0)}
                     </div>
                     {conv.online && <div className={`absolute -bottom-1 -right-1 w-5 h-5 rounded-full border-4 shadow-sm ${activeChat?.id === conv.id ? 'bg-green-400 border-green-700' : 'bg-green-500 border-white'}`} />}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex justify-between items-start mb-2">
-                      <h3 className={`font-black italic uppercase text-sm tracking-tight truncate ${activeChat?.id === conv.id ? 'text-white' : 'text-gray-800'}`}>{conv.name}</h3>
+                      <h3 className={`font-black  uppercase text-sm tracking-tight truncate ${activeChat?.id === conv.id ? 'text-white' : 'text-gray-800'}`}>{conv.name}</h3>
                       <div className="flex items-center gap-2 flex-shrink-0">
                         {conv.unread > 0 && activeChat?.id !== conv.id && (
                           <span className="min-w-[20px] h-5 px-1.5 bg-green-600 text-white rounded-full flex items-center justify-center text-[10px] font-black">
@@ -302,17 +302,17 @@ export default function VendorChat() {
       className="md:hidden p-2 sm:p-4 bg-gray-100 rounded-xl sm:rounded-2xl text-gray-500">
       <ArrowLeft size={20} />
     </button>
-    <div className="w-10 h-10 sm:w-14 sm:h-14 md:w-16 md:h-16 bg-green-700 rounded-2xl sm:rounded-3xl flex items-center justify-center font-black text-white italic text-lg sm:text-2xl md:text-3xl shadow-xl">
+    <div className="w-10 h-10 sm:w-14 sm:h-14 md:w-16 md:h-16 bg-green-700 rounded-2xl sm:rounded-3xl flex items-center justify-center font-black text-white  text-lg sm:text-2xl md:text-3xl shadow-xl">
       {activeChat.name.charAt(0)}
     </div>
     <div>
-      <h3 className="font-black italic uppercase text-gray-800 text-sm sm:text-lg md:text-2xl tracking-tighter flex items-center gap-2">
+      <h3 className="font-black  uppercase text-gray-800 text-sm sm:text-lg md:text-2xl tracking-tighter flex items-center gap-2">
         {activeChat.name}
         <Circle size={8} fill="#22c55e" className="text-green-500 animate-pulse" />
       </h3>
       <div className="flex items-center gap-2 mt-0.5 sm:mt-1">
         <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-green-500 rounded-full" />
-        <p className="text-[8px] sm:text-[10px] font-black text-green-600 uppercase tracking-widest italic">Active Now</p>
+        <p className="text-[8px] sm:text-[10px] font-black text-green-600 uppercase tracking-widest ">Active Now</p>
       </div>
     </div>
   </div>
@@ -337,7 +337,7 @@ export default function VendorChat() {
               ? "bg-green-700 text-white rounded-br-none"
               : "bg-white text-gray-800 rounded-bl-none border border-gray-100"
           }`}>
-            <p className="text-xs sm:text-sm font-black italic tracking-wide leading-relaxed">
+            <p className="text-xs sm:text-sm font-black  tracking-wide leading-relaxed">
               {msg.content}
             </p>
           </div>
@@ -385,7 +385,7 @@ export default function VendorChat() {
                   <MessageCircle size={80} className="text-green-700 opacity-10 group-hover:opacity-30 transition-opacity" />
                 </div>
               </div>
-              <h3 className="text-5xl font-black italic uppercase tracking-tighter text-gray-800">Frequency Clear</h3>
+              <h3 className="text-5xl font-black  uppercase tracking-tighter text-gray-800">Frequency Clear</h3>
               <p className="text-[10px] text-gray-400 font-black mt-8 max-w-md leading-loose uppercase tracking-[0.3em] opacity-60">Search by phone number to establish a secure link with a customer or rider.</p>
               <div className="mt-12 p-6 bg-green-50 rounded-[2rem] border border-green-100">
                 <div className="flex items-center gap-3">

@@ -226,14 +226,14 @@ const Restrict: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-white dark:bg-gray-950 flex items-center justify-center">
+      <div className="min-h-screen bg-white flex items-center justify-center">
         <Loader2 className="w-12 h-12 text-green-600 animate-spin" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-white dark:bg-gray-950">
+    <div className="min-h-screen bg-white">
       <div className="w-full">
         {/* Main Pages Screen */}
         {currentScreen === "main" && (

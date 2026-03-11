@@ -193,8 +193,8 @@ export default function RiderChat() {
           <div className="p-8 border-b border-white/5">
             <div className="flex justify-between items-center mb-8">
               <div>
-                <h2 className="text-3xl font-black italic uppercase tracking-tighter text-white">Grid Signal</h2>
-                <p className="text-[10px] font-black text-green-500 uppercase tracking-widest mt-1 italic">Secure Link: 256-bit</p>
+                <h2 className="text-3xl font-black  uppercase tracking-tighter text-white">Grid Signal</h2>
+                <p className="text-[10px] font-black text-green-500 uppercase tracking-widest mt-1 ">Secure Link: 256-bit</p>
               </div>
               <div className="w-12 h-12 bg-white/5 rounded-2xl flex items-center justify-center text-gray-500"><MoreVertical size={24} /></div>
             </div>
@@ -219,11 +219,11 @@ export default function RiderChat() {
                       <div className="p-4 text-center text-xs text-gray-500 font-black uppercase tracking-widest">Scanning Frequencies...</div>
                     ) : searchResults.map((result) => (
                       <button key={result.user_id} onClick={() => handleSearchSelect(result)} className="w-full flex items-center gap-3 p-4 hover:bg-white/5 transition-colors text-left">
-                        <div className="w-10 h-10 bg-green-500/10 rounded-xl flex items-center justify-center font-black text-green-500 italic flex-shrink-0">
+                        <div className="w-10 h-10 bg-green-500/10 rounded-xl flex items-center justify-center font-black text-green-500  flex-shrink-0">
                           {result.name.charAt(0)}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="font-black italic uppercase text-sm text-white truncate">{result.name}</p>
+                          <p className="font-black  uppercase text-sm text-white truncate">{result.name}</p>
                           <p className="text-xs text-gray-500 font-bold flex items-center gap-1"><Phone size={10} /> {result.phone} · {result.role}</p>
                         </div>
                       </button>
@@ -249,7 +249,7 @@ export default function RiderChat() {
                 <div className="w-24 h-24 bg-white/5 rounded-[2rem] shadow-2xl flex items-center justify-center mb-8 rotate-3 border border-white/5">
                   <MessageCircle size={48} className="text-green-500 opacity-20" />
                 </div>
-                <h3 className="font-black italic uppercase text-white tracking-tight text-xl">No Comms Logged</h3>
+                <h3 className="font-black  uppercase text-white tracking-tight text-xl">No Comms Logged</h3>
                 <p className="text-[10px] text-gray-500 font-black uppercase tracking-widest mt-4 leading-loose">Search by phone number to connect.</p>
               </div>
             ) : (
@@ -258,14 +258,14 @@ export default function RiderChat() {
                   onClick={() => { setActiveChat(conv); setActiveView("chat"); }}
                   className={`group flex items-center gap-5 p-5 rounded-[2rem] cursor-pointer transition-all ${activeChat?.id === conv.id ? 'bg-green-600 text-white shadow-2xl shadow-green-600/20' : 'bg-white/[0.02] border border-white/5'}`}>
                   <div className="relative">
-                    <div className={`w-16 h-16 rounded-2xl flex items-center justify-center font-black text-2xl italic transform transition-transform group-hover:rotate-6 ${activeChat?.id === conv.id ? 'bg-white/20' : 'bg-white/10 text-white'}`}>
+                    <div className={`w-16 h-16 rounded-2xl flex items-center justify-center font-black text-2xl  transform transition-transform group-hover:rotate-6 ${activeChat?.id === conv.id ? 'bg-white/20' : 'bg-white/10 text-white'}`}>
                       {conv.name.charAt(0)}
                     </div>
                     {conv.online && <div className={`absolute -bottom-1 -right-1 w-5 h-5 rounded-full border-4 shadow-sm ${activeChat?.id === conv.id ? 'bg-green-400 border-green-600' : 'bg-green-500 border-[#0F0F0F]'}`} />}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex justify-between items-start mb-2">
-                      <h3 className="font-black italic uppercase text-sm tracking-tight truncate">{conv.name}</h3>
+                      <h3 className="font-black  uppercase text-sm tracking-tight truncate">{conv.name}</h3>
                       <div className="flex items-center gap-2 flex-shrink-0">
                         {conv.unread > 0 && activeChat?.id !== conv.id && (
                           <span className="min-w-[20px] h-5 px-1.5 bg-green-500 text-black rounded-full flex items-center justify-center text-[10px] font-black">
@@ -293,17 +293,17 @@ export default function RiderChat() {
       className="md:hidden p-2 sm:p-4 bg-gray-100 rounded-xl sm:rounded-2xl text-gray-500">
       <ArrowLeft size={20} />
     </button>
-    <div className="w-10 h-10 sm:w-14 sm:h-14 md:w-16 md:h-16 bg-green-700 rounded-2xl sm:rounded-3xl flex items-center justify-center font-black text-white italic text-lg sm:text-2xl md:text-3xl shadow-xl">
+    <div className="w-10 h-10 sm:w-14 sm:h-14 md:w-16 md:h-16 bg-green-700 rounded-2xl sm:rounded-3xl flex items-center justify-center font-black text-white  text-lg sm:text-2xl md:text-3xl shadow-xl">
       {activeChat.name.charAt(0)}
     </div>
     <div>
-      <h3 className="font-black italic uppercase text-gray-800 text-sm sm:text-lg md:text-2xl tracking-tighter flex items-center gap-2">
+      <h3 className="font-black  uppercase text-gray-800 text-sm sm:text-lg md:text-2xl tracking-tighter flex items-center gap-2">
         {activeChat.name}
         <Circle size={8} fill="#22c55e" className="text-green-500 animate-pulse" />
       </h3>
       <div className="flex items-center gap-2 mt-0.5 sm:mt-1">
         <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-green-500 rounded-full" />
-        <p className="text-[8px] sm:text-[10px] font-black text-green-600 uppercase tracking-widest italic">Active Now</p>
+        <p className="text-[8px] sm:text-[10px] font-black text-green-600 uppercase tracking-widest ">Active Now</p>
       </div>
     </div>
   </div>
@@ -328,7 +328,7 @@ export default function RiderChat() {
               ? "bg-green-700 text-white rounded-br-none"
               : "bg-white text-gray-800 rounded-bl-none border border-gray-100"
           }`}>
-            <p className="text-xs sm:text-sm font-black italic tracking-wide leading-relaxed">
+            <p className="text-xs sm:text-sm font-black  tracking-wide leading-relaxed">
               {msg.content}
             </p>
           </div>
@@ -373,7 +373,7 @@ export default function RiderChat() {
               <div className="w-48 h-48 bg-white/5 rounded-[4rem] shadow-2xl flex items-center justify-center mb-12 transform rotate-6 border border-white/10">
                 <MessageCircle size={80} className="text-green-500 opacity-20" />
               </div>
-              <h3 className="text-5xl font-black italic uppercase tracking-tighter text-white">System Standby</h3>
+              <h3 className="text-5xl font-black  uppercase tracking-tighter text-white">System Standby</h3>
               <p className="text-[10px] text-gray-600 font-black mt-8 max-w-sm leading-loose uppercase tracking-[0.4em]">Search by phone number to bridge communication.</p>
             </div>
           )}

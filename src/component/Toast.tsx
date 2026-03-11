@@ -33,9 +33,9 @@ const Toast: React.FC<ToastProps> = ({ toast, onClose }) => {
   };
 
   const bgColors = {
-    success: "bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800",
-    error: "bg-red-50 dark:bg-red-950 border-red-200 dark:border-red-800",
-    info: "bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800",
+    success: "bg-green-50 border-green-200",
+    error: "bg-red-50 border-red-200",
+    info: "bg-blue-50 border-blue-200",
   };
 
   return (
@@ -45,12 +45,12 @@ const Toast: React.FC<ToastProps> = ({ toast, onClose }) => {
       } animate-slide-in`}
     >
       {icons[toast.type]}
-      <p className="flex-1 text-sm font-medium text-gray-900 dark:text-gray-100">
+      <p className="flex-1 text-sm font-medium text-gray-900">
         {toast.message}
       </p>
       <button
         onClick={() => onClose(toast.id)}
-        className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+        className="text-gray-400 hover:text-gray-600"
       >
         <X className="w-4 h-4" />
       </button>

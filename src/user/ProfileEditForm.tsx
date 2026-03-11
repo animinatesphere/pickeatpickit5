@@ -136,7 +136,7 @@ const ProfileEditForm: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-white dark:bg-gray-950 transition-colors duration-300 font-inter pb-20">
+    <div className="min-h-screen bg-white transition-colors duration-300 font-inter pb-20">
       <Navbar />
       
       <AnimatePresence>
@@ -145,7 +145,7 @@ const ProfileEditForm: React.FC = () => {
             initial={{ opacity: 0, y: -50, scale: 0.9 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, scale: 0.9 }}
-            className={`fixed top-10 left-1/2 -translate-x-1/2 px-10 py-5 rounded-3xl shadow-3xl text-white z-[100] font-black italic uppercase tracking-tighter flex items-center gap-4 ${
+            className={`fixed top-10 left-1/2 -translate-x-1/2 px-10 py-5 rounded-3xl shadow-3xl text-white z-[100] font-black  uppercase tracking-tighter flex items-center gap-4 ${
               toastMessage.type === "success" ? "bg-green-600" : "bg-red-600"
             }`}
           >
@@ -155,12 +155,12 @@ const ProfileEditForm: React.FC = () => {
         )}
       </AnimatePresence>
 
-      <div className="sticky top-[80px] z-40 bg-white/80 dark:bg-gray-950/80 backdrop-blur-xl border-b border-gray-100 dark:border-gray-800 px-6 py-4">
+      <div className="sticky top-[80px] z-40 bg-white/80 backdrop-blur-xl border-b border-gray-100 px-6 py-4">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
-          <button onClick={() => navigate(-1)} className="w-12 h-12 flex items-center justify-center bg-gray-50 dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 hover:scale-105 transition-all">
+          <button onClick={() => navigate(-1)} className="w-12 h-12 flex items-center justify-center bg-gray-50 rounded-2xl border border-gray-100 hover:scale-105 transition-all">
             <ArrowLeft className="w-6 h-6" />
           </button>
-          <h1 className="text-xl font-black italic tracking-tighter uppercase">Edit Profile</h1>
+          <h1 className="text-xl font-black  tracking-tighter uppercase">Edit Profile</h1>
           <div className="w-12" />
         </div>
       </div>
@@ -169,7 +169,7 @@ const ProfileEditForm: React.FC = () => {
         <AnimatePresence mode="wait">
           {loading ? (
             <motion.div key="loader" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-8">
-              {[1, 2, 3].map(i => <div key={i} className="h-32 w-full bg-gray-50 dark:bg-gray-900 rounded-[2.5rem] animate-pulse" />)}
+              {[1, 2, 3].map(i => <div key={i} className="h-32 w-full bg-gray-50 rounded-[2.5rem] animate-pulse" />)}
             </motion.div>
           ) : (
             <motion.div variants={containerVariants} initial="hidden" animate="show" className="space-y-12">
@@ -178,7 +178,7 @@ const ProfileEditForm: React.FC = () => {
               <section>
                 <div className="flex items-center gap-4 mb-8">
                    <div className="w-3 h-8 bg-green-500 rounded-full" />
-                   <h2 className="text-3xl font-black italic tracking-tighter uppercase">Identity</h2>
+                   <h2 className="text-3xl font-black  tracking-tighter uppercase">Identity</h2>
                 </div>
 
                 <div className="space-y-6">
@@ -187,15 +187,15 @@ const ProfileEditForm: React.FC = () => {
                     { key: 'email', label: 'Email Control', value: personalInfo.email, temp: tempValues.email, type: 'email' },
                     { key: 'phone', label: 'Phone Access', value: personalInfo.phone, temp: tempValues.phone, type: 'tel' },
                   ].map((field) => (
-                    <motion.div key={field.key} variants={itemVariants} className="bg-white dark:bg-gray-900 p-8 rounded-[2.5rem] border border-gray-50 dark:border-gray-800 shadow-xl relative overflow-hidden group">
+                    <motion.div key={field.key} variants={itemVariants} className="bg-white p-8 rounded-[2.5rem] border border-gray-50 shadow-xl relative overflow-hidden group">
                       <div className="flex justify-between items-start mb-4">
-                        <label className="text-[10px] font-black uppercase italic tracking-widest text-gray-400">{field.label}</label>
+                        <label className="text-[10px] font-black uppercase  tracking-widest text-gray-400">{field.label}</label>
                         {!editMode[field.key as keyof EditState] ? (
-                          <button onClick={() => setEditMode({...editMode, [field.key]: true})} className="w-10 h-10 bg-gray-50 dark:bg-gray-800 rounded-xl flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button onClick={() => setEditMode({...editMode, [field.key]: true})} className="w-10 h-10 bg-gray-50 rounded-xl flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                             <Edit3 className="w-4 h-4" />
                           </button>
                         ) : (
-                          <button onClick={() => handleUpdate(field.key as keyof EditState)} disabled={saving} className="bg-green-600 text-white px-6 py-2 rounded-xl text-[10px] font-black uppercase italic tracking-widest flex items-center gap-2 hover:bg-green-700 transition-all shadow-lg active:scale-95">
+                          <button onClick={() => handleUpdate(field.key as keyof EditState)} disabled={saving} className="bg-green-600 text-white px-6 py-2 rounded-xl text-[10px] font-black uppercase  tracking-widest flex items-center gap-2 hover:bg-green-700 transition-all shadow-lg active:scale-95">
                             {saving ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Save className="w-4 h-4" />}
                             {saving ? 'Saving' : 'Save'}
                           </button>
@@ -207,11 +207,11 @@ const ProfileEditForm: React.FC = () => {
                           type={field.type}
                           value={field.temp}
                           onChange={(e) => setTempValues({ ...tempValues, [field.key]: e.target.value })}
-                          className="w-full text-2xl font-black italic tracking-tighter uppercase bg-transparent text-green-600 outline-none border-b-4 border-green-600/20 focus:border-green-600 transition-all"
+                          className="w-full text-2xl font-black  tracking-tighter uppercase bg-transparent text-green-600 outline-none border-b-4 border-green-600/20 focus:border-green-600 transition-all"
                           autoFocus
                         />
                       ) : (
-                        <p className="text-2xl font-black italic tracking-tighter uppercase text-gray-800 dark:text-gray-100 leading-tight">
+                        <p className="text-2xl font-black  tracking-tighter uppercase text-gray-800 leading-tight">
                           {field.value}
                         </p>
                       )}
@@ -224,37 +224,37 @@ const ProfileEditForm: React.FC = () => {
               <section>
                 <div className="flex items-center gap-4 mb-8">
                    <div className="w-3 h-8 bg-orange-500 rounded-full" />
-                   <h2 className="text-3xl font-black italic tracking-tighter uppercase">Geography</h2>
+                   <h2 className="text-3xl font-black  tracking-tighter uppercase">Geography</h2>
                 </div>
                 
-                <div className="bg-white dark:bg-gray-900 p-8 rounded-[3rem] border border-gray-50 dark:border-gray-800 shadow-2xl space-y-8">
+                <div className="bg-white p-8 rounded-[3rem] border border-gray-50 shadow-2xl space-y-8">
                   <div className="space-y-2">
-                    <label className="text-[10px] font-black uppercase italic tracking-widest text-gray-400">Tactical Address</label>
+                    <label className="text-[10px] font-black uppercase  tracking-widest text-gray-400">Tactical Address</label>
                     <input
                       type="text"
                       value={tempValues.address}
                       onChange={(e) => setTempValues({...tempValues, address: e.target.value})}
-                      className="w-full bg-gray-50 dark:bg-gray-800/50 p-6 rounded-[1.5rem] font-bold italic text-lg outline-none border-2 border-transparent focus:border-green-600 transition-all"
+                      className="w-full bg-gray-50 p-6 rounded-[1.5rem] font-bold  text-lg outline-none border-2 border-transparent focus:border-green-600 transition-all"
                     />
                   </div>
 
                   <div className="grid grid-cols-3 gap-6">
                     {['city', 'state', 'zip'].map((cityField) => (
                       <div key={cityField} className="space-y-2">
-                        <label className="text-[10px] font-black uppercase italic tracking-widest text-gray-400">{cityField}</label>
+                        <label className="text-[10px] font-black uppercase  tracking-widest text-gray-400">{cityField}</label>
                         <input
                           type="text"
                           value={tempValues[cityField as keyof PersonalInfo]}
                           onChange={(e) => setTempValues({...tempValues, [cityField]: e.target.value})}
-                          className="w-full bg-gray-50 dark:bg-gray-800/50 p-6 rounded-[1.5rem] font-bold italic outline-none border-2 border-transparent focus:border-green-600 transition-all"
+                          className="w-full bg-gray-50 p-6 rounded-[1.5rem] font-bold  outline-none border-2 border-transparent focus:border-green-600 transition-all"
                         />
                       </div>
                     ))}
                   </div>
 
-                  <div className="relative h-72 rounded-[2.5rem] overflow-hidden border-4 border-gray-50 dark:border-gray-800 shadow-inner group">
+                  <div className="relative h-72 rounded-[2.5rem] overflow-hidden border-4 border-gray-50 shadow-inner group">
                     <div ref={mapRef} className="w-full h-full" />
-                    <button className="absolute top-6 right-6 bg-white dark:bg-gray-900 p-4 rounded-2xl shadow-2xl border border-gray-100 dark:border-gray-800 active:scale-95 transition-all text-green-600">
+                    <button className="absolute top-6 right-6 bg-white p-4 rounded-2xl shadow-2xl border border-gray-100 active:scale-95 transition-all text-green-600">
                       <Compass className="w-6 h-6 animate-pulse" />
                     </button>
                   </div>
@@ -265,7 +265,7 @@ const ProfileEditForm: React.FC = () => {
               <section>
                 <div className="flex items-center gap-4 mb-8">
                    <div className="w-3 h-8 bg-blue-500 rounded-full" />
-                   <h2 className="text-3xl font-black italic tracking-tighter uppercase">Operations</h2>
+                   <h2 className="text-3xl font-black  tracking-tighter uppercase">Operations</h2>
                 </div>
 
                 <div className="space-y-4 mb-8">
@@ -280,10 +280,10 @@ const ProfileEditForm: React.FC = () => {
                       className={`p-6 rounded-[1.5rem] border-4 cursor-pointer transition-all flex items-center justify-between ${
                         serviceOption === opt.id 
                           ? 'border-green-600 bg-green-500/5' 
-                          : 'border-gray-50 dark:border-gray-800 bg-white dark:bg-gray-900/40'
+                          : 'border-gray-50 bg-white'
                       }`}
                     >
-                      <span className={`font-black italic uppercase tracking-tighter text-lg ${serviceOption === opt.id ? 'text-green-600' : 'text-gray-400'}`}>
+                      <span className={`font-black  uppercase tracking-tighter text-lg ${serviceOption === opt.id ? 'text-green-600' : 'text-gray-400'}`}>
                         {opt.label}
                       </span>
                       {serviceOption === opt.id && <div className="w-6 h-6 bg-green-600 rounded-full flex items-center justify-center text-white"><Check size={14} strokeWidth={4} /></div>}
@@ -292,12 +292,12 @@ const ProfileEditForm: React.FC = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase italic tracking-widest text-gray-400">Directives for Operatives</label>
+                  <label className="text-[10px] font-black uppercase  tracking-widest text-gray-400">Directives for Operatives</label>
                   <textarea
                     value={riderInstructions}
                     onChange={(e) => setRiderInstructions(e.target.value)}
                     placeholder="Enter deployment notes..."
-                    className="w-full h-40 bg-white dark:bg-gray-900 p-8 rounded-[2.5rem] border-4 border-gray-50 dark:border-gray-800 outline-none focus:border-green-600 transition-all font-bold italic resize-none shadow-xl"
+                    className="w-full h-40 bg-white p-8 rounded-[2.5rem] border-4 border-gray-50 outline-none focus:border-green-600 transition-all font-bold  resize-none shadow-xl"
                   />
                 </div>
               </section>

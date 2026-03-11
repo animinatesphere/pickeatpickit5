@@ -93,7 +93,7 @@ const LandingPage: React.FC = () => {
               transition={{ duration: 1, ease: "easeOut" }}
             >
               <img src={logo} alt="PickEAT" className="w-32 h-32 mb-8 drop-shadow-2xl mx-auto" />
-              <h1 className="text-7xl md:text-9xl font-black italic tracking-tighter uppercase mb-4 leading-none select-none">
+              <h1 className="text-7xl md:text-9xl font-black  tracking-tighter uppercase mb-4 leading-none select-none">
                 PickEAT <span className="text-green-500">PickIT</span>
               </h1>
               <p className="text-xl md:text-2xl font-light tracking-widest uppercase text-gray-400">
@@ -129,7 +129,7 @@ const LandingPage: React.FC = () => {
                 Precision Logistics
              </motion.div>
              
-             <h2 className="text-6xl md:text-8xl font-black uppercase italic leading-[0.9] mb-8 tracking-tighter">
+             <h2 className="text-6xl md:text-8xl font-black uppercase  leading-[0.9] mb-8 tracking-tighter">
                 {"LIGHTNING".split("").map((char, i) => (
                   <motion.span
                     key={i}
@@ -165,7 +165,7 @@ const LandingPage: React.FC = () => {
                     whileInView={{ opacity: 1, x: 0 }}
                     transition={{ delay: 0.7 + (i * 0.1) }}
                   >
-                    <div className="text-3xl font-black text-white italic">{stat.value}</div>
+                    <div className="text-3xl font-black text-white ">{stat.value}</div>
                     <div className="text-xs uppercase tracking-widest text-green-500 font-bold">{stat.label}</div>
                   </motion.div>
                 ))}
@@ -204,11 +204,11 @@ const LandingPage: React.FC = () => {
         <div className="container mx-auto px-6 relative z-10">
           <div className="flex flex-col md:flex-row justify-between items-end gap-8 mb-20">
              <div className="max-w-2xl">
-                <h3 className="text-4xl md:text-6xl font-black uppercase italic mb-6">World Class <br /><span className="text-green-500">Infrastructure</span></h3>
+                <h3 className="text-4xl md:text-6xl font-black uppercase  mb-6">World Class <br /><span className="text-green-500">Infrastructure</span></h3>
                 <p className="text-gray-500 font-medium">Powering the future of urban commerce with proprietary AI and high-speed logistics networks.</p>
              </div>
              <div className="text-right hidden md:block">
-                <div className="text-6xl font-black text-white/5 uppercase italic">Engineered</div>
+                <div className="text-6xl font-black text-white/5 uppercase ">Engineered</div>
              </div>
           </div>
 
@@ -243,7 +243,7 @@ const LandingPage: React.FC = () => {
       <section className="relative min-h-screen py-32 bg-zinc-950">
         <div className="container mx-auto px-6">
           <div className="text-center mb-24">
-            <h2 className="text-4xl md:text-6xl font-black uppercase italic mb-4">Choose Your Path</h2>
+            <h2 className="text-4xl md:text-6xl font-black uppercase  mb-4">Choose Your Path</h2>
             <div className="h-1 w-24 bg-green-500 mx-auto" />
           </div>
 
@@ -275,7 +275,7 @@ const LandingPage: React.FC = () => {
                      <role.icon className="w-8 h-8 text-white" />
                   </div>
                   <Link to={role.path}>
-                  <h3 className="text-3xl font-black uppercase italic mb-2 tracking-tight">{role.label}</h3>
+                  <h3 className="text-3xl font-black uppercase  mb-2 tracking-tight">{role.label}</h3>
                   </Link>
                   <p className="text-gray-300 font-medium mb-6">{role.desc}</p>
                   <div className="flex items-center gap-2 text-green-400 font-bold uppercase tracking-widest text-sm group-hover:text-white transition-colors">
@@ -297,7 +297,7 @@ const LandingPage: React.FC = () => {
            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-24">
               <div className="col-span-1 lg:col-span-2">
                  <img src={logo} alt="Logo" className="w-16 h-16 mb-8 grayscale opacity-50" />
-                 <h2 className="text-4xl md:text-6xl font-black uppercase italic mb-8">Ready to <span className="text-green-500">PickIT?</span></h2>
+                 <h2 className="text-4xl md:text-6xl font-black uppercase  mb-8">Ready to <span className="text-green-500">PickIT?</span></h2>
               </div>
               <div className="space-y-4">
                  <h4 className="text-sm font-bold uppercase tracking-tighter text-green-500">Company</h4>

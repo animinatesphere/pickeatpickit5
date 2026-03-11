@@ -252,8 +252,8 @@ useEffect(() => {
     const categories = ["All", "Rice", "Meat", "Drinks", "Snacks", "Vegan"];
 
     return (
-      <div className="min-h-screen w-full bg-white dark:bg-gray-950 transition-colors duration-300 pb-20">
-        <div className="sticky top-0 bg-white/80 dark:bg-gray-950/80 backdrop-blur-xl z-40 border-b border-gray-100 dark:border-gray-800">
+      <div className="min-h-screen w-full bg-white transition-colors duration-300 pb-20">
+        <div className="sticky top-0 bg-white/80 backdrop-blur-xl z-40 border-b border-gray-100">
           <Navbar />
           <div className="max-w-7xl mx-auto px-6 py-6">
             <div className="flex flex-col md:flex-row gap-6 items-center justify-between">
@@ -262,7 +262,7 @@ useEffect(() => {
                 <input
                   type="text"
                   placeholder="Search for available items..."
-                  className="w-full pl-14 pr-6 py-4 bg-gray-50 dark:bg-gray-900/50 border border-gray-100 dark:border-gray-800 rounded-3xl text-sm dark:text-gray-100 focus:outline-none focus:ring-4 focus:ring-green-500/10 transition-all font-bold"
+                  className="w-full pl-14 pr-6 py-4 bg-gray-50 border border-gray-100 rounded-3xl text-sm focus:outline-none focus:ring-4 focus:ring-green-500/10 transition-all font-bold"
                 />
               </div>
               <div className="flex gap-3 overflow-x-auto no-scrollbar pb-2 w-full md:w-auto">
@@ -270,10 +270,10 @@ useEffect(() => {
                   <button
                     key={cat}
                     onClick={() => setSelectedCategory(cat)}
-                    className={`px-6 py-3 rounded-2xl text-xs font-black uppercase italic tracking-widest transition-all whitespace-nowrap ${
+                    className={`px-6 py-3 rounded-2xl text-xs font-black uppercase  tracking-widest transition-all whitespace-nowrap ${
                       selectedCategory === cat
                         ? "bg-green-600 text-white shadow-xl shadow-green-500/30"
-                        : "bg-gray-50 dark:bg-gray-900 border border-gray-100 dark:border-gray-800 text-gray-400 dark:text-gray-500 hover:text-green-600"
+                        : "bg-gray-50 border border-gray-100 text-gray-400 hover:text-green-600"
                     }`}
                   >
                     {cat}
@@ -297,15 +297,15 @@ useEffect(() => {
               alt="Hero"
             />
             <div className="absolute inset-0 z-20 flex flex-col justify-center px-12">
-              <div className="flex items-center gap-3 text-green-400 font-bold uppercase italic tracking-widest text-xs mb-4">
+              <div className="flex items-center gap-3 text-green-400 font-bold uppercase  tracking-widest text-xs mb-4">
                 <Sparkles className="w-4 h-4" />
                 <span>Trending Now</span>
               </div>
-              <h2 className="text-5xl md:text-6xl font-black text-white font-inter italic tracking-tighter uppercase leading-none mb-6">
+              <h2 className="text-5xl md:text-6xl font-black text-white font-inter  tracking-tighter uppercase leading-none mb-6">
                 {/* Mardiya <span className="text-green-500">Kitchen</span> */}
                   {items[0]?.businessName || "Mardiya"} <span className="text-green-500">Kitchen</span>
               </h2>
-              <p className="text-white/70 max-w-md font-medium text-lg italic mb-8">
+              <p className="text-white/70 max-w-md font-medium text-lg  mb-8">
                 Experience the finest culinary treasures delivered with cinematic speed.
               </p>
             </div>
@@ -330,10 +330,10 @@ useEffect(() => {
                     show: { opacity: 1, y: 0 }
                   }}
                   whileHover={{ y: -10 }}
-                  className="bg-white dark:bg-gray-900 rounded-[2.5rem] overflow-hidden shadow-xl border border-transparent dark:border-gray-800 hover:border-green-500/30 transition-all group relative"
+                  className="bg-white rounded-[2.5rem] overflow-hidden shadow-xl border border-transparent hover:border-green-500/30 transition-all group relative"
                 >
                   <div className="relative h-64 overflow-hidden">
-                    <div className="absolute top-4 left-4 z-20 bg-green-600 text-white px-4 py-1.5 rounded-full text-[10px] font-black uppercase italic tracking-widest">
+                    <div className="absolute top-4 left-4 z-20 bg-green-600 text-white px-4 py-1.5 rounded-full text-[10px] font-black uppercase  tracking-widest">
                       {item.discount}% OFF
                     </div>
                     <div className="absolute top-4 right-4 z-20 bg-black/40 backdrop-blur-md text-white p-2 rounded-xl border border-white/20">
@@ -343,30 +343,30 @@ useEffect(() => {
                   </div>
                   
                   <div className="p-8">
-                    <h4 className="font-black text-xl text-gray-800 dark:text-gray-100 font-inter tracking-tight mb-2 italic uppercase">
+                    <h4 className="font-black text-xl text-gray-800 font-inter tracking-tight mb-2  uppercase">
                       {item.name}
                     </h4>
                     <div className="flex items-center gap-3 mb-6">
-                      <span className="text-green-600 dark:text-green-400 font-black text-2xl italic tracking-tighter">₦{discountedPrice}</span>
-                      <span className="text-gray-400 dark:text-gray-600 text-sm line-through font-bold">₦{item.price.toLocaleString()}</span>
+                      <span className="text-green-600 font-black text-2xl  tracking-tighter">₦{discountedPrice}</span>
+                      <span className="text-gray-400 text-sm line-through font-bold">₦{item.price.toLocaleString()}</span>
                     </div>
 
                     <div className="flex flex-col gap-4">
-                      <div className="flex items-center justify-between bg-gray-50 dark:bg-gray-800/50 rounded-2xl p-2 border border-gray-100 dark:border-gray-800">
-                        <button onClick={() => updateQuantity(item.id, -1)} className="w-10 h-10 flex items-center justify-center bg-white dark:bg-gray-800 rounded-xl shadow-sm active:scale-95 transition-all">
+                      <div className="flex items-center justify-between bg-gray-50 rounded-2xl p-2 border border-gray-100">
+                        <button onClick={() => updateQuantity(item.id, -1)} className="w-10 h-10 flex items-center justify-center bg-white rounded-xl shadow-sm active:scale-95 transition-all">
                           <Minus className="w-4 h-4" />
                         </button>
-                        <span className="text-lg font-black text-gray-800 dark:text-gray-100 font-inter italic">{item.quantity}</span>
-                        <button onClick={() => updateQuantity(item.id, 1)} className="w-10 h-10 flex items-center justify-center bg-white dark:bg-gray-800 rounded-xl shadow-sm active:scale-95 transition-all">
+                        <span className="text-lg font-black text-gray-800 font-inter ">{item.quantity}</span>
+                        <button onClick={() => updateQuantity(item.id, 1)} className="w-10 h-10 flex items-center justify-center bg-white rounded-xl shadow-sm active:scale-95 transition-all">
                           <Plus className="w-4 h-4" />
                         </button>
                       </div>
 
                       <div className="grid grid-cols-2 gap-3">
-                        <button onClick={() => addToCart(item)} className="flex items-center justify-center gap-2 py-4 bg-gray-50 dark:bg-gray-800 text-gray-800 dark:text-gray-100 rounded-2xl font-black text-[10px] uppercase italic tracking-widest hover:bg-gray-100 transition-all border border-gray-100 dark:border-gray-800">
+                        <button onClick={() => addToCart(item)} className="flex items-center justify-center gap-2 py-4 bg-gray-50 text-gray-800 rounded-2xl font-black text-[10px] uppercase  tracking-widest hover:bg-gray-100 transition-all border border-gray-100">
                           <ShoppingBag className="w-3.5 h-3.5" /> Cart
                         </button>
-                        <button onClick={() => handleOrderNow(item)} className="flex items-center justify-center gap-2 py-4 bg-green-600 text-white rounded-2xl font-black text-[10px] uppercase italic tracking-widest hover:bg-green-700 transition-all shadow-lg active:scale-95">
+                        <button onClick={() => handleOrderNow(item)} className="flex items-center justify-center gap-2 py-4 bg-green-600 text-white rounded-2xl font-black text-[10px] uppercase  tracking-widest hover:bg-green-700 transition-all shadow-lg active:scale-95">
                           Order
                         </button>
                       </div>
@@ -380,12 +380,12 @@ useEffect(() => {
 
         <AnimatePresence>
           {getCart().length > 0 && (
-            <motion.div initial={{ y: 100, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 100, opacity: 0 }} className="fixed bottom-10 left-1/2 -translate-x-1/2 z-50 w-[90%] max-w-2xl px-10 py-6 bg-black/90 dark:bg-gray-900/90 backdrop-blur-2xl rounded-[2.5rem] border border-white/10 shadow-3xl flex items-center justify-between">
+            <motion.div initial={{ y: 100, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 100, opacity: 0 }} className="fixed bottom-10 left-1/2 -translate-x-1/2 z-50 w-[90%] max-w-2xl px-10 py-6 bg-black/90 backdrop-blur-2xl rounded-[2.5rem] border border-white/10 shadow-3xl flex items-center justify-between">
               <div className="flex items-center gap-6">
                 <div className="w-14 h-14 bg-green-600 rounded-2xl flex items-center justify-center"><ShoppingBag className="w-7 h-7 text-white" /></div>
                 <div>
-                  <p className="text-white text-lg font-black font-inter italic uppercase tracking-tighter">{getCart().reduce((sum, i) => sum + i.quantity, 0)} Items</p>
-                  <p className="text-green-400 font-bold text-xs uppercase italic animate-pulse">Total: ₦{getCart().reduce((sum, i) => sum + i.price, 0).toLocaleString()}</p>
+                  <p className="text-white text-lg font-black font-inter  uppercase tracking-tighter">{getCart().reduce((sum, i) => sum + i.quantity, 0)} Items</p>
+                  <p className="text-green-400 font-bold text-xs uppercase  animate-pulse">Total: ₦{getCart().reduce((sum, i) => sum + i.price, 0).toLocaleString()}</p>
                 </div>
               </div>
            <button 
@@ -397,7 +397,7 @@ useEffect(() => {
       setScreen("confirm");
     }
   }} 
-  className="px-10 py-4 bg-white text-black font-black italic uppercase tracking-tighter rounded-2xl flex items-center gap-3"
+  className="px-10 py-4 bg-white text-black font-black  uppercase tracking-tighter rounded-2xl flex items-center gap-3"
 >
   Checkout <ArrowRight className="w-5 h-5" />
 </button>
@@ -410,18 +410,18 @@ useEffect(() => {
 
   const ConfirmView = () => (
     
-    <div className="min-h-screen w-full bg-white dark:bg-gray-950 transition-colors duration-300 pb-20 font-inter">
-      <div className="sticky top-0 bg-white/80 dark:bg-gray-950/80 backdrop-blur-xl z-50 border-b border-gray-100 dark:border-gray-800 px-6 py-6 flex items-center justify-between">
-        <button onClick={() => setScreen("kitchen")} className="w-12 h-12 flex items-center justify-center bg-gray-50 dark:bg-gray-900 rounded-2xl active:scale-95 transition-all"><ChevronLeft className="w-6 h-6" /></button>
-        <h1 className="text-xl font-black italic tracking-tighter uppercase">Confirm Order</h1>
+    <div className="min-h-screen w-full bg-white transition-colors duration-300 pb-20 font-inter">
+      <div className="sticky top-0 bg-white/80 backdrop-blur-xl z-50 border-b border-gray-100 px-6 py-6 flex items-center justify-between">
+        <button onClick={() => setScreen("kitchen")} className="w-12 h-12 flex items-center justify-center bg-gray-50 rounded-2xl active:scale-95 transition-all"><ChevronLeft className="w-6 h-6" /></button>
+        <h1 className="text-xl font-black  tracking-tighter uppercase">Confirm Order</h1>
         <div className="w-12" />
       </div>
 
       <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} className="max-w-3xl mx-auto px-6 py-12">
-       <div className="bg-white dark:bg-gray-900 border border-transparent dark:border-gray-800 rounded-[2.5rem] shadow-2xl p-10 mb-10 relative overflow-hidden">
+       <div className="bg-white border border-transparent rounded-[2.5rem] shadow-2xl p-10 mb-10 relative overflow-hidden">
         <div className="absolute top-0 right-0 w-40 h-40 bg-green-500/5 rounded-bl-full pointer-events-none" />
         <div className="flex gap-10">
-          <div className="w-32 h-32 bg-gray-50 dark:bg-gray-800 rounded-3xl overflow-hidden ring-4 ring-green-600/10 shadow-xl">
+          <div className="w-32 h-32 bg-gray-50 rounded-3xl overflow-hidden ring-4 ring-green-600/10 shadow-xl">
             <img 
               src={vendorInfo?.image_url || items[0]?.image_url || "https://images.unsplash.com/photo-1555939594-58d7cb561404?w=400"} 
               className="w-full h-full object-cover" 
@@ -433,11 +433,11 @@ useEffect(() => {
               <UtensilsCrossed className="w-4 h-4 text-green-600" />
               <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">Premium Kitchen</span>
             </div>
-            <h2 className="text-4xl font-black italic tracking-tighter uppercase mb-4">
+            <h2 className="text-4xl font-black  tracking-tighter uppercase mb-4">
                 {firstItem?.businessName || "Mardiya Kitchen"}
             </h2>
             <div className="flex items-center gap-6">
-              <div className="flex items-center gap-2 text-green-600 font-black text-sm uppercase italic">
+              <div className="flex items-center gap-2 text-green-600 font-black text-sm uppercase ">
                 <Clock className="w-4 h-4" /> 15 Mins
               </div>
             </div>
@@ -447,29 +447,29 @@ useEffect(() => {
 
 
         <div className="space-y-8">
-          <div className="bg-white dark:bg-gray-900 rounded-[2rem] p-8 shadow-xl border border-transparent dark:border-gray-800">
+          <div className="bg-white rounded-[2rem] p-8 shadow-xl border border-transparent">
             <div className="flex justify-between mb-8">
-              <h3 className="font-black italic uppercase tracking-tighter">Spice Level</h3>
+              <h3 className="font-black  uppercase tracking-tighter">Spice Level</h3>
               <Flame className={spiceLevel > 66 ? 'text-red-500 animate-bounce' : 'text-amber-500'} />
             </div>
-            <input type="range" min="0" max="100" value={spiceLevel} onChange={(e) => setSpiceLevel(Number(e.target.value))} className="w-full h-3 bg-gray-100 dark:bg-gray-800 rounded-full appearance-none accent-green-600" />
+            <input type="range" min="0" max="100" value={spiceLevel} onChange={(e) => setSpiceLevel(Number(e.target.value))} className="w-full h-3 bg-gray-100 rounded-full appearance-none accent-green-600" />
           </div>
 
           <div className="space-y-4">
             {getCart().map((item, i) => (
-              <div key={i} className="bg-white dark:bg-gray-900 rounded-[1.5rem] p-6 flex justify-between items-center shadow-lg border border-transparent dark:border-gray-800">
+              <div key={i} className="bg-white rounded-[1.5rem] p-6 flex justify-between items-center shadow-lg border border-transparent">
                 <div className="flex items-center gap-4">
-                  <span className="w-10 h-10 bg-green-50 dark:bg-green-900/30 rounded-xl flex items-center justify-center font-black text-green-600 italic">{item.quantity}x</span>
-                  <span className="font-black italic uppercase tracking-tighter text-lg">{item.name}</span>
+                  <span className="w-10 h-10 bg-green-50 rounded-xl flex items-center justify-center font-black text-green-600 ">{item.quantity}x</span>
+                  <span className="font-black  uppercase tracking-tighter text-lg">{item.name}</span>
                 </div>
-                <span className="font-black text-green-600 italic text-xl">₦{item.price.toLocaleString()}</span>
+                <span className="font-black text-green-600  text-xl">₦{item.price.toLocaleString()}</span>
               </div>
             ))}
           </div>
 
-          <div className="bg-white dark:bg-gray-900 rounded-[2.5rem] p-10 shadow-xl border border-transparent dark:border-gray-800">
+          <div className="bg-white rounded-[2.5rem] p-10 shadow-xl border border-transparent">
             <div className="flex items-center justify-between mb-8">
-              <h3 className="text-2xl font-black italic uppercase tracking-tighter">Scheduling</h3>
+              <h3 className="text-2xl font-black  uppercase tracking-tighter">Scheduling</h3>
               <button onClick={() => setScheduleOrder(!scheduleOrder)} className={`w-16 h-8 rounded-full transition-all relative ${scheduleOrder ? 'bg-green-600' : 'bg-gray-300'}`}>
                 <div className={`absolute top-1 left-1 w-6 h-6 bg-white rounded-full transition-all ${scheduleOrder ? 'translate-x-8' : ''}`} />
               </button>
@@ -479,20 +479,20 @@ useEffect(() => {
               <div className="grid md:grid-cols-2 gap-6">
                 <div className="space-y-2">
                   <label className="text-[10px] font-black uppercase text-gray-400">Date</label>
-                  <input type="date" className="w-full bg-gray-50 dark:bg-gray-800/50 p-4 rounded-2xl outline-none font-bold italic border border-transparent focus:border-green-500" />
+                  <input type="date" className="w-full bg-gray-50 p-4 rounded-2xl outline-none font-bold  border border-transparent focus:border-green-500" />
                 </div>
                 <div className="space-y-2">
                   <label className="text-[10px] font-black uppercase text-gray-400">Time</label>
-                  <input type="time" className="w-full bg-gray-50 dark:bg-gray-800/50 p-4 rounded-2xl outline-none font-bold italic border border-transparent focus:border-green-500" />
+                  <input type="time" className="w-full bg-gray-50 p-4 rounded-2xl outline-none font-bold  border border-transparent focus:border-green-500" />
                 </div>
               </div>
             )}
           </div>
 
-          <textarea placeholder="Special instructions (allergies, door codes...)" className="w-full bg-white dark:bg-gray-900 rounded-[2rem] p-8 text-sm h-40 resize-none outline-none focus:ring-4 focus:ring-green-500/10 focus:border-green-500 border border-transparent dark:border-gray-800 shadow-xl" />
+          <textarea placeholder="Special instructions (allergies, door codes...)" className="w-full bg-white rounded-[2rem] p-8 text-sm h-40 resize-none outline-none focus:ring-4 focus:ring-green-500/10 focus:border-green-500 border border-transparent shadow-xl" />
         </div>
 
-        <button onClick={handleConfirmOrder} className="w-full mt-10 bg-green-600 hover:bg-green-700 text-white font-black py-6 rounded-[2rem] shadow-3xl flex items-center justify-center gap-4 text-xl italic uppercase tracking-tighter active:scale-95 transition-all">
+        <button onClick={handleConfirmOrder} className="w-full mt-10 bg-green-600 hover:bg-green-700 text-white font-black py-6 rounded-[2rem] shadow-3xl flex items-center justify-center gap-4 text-xl  uppercase tracking-tighter active:scale-95 transition-all">
           Secure Checkout <ArrowRight className="w-6 h-6" />
         </button>
       </motion.div>
@@ -500,7 +500,7 @@ useEffect(() => {
   );
 
   return (
-    <div className="min-h-screen bg-white dark:bg-gray-950 transition-colors duration-300">
+    <div className="min-h-screen bg-white transition-colors duration-300">
       <AnimatePresence mode="wait">
         {screen === "kitchen" ? (
           <motion.div key="kitchen" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }}>

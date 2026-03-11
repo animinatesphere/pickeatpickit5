@@ -161,7 +161,7 @@ const Content: React.FC = () => {
   };
 
   const renderHeader = () => (
-    <div className="bg-green-600 dark:bg-green-700 text-white px-4 py-4 flex items-center justify-between sticky top-0 z-50 shadow-xl">
+    <div className="bg-green-600 text-white px-4 py-4 flex items-center justify-between sticky top-0 z-50 shadow-xl">
       <div className="flex items-center gap-3">
         {screen !== "home" && (
           <button
@@ -182,7 +182,7 @@ const Content: React.FC = () => {
             <Menu size={24} />
           </button>
         )}
-        <h1 className="text-lg font-bold font-inter italic tracking-tighter uppercase">
+        <h1 className="text-lg font-bold font-inter  tracking-tighter uppercase">
           {screen === "home" && "Content management"}
           {screen === "game-history" && "Content Management"}
           {screen === "notifications" && "Content Management"}
@@ -218,7 +218,7 @@ const Content: React.FC = () => {
         >
           <Bell size={24} />
           {notificationCount > 0 && (
-            <span className="absolute top-1 right-1 bg-red-500 text-white text-[10px] w-5 h-5 flex items-center justify-center rounded-full font-bold animate-pulse border-2 border-green-600 dark:border-green-700">
+            <span className="absolute top-1 right-1 bg-red-500 text-white text-[10px] w-5 h-5 flex items-center justify-center rounded-full font-bold animate-pulse border-2 border-green-600">
               {notificationCount}
             </span>
           )}
@@ -229,8 +229,8 @@ const Content: React.FC = () => {
 
   const renderHome = () => (
     <div className="p-4 space-y-6 animate-fadeIn w-full">
-      <div className="bg-white dark:bg-gray-900 rounded-3xl shadow-xl p-8 transform hover:scale-[1.01] transition-all duration-300 border border-transparent dark:border-gray-800">
-        <h2 className="text-green-600 dark:text-green-400 font-black text-xl mb-6 font-inter italic tracking-tighter uppercase">
+      <div className="bg-white rounded-3xl shadow-xl p-8 transform hover:scale-[1.01] transition-all duration-300 border border-transparent">
+        <h2 className="text-green-600 font-black text-xl mb-6 font-inter  tracking-tighter uppercase">
           Daily Rider Game Target
         </h2>
         <div className="space-y-5">
@@ -241,7 +241,7 @@ const Content: React.FC = () => {
             onChange={(e) =>
               setFormData({ ...formData, kilometers: e.target.value })
             }
-            className="w-full px-5 py-4 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-800 rounded-2xl focus:ring-4 focus:ring-green-500/10 focus:border-green-500 outline-none transition-all duration-200 dark:text-gray-100 font-inter"
+            className="w-full px-5 py-4 bg-gray-50 border border-gray-200 rounded-2xl focus:ring-4 focus:ring-green-500/10 focus:border-green-500 outline-none transition-all duration-200 font-inter"
           />
           <input
             type="text"
@@ -250,42 +250,42 @@ const Content: React.FC = () => {
             onChange={(e) =>
               setFormData({ ...formData, prize: e.target.value })
             }
-            className="w-full px-5 py-4 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-800 rounded-2xl focus:ring-4 focus:ring-green-500/10 focus:border-green-500 outline-none transition-all duration-200 dark:text-gray-100 font-inter"
+            className="w-full px-5 py-4 bg-gray-50 border border-gray-200 rounded-2xl focus:ring-4 focus:ring-green-500/10 focus:border-green-500 outline-none transition-all duration-200 font-inter"
           />
           <div className="grid grid-cols-2 gap-5">
             <div>
-              <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest italic mb-2 block ml-1">Start</label>
+              <label className="text-xs font-bold text-gray-500 uppercase tracking-widest  mb-2 block ml-1">Start</label>
               <input
                 type="text"
                 value={formData.startTime}
                 onChange={(e) =>
                   setFormData({ ...formData, startTime: e.target.value })
                 }
-                className="w-full px-5 py-4 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-800 rounded-2xl focus:ring-4 focus:ring-green-500/10 focus:border-green-500 outline-none transition-all duration-200 dark:text-gray-100 font-inter"
+                className="w-full px-5 py-4 bg-gray-50 border border-gray-200 rounded-2xl focus:ring-4 focus:ring-green-500/10 focus:border-green-500 outline-none transition-all duration-200 font-inter"
               />
             </div>
             <div>
-              <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest italic mb-2 block ml-1">End</label>
+              <label className="text-xs font-bold text-gray-500 uppercase tracking-widest  mb-2 block ml-1">End</label>
               <input
                 type="text"
                 value={formData.endTime}
                 onChange={(e) =>
                   setFormData({ ...formData, endTime: e.target.value })
                 }
-                className="w-full px-5 py-4 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-800 rounded-2xl focus:ring-4 focus:ring-green-500/10 focus:border-green-500 outline-none transition-all duration-200 dark:text-gray-100 font-inter"
+                className="w-full px-5 py-4 bg-gray-50 border border-gray-200 rounded-2xl focus:ring-4 focus:ring-green-500/10 focus:border-green-500 outline-none transition-all duration-200 font-inter"
               />
             </div>
           </div>
-          <button className="w-full bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 py-4 px-6 rounded-2xl font-bold flex items-center justify-between hover:bg-green-100 dark:hover:bg-green-900/30 active:scale-[0.98] transition-all duration-300 uppercase italic tracking-widest text-xs border border-green-100 dark:border-green-800/50 shadow-sm">
+          <button className="w-full bg-green-50 text-green-600 py-4 px-6 rounded-2xl font-bold flex items-center justify-between hover:bg-green-100 active:scale-[0.98] transition-all duration-300 uppercase  tracking-widest text-xs border border-green-100 shadow-sm">
             Save new target
             <ChevronRight size={20} />
           </button>
         </div>
       </div>
 
-      <div className="bg-white dark:bg-gray-900 rounded-3xl shadow-xl p-8 transform hover:scale-[1.01] transition-all duration-300 border border-transparent dark:border-gray-800">
-        <h3 className="text-green-600 dark:text-green-400 font-black text-xl mb-2 font-inter italic tracking-tighter uppercase whitespace-nowrap">New notification</h3>
-        <p className="text-gray-400 dark:text-gray-500 text-xs font-bold uppercase tracking-widest italic mb-6">
+      <div className="bg-white rounded-3xl shadow-xl p-8 transform hover:scale-[1.01] transition-all duration-300 border border-transparent">
+        <h3 className="text-green-600 font-black text-xl mb-2 font-inter  tracking-tighter uppercase whitespace-nowrap">New notification</h3>
+        <p className="text-gray-400 text-xs font-bold uppercase tracking-widest  mb-6">
           Kindly Provide details below
         </p>
         <textarea
@@ -294,9 +294,9 @@ const Content: React.FC = () => {
           onChange={(e) =>
             setFormData({ ...formData, notificationDetails: e.target.value })
           }
-          className="w-full px-5 py-4 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-800 rounded-2xl focus:ring-4 focus:ring-green-500/10 focus:border-green-500 outline-none transition-all duration-200 min-h-[140px] resize-none dark:text-gray-100 font-inter"
+          className="w-full px-5 py-4 bg-gray-50 border border-gray-200 rounded-2xl focus:ring-4 focus:ring-green-500/10 focus:border-green-500 outline-none transition-all duration-200 min-h-[140px] resize-none font-inter"
         />
-        <button className="w-full bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 py-4 px-6 rounded-2xl font-bold flex items-center justify-between mt-6 hover:bg-green-100 dark:hover:bg-green-900/30 active:scale-[0.98] transition-all duration-300 uppercase italic tracking-widest text-xs border border-green-100 dark:border-green-800/50 shadow-sm">
+        <button className="w-full bg-green-50 text-green-600 py-4 px-6 rounded-2xl font-bold flex items-center justify-between mt-6 hover:bg-green-100 active:scale-[0.98] transition-all duration-300 uppercase  tracking-widest text-xs border border-green-100 shadow-sm">
           Push notification
           <ChevronRight size={20} />
         </button>
@@ -305,28 +305,28 @@ const Content: React.FC = () => {
       <div className="space-y-4">
         <button
           onClick={() => setScreen("game-history")}
-          className="w-full bg-white dark:bg-gray-900 rounded-[2rem] shadow-lg p-5 flex items-center justify-between border border-transparent dark:border-gray-800 hover:shadow-2xl hover:border-green-500/20 active:scale-[0.98] transition-all duration-300 group"
+          className="w-full bg-white rounded-[2rem] shadow-lg p-5 flex items-center justify-between border border-transparent hover:shadow-2xl hover:border-green-500/20 active:scale-[0.98] transition-all duration-300 group"
         >
-          <span className="font-bold text-gray-800 dark:text-gray-100 font-inter italic tracking-tighter uppercase">
-            View rider game history <span className="text-green-600 dark:text-green-400 ml-2">({games.length})</span>
+          <span className="font-bold text-gray-800 font-inter  tracking-tighter uppercase">
+            View rider game history <span className="text-green-600 ml-2">({games.length})</span>
           </span>
-          <ChevronRight className="text-green-600 dark:text-green-400 group-hover:translate-x-1 transition-transform" size={24} />
+          <ChevronRight className="text-green-600 group-hover:translate-x-1 transition-transform" size={24} />
         </button>
         <button
           onClick={() => setScreen("notifications")}
-          className="w-full bg-white dark:bg-gray-900 rounded-[2rem] shadow-lg p-5 flex items-center justify-between border border-transparent dark:border-gray-800 hover:shadow-2xl hover:border-green-500/20 active:scale-[0.98] transition-all duration-300 group"
+          className="w-full bg-white rounded-[2rem] shadow-lg p-5 flex items-center justify-between border border-transparent hover:shadow-2xl hover:border-green-500/20 active:scale-[0.98] transition-all duration-300 group"
         >
-          <span className="font-bold text-gray-800 dark:text-gray-100 font-inter italic tracking-tighter uppercase">
-            View available notifications <span className="text-green-600 dark:text-green-400 ml-2">({notifications.length})</span>
+          <span className="font-bold text-gray-800 font-inter  tracking-tighter uppercase">
+            View available notifications <span className="text-green-600 ml-2">({notifications.length})</span>
           </span>
-          <ChevronRight className="text-green-600 dark:text-green-400 group-hover:translate-x-1 transition-transform" size={24} />
+          <ChevronRight className="text-green-600 group-hover:translate-x-1 transition-transform" size={24} />
         </button>
         <button
           onClick={() => setScreen("banners")}
-          className="w-full bg-white dark:bg-gray-900 rounded-[2rem] shadow-lg p-5 flex items-center justify-between border border-transparent dark:border-gray-800 hover:shadow-2xl hover:border-green-500/20 active:scale-[0.98] transition-all duration-300 group"
+          className="w-full bg-white rounded-[2rem] shadow-lg p-5 flex items-center justify-between border border-transparent hover:shadow-2xl hover:border-green-500/20 active:scale-[0.98] transition-all duration-300 group"
         >
-          <span className="font-bold text-gray-800 dark:text-gray-100 font-inter italic tracking-tighter uppercase">Banner Management</span>
-          <ChevronRight className="text-green-600 dark:text-green-400 group-hover:translate-x-1 transition-transform" size={24} />
+          <span className="font-bold text-gray-800 font-inter  tracking-tighter uppercase">Banner Management</span>
+          <ChevronRight className="text-green-600 group-hover:translate-x-1 transition-transform" size={24} />
         </button>
       </div>
     </div>
@@ -337,30 +337,30 @@ const Content: React.FC = () => {
       {games.map((game, idx) => (
         <div
           key={game.id}
-          className="bg-white dark:bg-gray-900 rounded-3xl shadow-xl p-8 transform hover:scale-[1.01] transition-all duration-300 border border-transparent dark:border-gray-800"
+          className="bg-white rounded-3xl shadow-xl p-8 transform hover:scale-[1.01] transition-all duration-300 border border-transparent"
           style={{ animationDelay: `${idx * 100}ms` }}
         >
           <div className="flex justify-between items-start mb-6">
-            <h3 className="text-gray-800 dark:text-gray-100 font-bold text-xl font-inter tracking-tight">
+            <h3 className="text-gray-800 font-bold text-xl font-inter tracking-tight">
               At least {game.kilometers} kilometers
             </h3>
-            <span className="text-green-600 dark:text-green-400 font-bold text-sm uppercase italic tracking-widest">{game.date}</span>
+            <span className="text-green-600 font-bold text-sm uppercase  tracking-widest">{game.date}</span>
           </div>
-          <div className="flex items-center gap-2 text-gray-500 dark:text-gray-500 mb-6 bg-gray-50 dark:bg-gray-800/50 p-3 rounded-xl w-fit">
+          <div className="flex items-center gap-2 text-gray-500 mb-6 bg-gray-50 p-3 rounded-xl w-fit">
             <Clock size={16} />
-            <span className="text-xs font-bold uppercase italic tracking-widest">{game.time}</span>
+            <span className="text-xs font-bold uppercase  tracking-widest">{game.time}</span>
           </div>
           <div>
             <div className="flex justify-between items-center mb-3">
-              <span className="text-gray-400 dark:text-gray-500 text-[10px] font-bold uppercase tracking-[0.2em] italic">Prize</span>
-              <span className="text-green-600 dark:text-green-400 font-black text-xs uppercase italic tracking-widest">{game.progress}% Complete</span>
+              <span className="text-gray-400 text-[10px] font-bold uppercase tracking-[0.2em] ">Prize</span>
+              <span className="text-green-600 font-black text-xs uppercase  tracking-widest">{game.progress}% Complete</span>
             </div>
-            <div className="text-3xl font-black text-gray-800 dark:text-gray-100 font-inter tracking-tighter mb-4 italic">
+            <div className="text-3xl font-black text-gray-800 font-inter tracking-tighter mb-4 ">
               ₦{game.prize.toLocaleString()}
             </div>
-            <div className="w-full bg-gray-100 dark:bg-gray-800 rounded-full h-4 overflow-hidden p-1 border border-gray-200 dark:border-gray-700 shadow-inner">
+            <div className="w-full bg-gray-100 rounded-full h-4 overflow-hidden p-1 border border-gray-200 shadow-inner">
               <div
-                className="bg-gradient-to-r from-green-500 to-green-600 dark:from-green-600 dark:to-green-700 h-full rounded-full transition-all duration-1000 ease-out shadow-[0_0_15px_rgba(34,197,94,0.3)]"
+                className="bg-gradient-to-r from-green-500 to-green-600 h-full rounded-full transition-all duration-1000 ease-out shadow-[0_0_15px_rgba(34,197,94,0.3)]"
                 style={{ width: `${game.progress}%` }}
               />
             </div>
@@ -375,28 +375,28 @@ const Content: React.FC = () => {
       {notifications.map((notif, idx) => (
         <div
           key={notif.id}
-          className="bg-white dark:bg-gray-900 rounded-[2.5rem] shadow-xl p-8 transform hover:scale-[1.01] transition-all duration-300 border border-transparent dark:border-gray-800"
+          className="bg-white rounded-[2.5rem] shadow-xl p-8 transform hover:scale-[1.01] transition-all duration-300 border border-transparent"
           style={{ animationDelay: `${idx * 100}ms` }}
         >
           <div className="flex justify-between items-center mb-6">
-            <h3 className="text-green-600 dark:text-green-400 font-black text-lg font-inter italic tracking-tighter uppercase whitespace-nowrap">
+            <h3 className="text-green-600 font-black text-lg font-inter  tracking-tighter uppercase whitespace-nowrap">
               #{notif.id} Notification
             </h3>
             <span
-              className={`px-4 py-1.5 rounded-full text-[10px] font-bold uppercase italic tracking-widest border transition-all ${
+              className={`px-4 py-1.5 rounded-full text-[10px] font-bold uppercase  tracking-widest border transition-all ${
                 notif.visible
-                  ? "bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-400 border-green-200 dark:border-green-800 shadow-sm"
-                  : "bg-gray-50 dark:bg-gray-800 text-gray-500 dark:text-gray-500 border-gray-200 dark:border-gray-700 shadow-sm"
+                  ? "bg-green-50 text-green-700 border-green-200 shadow-sm"
+                  : "bg-gray-50 text-gray-500 border-gray-200 shadow-sm"
               }`}
             >
               {notif.visible ? "active" : "hidden"}
             </span>
           </div>
-          <h4 className="font-black text-gray-800 dark:text-gray-100 mb-4 font-inter italic tracking-tighter text-2xl underline decoration-green-500 decoration-4 underline-offset-8 decoration-dashed">{notif.title}</h4>
-          <p className="text-gray-600 dark:text-gray-400 text-sm leading-relaxed mb-8 font-inter font-medium">
+          <h4 className="font-black text-gray-800 mb-4 font-inter  tracking-tighter text-2xl underline decoration-green-500 decoration-4 underline-offset-8 decoration-dashed">{notif.title}</h4>
+          <p className="text-gray-600 text-sm leading-relaxed mb-8 font-inter font-medium">
             {notif.content}
           </p>
-          <button className="w-full bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 py-4 px-6 rounded-2xl font-bold flex items-center justify-between hover:bg-green-100 dark:hover:bg-green-900/30 active:scale-[0.98] transition-all duration-300 uppercase italic tracking-widest text-xs border border-green-100 dark:border-green-800/50 shadow-sm">
+          <button className="w-full bg-green-50 text-green-600 py-4 px-6 rounded-2xl font-bold flex items-center justify-between hover:bg-green-100 active:scale-[0.98] transition-all duration-300 uppercase  tracking-widest text-xs border border-green-100 shadow-sm">
             Manage Action
             <ChevronRight size={20} />
           </button>
@@ -410,50 +410,50 @@ const Content: React.FC = () => {
       {banners.map((banner, idx) => (
         <div
           key={banner.id}
-          className="bg-white dark:bg-gray-900 rounded-[2.5rem] shadow-xl border-4 border-green-200/50 dark:border-green-900/30 p-8 transform hover:scale-[1.01] transition-all duration-300 relative overflow-hidden"
+          className="bg-white rounded-[2.5rem] shadow-xl border-4 border-green-200/50 p-8 transform hover:scale-[1.01] transition-all duration-300 relative overflow-hidden"
           style={{ animationDelay: `${idx * 100}ms` }}
         >
-          <div className="absolute top-0 right-0 w-32 h-32 bg-green-500/5 dark:bg-green-400/5 rounded-bl-full -mr-10 -mt-10 pointer-events-none" />
+          <div className="absolute top-0 right-0 w-32 h-32 bg-green-500/5 rounded-bl-full -mr-10 -mt-10 pointer-events-none" />
           <div className="flex justify-between items-center mb-8 relative z-10">
-            <h3 className="text-green-600 dark:text-green-400 font-black text-xl font-inter italic tracking-tighter uppercase whitespace-nowrap">
+            <h3 className="text-green-600 font-black text-xl font-inter  tracking-tighter uppercase whitespace-nowrap">
               Banner {banner.id}
             </h3>
-            <button className="text-gray-400 dark:text-gray-600 hover:text-green-600 dark:hover:text-green-400 transition-all p-2 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-xl">
+            <button className="text-gray-400 hover:text-green-600 transition-all p-2 hover:bg-gray-50 rounded-xl">
               <MoreVertical size={24} />
             </button>
           </div>
           <div className="space-y-4 text-sm relative z-10">
-            <div className="flex justify-between py-4 border-b border-gray-100 dark:border-gray-800 group hover:bg-gray-50 dark:hover:bg-gray-800/50 rounded-xl px-2 transition-all">
-              <span className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest italic flex items-center">Title</span>
-              <span className="text-gray-800 dark:text-gray-100 font-bold text-right font-inter max-w-[200px]">
+            <div className="flex justify-between py-4 border-b border-gray-100 group hover:bg-gray-50 rounded-xl px-2 transition-all">
+              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest  flex items-center">Title</span>
+              <span className="text-gray-800 font-bold text-right font-inter max-w-[200px]">
                 {banner.title}
               </span>
             </div>
-            <div className="flex justify-between py-4 border-b border-gray-100 dark:border-gray-800 group hover:bg-gray-50 dark:hover:bg-gray-800/50 rounded-xl px-2 transition-all">
-              <span className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest italic flex items-center">Heading</span>
-              <span className="text-gray-800 dark:text-gray-100 font-bold text-right font-inter max-w-[200px]">
+            <div className="flex justify-between py-4 border-b border-gray-100 group hover:bg-gray-50 rounded-xl px-2 transition-all">
+              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest  flex items-center">Heading</span>
+              <span className="text-gray-800 font-bold text-right font-inter max-w-[200px]">
                 {banner.heading}
               </span>
             </div>
-            <div className="flex justify-between py-4 border-b border-gray-100 dark:border-gray-800 group hover:bg-gray-50 dark:hover:bg-gray-800/50 rounded-xl px-2 transition-all">
-              <span className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest italic flex items-center">Body Text</span>
-              <span className="text-gray-800 dark:text-gray-100 font-bold text-right font-inter max-w-[200px]">
+            <div className="flex justify-between py-4 border-b border-gray-100 group hover:bg-gray-50 rounded-xl px-2 transition-all">
+              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest  flex items-center">Body Text</span>
+              <span className="text-gray-800 font-bold text-right font-inter max-w-[200px]">
                 {banner.bodyText}
               </span>
             </div>
-            <div className="flex justify-between py-4 border-b border-gray-100 dark:border-gray-800 group hover:bg-gray-50 dark:hover:bg-gray-800/50 rounded-xl px-2 transition-all">
-              <span className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest italic flex items-center">Text Button</span>
-              <span className="text-gray-800 dark:text-gray-100 font-bold text-right font-inter">
+            <div className="flex justify-between py-4 border-b border-gray-100 group hover:bg-gray-50 rounded-xl px-2 transition-all">
+              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest  flex items-center">Text Button</span>
+              <span className="text-gray-800 font-bold text-right font-inter">
                 {banner.buttonText}
               </span>
             </div>
-            <div className="flex justify-between py-4 group hover:bg-gray-50 dark:hover:bg-gray-800/50 rounded-xl px-2 transition-all">
-              <span className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest italic flex items-center">Status</span>
+            <div className="flex justify-between py-4 group hover:bg-gray-50 rounded-xl px-2 transition-all">
+              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest  flex items-center">Status</span>
               <span
-                className={`text-xs font-black uppercase italic tracking-widest px-4 py-1.5 rounded-full shadow-sm ${
+                className={`text-xs font-black uppercase  tracking-widest px-4 py-1.5 rounded-full shadow-sm ${
                   banner.status === "Active"
-                    ? "bg-green-50 dark:bg-green-900/30 text-green-600 dark:text-green-400 border border-green-200 dark:border-green-800"
-                    : "bg-gray-50 dark:bg-gray-800 text-gray-400 dark:text-gray-500 border border-gray-100 dark:border-gray-700"
+                    ? "bg-green-50 text-green-600 border border-green-200"
+                    : "bg-gray-50 text-gray-400 border border-gray-100"
                 }`}
               >
                 {banner.status}
@@ -467,7 +467,7 @@ const Content: React.FC = () => {
           setBannerForm(banners[0]);
           setScreen("preview");
         }}
-        className="w-full bg-green-600 dark:bg-green-700 text-white py-5 rounded-[2rem] font-black text-lg hover:bg-green-700 dark:hover:bg-green-800 active:scale-[0.98] transition-all duration-300 shadow-2xl shadow-green-500/20 uppercase italic tracking-tighter"
+        className="w-full bg-green-600 text-white py-5 rounded-[2rem] font-black text-lg hover:bg-green-700 active:scale-[0.98] transition-all duration-300 shadow-2xl shadow-green-500/20 uppercase  tracking-tighter"
       >
         Preview Active Banner
       </button>
@@ -476,10 +476,10 @@ const Content: React.FC = () => {
 
   const renderBannerForm = () => (
     <div className="p-4 space-y-8 animate-fadeIn w-full">
-      <div className="bg-white dark:bg-gray-900 rounded-[2.5rem] shadow-xl p-8 border border-transparent dark:border-gray-800">
+      <div className="bg-white rounded-[2.5rem] shadow-xl p-8 border border-transparent">
         <div className="space-y-6">
           <div>
-            <label className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-[0.2em] mb-3 block ml-1 italic">
+            <label className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.2em] mb-3 block ml-1 ">
               Banner Title
             </label>
             <input
@@ -489,11 +489,11 @@ const Content: React.FC = () => {
                 setBannerForm({ ...bannerForm, title: e.target.value })
               }
               placeholder="Receive money, win up to 1k!"
-              className="w-full px-5 py-4 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-800 rounded-2xl focus:ring-4 focus:ring-green-500/10 focus:border-green-500 outline-none transition-all duration-200 dark:text-gray-100 font-inter font-bold"
+              className="w-full px-5 py-4 bg-gray-50 border border-gray-200 rounded-2xl focus:ring-4 focus:ring-green-500/10 focus:border-green-500 outline-none transition-all duration-200 font-inter font-bold"
             />
           </div>
           <div>
-            <label className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-[0.2em] mb-3 block ml-1 italic">
+            <label className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.2em] mb-3 block ml-1 ">
               Main Heading
             </label>
             <input
@@ -503,11 +503,11 @@ const Content: React.FC = () => {
                 setBannerForm({ ...bannerForm, heading: e.target.value })
               }
               placeholder="Win up to N1K bonus"
-              className="w-full px-5 py-4 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-800 rounded-2xl focus:ring-4 focus:ring-green-500/10 focus:border-green-500 outline-none transition-all duration-200 dark:text-gray-100 font-inter font-bold"
+              className="w-full px-5 py-4 bg-gray-50 border border-gray-200 rounded-2xl focus:ring-4 focus:ring-green-500/10 focus:border-green-500 outline-none transition-all duration-200 font-inter font-bold"
             />
           </div>
           <div>
-            <label className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-[0.2em] mb-3 block ml-1 italic">
+            <label className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.2em] mb-3 block ml-1 ">
               Body Message
             </label>
             <textarea
@@ -516,12 +516,12 @@ const Content: React.FC = () => {
                 setBannerForm({ ...bannerForm, bodyText: e.target.value })
               }
               placeholder="Receive big payments, Spin to get up to N1K"
-              className="w-full px-5 py-4 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-800 rounded-2xl focus:ring-4 focus:ring-green-500/10 focus:border-green-500 outline-none transition-all duration-200 min-h-[120px] resize-none dark:text-gray-100 font-inter font-bold"
+              className="w-full px-5 py-4 bg-gray-50 border border-gray-200 rounded-2xl focus:ring-4 focus:ring-green-500/10 focus:border-green-500 outline-none transition-all duration-200 min-h-[120px] resize-none font-inter font-bold"
             />
           </div>
           <div className="grid grid-cols-2 gap-5">
             <div>
-              <label className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-[0.2em] mb-3 block ml-1 italic">
+              <label className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.2em] mb-3 block ml-1 ">
                 Button Text
               </label>
               <input
@@ -531,11 +531,11 @@ const Content: React.FC = () => {
                   setBannerForm({ ...bannerForm, buttonText: e.target.value })
                 }
                 placeholder="Check it Out"
-                className="w-full px-5 py-4 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-800 rounded-2xl focus:ring-4 focus:ring-green-500/10 focus:border-green-500 outline-none transition-all duration-200 dark:text-gray-100 font-inter font-bold uppercase italic tracking-widest text-xs"
+                className="w-full px-5 py-4 bg-gray-50 border border-gray-200 rounded-2xl focus:ring-4 focus:ring-green-500/10 focus:border-green-500 outline-none transition-all duration-200 font-inter font-bold uppercase  tracking-widest text-xs"
               />
             </div>
             <div>
-              <label className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-[0.2em] mb-3 block ml-1 italic">
+              <label className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.2em] mb-3 block ml-1 ">
                 Status
               </label>
               <select
@@ -543,7 +543,7 @@ const Content: React.FC = () => {
                 onChange={(e) =>
                   setBannerForm({ ...bannerForm, status: e.target.value as any })
                 }
-                className="w-full px-5 py-4 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-800 rounded-2xl focus:ring-4 focus:ring-green-500/10 focus:border-green-500 outline-none transition-all duration-200 dark:text-gray-100 font-inter font-bold uppercase italic tracking-widest text-xs appearance-none"
+                className="w-full px-5 py-4 bg-gray-50 border border-gray-200 rounded-2xl focus:ring-4 focus:ring-green-500/10 focus:border-green-500 outline-none transition-all duration-200 font-inter font-bold uppercase  tracking-widest text-xs appearance-none"
               >
                 <option value="Active">Active</option>
                 <option value="Inactive">Inactive</option>
@@ -551,7 +551,7 @@ const Content: React.FC = () => {
             </div>
           </div>
           <div>
-            <label className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-[0.2em] mb-3 block ml-1 italic">
+            <label className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.2em] mb-3 block ml-1 ">
               Action URL
             </label>
             <input
@@ -561,20 +561,20 @@ const Content: React.FC = () => {
                 setBannerForm({ ...bannerForm, buttonUrl: e.target.value })
               }
               placeholder="https://www.google.com"
-              className="w-full px-5 py-4 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-800 rounded-2xl focus:ring-4 focus:ring-green-500/10 focus:border-green-500 outline-none transition-all duration-200 dark:text-gray-100 font-inter font-bold text-green-600 dark:text-green-400 underline"
+              className="w-full px-5 py-4 bg-gray-50 border border-gray-200 rounded-2xl focus:ring-4 focus:ring-green-500/10 focus:border-green-500 outline-none transition-all duration-200 font-inter font-bold text-green-600 underline"
             />
           </div>
           <div>
-            <label className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-[0.2em] mb-3 block ml-1 italic">
+            <label className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.2em] mb-3 block ml-1 ">
               Promotional Asset
             </label>
-            <div className="border-4 border-dashed border-gray-100 dark:border-gray-800 rounded-[2.5rem] p-12 text-center hover:border-green-500 dark:hover:border-green-500/50 transition-all duration-500 cursor-pointer group bg-gray-50/50 dark:bg-black/10">
+            <div className="border-4 border-dashed border-gray-100 rounded-[2.5rem] p-12 text-center hover:border-green-500 transition-all duration-500 cursor-pointer group bg-gray-50/50">
               <div className="flex flex-col items-center">
-                <div className="w-20 h-20 bg-green-50 dark:bg-green-900/30 rounded-3xl flex items-center justify-center mb-6 shadow-inner group-hover:scale-110 group-hover:rotate-6 transition-all">
-                  <Upload className="text-green-600 dark:text-green-400" size={32} />
+                <div className="w-20 h-20 bg-green-50 rounded-3xl flex items-center justify-center mb-6 shadow-inner group-hover:scale-110 group-hover:rotate-6 transition-all">
+                  <Upload className="text-green-600" size={32} />
                 </div>
-                <p className="text-gray-800 dark:text-gray-100 font-black font-inter italic tracking-tighter uppercase text-lg">Upload visual assets</p>
-                <p className="text-gray-400 dark:text-gray-600 text-[10px] font-bold uppercase tracking-widest mt-2">Max size: 5MB • PNG, JPG</p>
+                <p className="text-gray-800 font-black font-inter  tracking-tighter uppercase text-lg">Upload visual assets</p>
+                <p className="text-gray-400 text-[10px] font-bold uppercase tracking-widest mt-2">Max size: 5MB • PNG, JPG</p>
               </div>
             </div>
           </div>
@@ -582,13 +582,13 @@ const Content: React.FC = () => {
         <div className="flex gap-4 pt-10">
           <button
             onClick={handleSaveBanner}
-            className="flex-1 bg-green-600 dark:bg-green-700 text-white py-5 rounded-2xl font-black text-lg hover:bg-green-700 dark:hover:bg-green-800 active:scale-[0.98] transition-all duration-300 shadow-xl shadow-green-500/20 uppercase italic tracking-tighter"
+            className="flex-1 bg-green-600 text-white py-5 rounded-2xl font-black text-lg hover:bg-green-700 active:scale-[0.98] transition-all duration-300 shadow-xl shadow-green-500/20 uppercase  tracking-tighter"
           >
             Deploy
           </button>
           <button
             onClick={() => setScreen("preview")}
-            className="flex-1 bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-100 py-5 rounded-2xl font-black text-lg hover:bg-gray-200 dark:hover:bg-gray-700 active:scale-[0.98] transition-all duration-300 uppercase italic tracking-tighter border border-gray-200 dark:border-gray-700"
+            className="flex-1 bg-gray-100 text-gray-800 py-5 rounded-2xl font-black text-lg hover:bg-gray-200 active:scale-[0.98] transition-all duration-300 uppercase  tracking-tighter border border-gray-200"
           >
             Review
           </button>
@@ -656,7 +656,7 @@ const Content: React.FC = () => {
   );
 
   return (
-    <div className="min-h-screen bg-white dark:bg-gray-950 transition-colors duration-300">
+    <div className="min-h-screen bg-white transition-colors duration-300">
       {renderHeader()}
       <div className="pb-8">
         {screen === "home" && renderHome()}

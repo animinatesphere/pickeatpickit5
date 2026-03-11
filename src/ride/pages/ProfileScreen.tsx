@@ -126,7 +126,7 @@ const ProfileScreen: React.FC = () => {
             <div className={`absolute -bottom-1 -right-1 w-8 h-8 ${riderData?.is_active ? "bg-green-500" : "bg-gray-400"} rounded-full border-4 border-white z-20 animate-bounce`} />
           </div>
 
-          <h2 className="text-2xl font-bold text-gray-800 mt-4 animate-slide-up uppercase italic tracking-tighter">
+          <h2 className="text-2xl font-bold text-gray-800 mt-4 animate-slide-up uppercase  tracking-tighter">
             {riderData ? `${riderData.firstname} ${riderData.lastname}` : "Unidentified Operative"}
           </h2>
           <p
@@ -136,7 +136,7 @@ const ProfileScreen: React.FC = () => {
             {riderData?.email || "No email signal"}
           </p>
           <p
-            className="text-green-600 font-black text-sm mt-1 animate-slide-up italic tracking-widest"
+            className="text-green-600 font-black text-sm mt-1 animate-slide-up  tracking-widest"
             style={{ animationDelay: "0.2s" }}
           >
             {riderData?.phone || "NO SOS CONTACT"}
@@ -156,7 +156,7 @@ const ProfileScreen: React.FC = () => {
                 >
                   <item.icon className={`w-5 h-5 ${item.color}`} />
                 </div>
-                <span className="text-gray-800 font-bold italic uppercase tracking-widest text-xs flex-1 text-left">
+                <span className="text-gray-800 font-bold  uppercase tracking-widest text-xs flex-1 text-left">
                   {item.label}
                 </span>
                 <div className="w-2 h-2 bg-green-500 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
@@ -176,7 +176,7 @@ const ProfileScreen: React.FC = () => {
                 <div className="bg-yellow-50 p-3 rounded-xl">
                   <Bell className="w-5 h-5 text-yellow-600" />
                 </div>
-                <span className="text-gray-800 font-bold italic uppercase tracking-widest text-xs">
+                <span className="text-gray-800 font-bold  uppercase tracking-widest text-xs">
                   Network Alerts
                 </span>
               </div>
@@ -207,7 +207,7 @@ const ProfileScreen: React.FC = () => {
                 <div className="bg-gray-50 p-3 rounded-xl group-hover:scale-110 transition-transform duration-300">
                   <item.icon className="w-5 h-5 text-gray-600" />
                 </div>
-                <span className="text-gray-800 font-bold italic uppercase tracking-widest text-xs flex-1 text-left">
+                <span className="text-gray-800 font-bold  uppercase tracking-widest text-xs flex-1 text-left">
                   {item.label}
                 </span>
               </button>
@@ -222,7 +222,7 @@ const ProfileScreen: React.FC = () => {
         >
           <button 
             onClick={handleLogout}
-            className="w-full bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white font-black italic uppercase tracking-widest py-4 rounded-2xl flex items-center justify-center gap-3 transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105 group"
+            className="w-full bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white font-black  uppercase tracking-widest py-4 rounded-2xl flex items-center justify-center gap-3 transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105 group"
           >
             <span>Disconnect</span>
             <LogOut className="w-5 h-5 group-hover:translate-x-1 transition-transform duration-300" />

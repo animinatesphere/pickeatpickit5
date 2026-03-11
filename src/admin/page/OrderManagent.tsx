@@ -170,28 +170,28 @@ const OrderManagement: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-white dark:bg-gray-950">
+      <div className="min-h-screen flex items-center justify-center bg-white">
         <div className="w-12 h-12 border-4 border-green-600 border-t-transparent rounded-full animate-spin"></div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-white dark:bg-gray-950 transition-colors duration-300">
-      <div className="w-full bg-white dark:bg-gray-950 min-h-screen">
+    <div className="min-h-screen bg-white transition-colors duration-300">
+      <div className="w-full bg-white min-h-screen">
         {/* Main Screen */}
         {currentScreen === "main" && (
           <div className="animate-fadeIn">
             {/* Header */}
-            <div className="bg-green-600 dark:bg-green-700 text-white p-6 sticky top-0 z-40 shadow-xl">
+            <div className="bg-green-600 text-white p-6 sticky top-0 z-40 shadow-xl">
               <div className="flex justify-between items-center mb-6">
                 <button className="hover:bg-white/20 p-2 rounded-xl transition-all active:scale-95">
                   <Menu size={24} />
                 </button>
-                <h1 className="text-xl font-bold font-inter italic tracking-tighter uppercase whitespace-nowrap">Order Management</h1>
+                <h1 className="text-xl font-bold font-inter  tracking-tighter uppercase whitespace-nowrap">Order Management</h1>
                 <button className="hover:bg-white/20 p-2 rounded-xl transition-all relative active:scale-95">
                   <Bell size={24} />
-                  <span className="absolute top-2 right-2 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-green-600 dark:border-green-700 animate-pulse"></span>
+                  <span className="absolute top-2 right-2 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-green-600 animate-pulse"></span>
                 </button>
               </div>
 
@@ -203,7 +203,7 @@ const OrderManagement: React.FC = () => {
                   <button
                     key={tab}
                     onClick={() => setActiveTab(tab)}
-                    className={`px-6 py-2.5 rounded-2xl whitespace-nowrap transition-all font-bold text-xs uppercase tracking-widest italic ${
+                    className={`px-6 py-2.5 rounded-2xl whitespace-nowrap transition-all font-bold text-xs uppercase tracking-widest  ${
                       activeTab === tab
                         ? "bg-white text-green-600 shadow-xl scale-105"
                         : "bg-white/10 text-white hover:bg-white/20"
@@ -220,26 +220,26 @@ const OrderManagement: React.FC = () => {
               {/* Control Buttons */}
               <button
                 onClick={handleStatusControlClick}
-                className="w-full flex justify-between items-center p-5 bg-white dark:bg-gray-900 border border-transparent dark:border-gray-800 rounded-[2rem] hover:shadow-2xl transition-all transform hover:scale-[1.01] group shadow-xl"
+                className="w-full flex justify-between items-center p-5 bg-white border border-transparent rounded-[2rem] hover:shadow-2xl transition-all transform hover:scale-[1.01] group shadow-xl"
               >
-                <span className="font-bold text-gray-800 dark:text-gray-100 font-inter italic tracking-tighter uppercase">
+                <span className="font-bold text-gray-800 font-inter  tracking-tighter uppercase">
                   Order status control
                 </span>
                 <ChevronRight
-                  className="text-green-600 dark:text-green-400 group-hover:translate-x-1 transition-transform"
+                  className="text-green-600 group-hover:translate-x-1 transition-transform"
                   size={24}
                 />
               </button>
 
-              <button className="w-full flex justify-between items-center p-5 bg-white dark:bg-gray-900 border border-transparent dark:border-gray-800 rounded-[2rem] hover:shadow-2xl transition-all transform hover:scale-[1.01] group shadow-xl">
+              <button className="w-full flex justify-between items-center p-5 bg-white border border-transparent rounded-[2rem] hover:shadow-2xl transition-all transform hover:scale-[1.01] group shadow-xl">
                 <div>
-                  <span className="font-bold text-gray-800 dark:text-gray-100 font-inter italic tracking-tighter uppercase">
+                  <span className="font-bold text-gray-800 font-inter  tracking-tighter uppercase">
                     Order dispute{" "}
                   </span>
-                  <span className="text-green-600 dark:text-green-400 font-black ml-2 animate-pulse">({orders.filter(o => o.status === "Cancelled").length})</span>
+                  <span className="text-green-600 font-black ml-2 animate-pulse">({orders.filter(o => o.status === "Cancelled").length})</span>
                 </div>
                 <ChevronRight
-                  className="text-green-600 dark:text-green-400 group-hover:translate-x-1 transition-transform"
+                  className="text-green-600 group-hover:translate-x-1 transition-transform"
                   size={24}
                 />
               </button>
@@ -249,7 +249,7 @@ const OrderManagement: React.FC = () => {
                 {filteredOrders.map((order, index) => (
                   <div
                     key={order.id}
-                    className="bg-white dark:bg-gray-900 border border-transparent dark:border-gray-800 rounded-[2.5rem] p-5 hover:shadow-2xl transition-all transform hover:scale-[1.01] animate-slideUp shadow-xl overflow-hidden relative"
+                    className="bg-white border border-transparent rounded-[2.5rem] p-5 hover:shadow-2xl transition-all transform hover:scale-[1.01] animate-slideUp shadow-xl overflow-hidden relative"
                     style={{ animationDelay: `${index * 100}ms` }}
                   >
                     <div className="flex gap-5">
@@ -261,42 +261,42 @@ const OrderManagement: React.FC = () => {
                             className="w-24 h-24 rounded-3xl object-cover shadow-2xl"
                           />
                         ) : (
-                          <div className="w-24 h-24 rounded-3xl bg-green-50 dark:bg-green-900/20 flex items-center justify-center shadow-2xl">
+                          <div className="w-24 h-24 rounded-3xl bg-green-50 flex items-center justify-center shadow-2xl">
                             <span className="text-3xl">🍽️</span>
                           </div>
                         )}
-                        <div className={`absolute -bottom-2 -right-2 w-8 h-8 ${getStatusBgColor(order.status)} rounded-full border-4 border-white dark:border-gray-900 shadow-lg flex items-center justify-center`}>
+                        <div className={`absolute -bottom-2 -right-2 w-8 h-8 ${getStatusBgColor(order.status)} rounded-full border-4 border-white shadow-lg flex items-center justify-center`}>
                           <span className="text-white text-[10px] font-black">!</span>
                         </div>
                       </div>
                       <div className="flex-1">
                         <div className="flex justify-between items-start mb-3">
                           <div>
-                            <h3 className="font-black text-gray-800 dark:text-gray-100 font-inter italic tracking-tighter uppercase whitespace-nowrap">
+                            <h3 className="font-black text-gray-800 font-inter  tracking-tighter uppercase whitespace-nowrap">
                               {order.name}
                             </h3>
-                            <p className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest italic mt-1">
+                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest  mt-1">
                               {order.date}
                             </p>
                           </div>
                           {order.status !== "Completed" && (
                             <button
                               onClick={() => handleCheckClick(order.id)}
-                              className="px-5 py-2 bg-green-600 dark:bg-green-700 text-white text-[10px] font-black uppercase italic tracking-widest rounded-xl hover:bg-green-700 transition-all transform hover:scale-105 shadow-lg shadow-green-500/20 active:scale-95"
+                              className="px-5 py-2 bg-green-600 text-white text-[10px] font-black uppercase  tracking-widest rounded-xl hover:bg-green-700 transition-all transform hover:scale-105 shadow-lg shadow-green-500/20 active:scale-95"
                             >
                               Details
                             </button>
                           )}
                         </div>
-                        <div className="flex justify-between items-center mt-4 pt-4 border-t border-gray-50 dark:border-gray-800">
-                          <p className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest italic">
+                        <div className="flex justify-between items-center mt-4 pt-4 border-t border-gray-50">
+                          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ">
                             Amt:{" "}
-                            <span className="font-black text-gray-800 dark:text-gray-100 text-sm font-inter not-italic">
+                            <span className="font-black text-gray-800 text-sm font-inter not-italic">
                               {order.amount}
                             </span>
                           </p>
                           <span
-                            className={`font-black text-[10px] uppercase italic tracking-widest px-3 py-1 bg-opacity-10 rounded-lg ${getStatusColor(
+                            className={`font-black text-[10px] uppercase  tracking-widest px-3 py-1 bg-opacity-10 rounded-lg ${getStatusColor(
                               order.status
                             )}`}
                           >
@@ -316,7 +316,7 @@ const OrderManagement: React.FC = () => {
         {currentScreen === "details" && selectedOrder && (
           <div className="animate-slideIn h-screen overflow-y-auto">
             {/* Header */}
-            <div className="bg-green-600 dark:bg-green-700 text-white p-6 sticky top-0 z-40 shadow-xl">
+            <div className="bg-green-600 text-white p-6 sticky top-0 z-40 shadow-xl">
               <div className="flex justify-between items-center">
                 <button
                   onClick={handleBackClick}
@@ -324,10 +324,10 @@ const OrderManagement: React.FC = () => {
                 >
                   <ArrowLeft size={24} />
                 </button>
-                <h1 className="text-xl font-bold font-inter italic tracking-tighter uppercase">Order Details</h1>
+                <h1 className="text-xl font-bold font-inter  tracking-tighter uppercase">Order Details</h1>
                 <button className="hover:bg-white/20 p-2 rounded-xl transition-all relative">
                   <Bell size={24} />
-                  <span className="absolute top-2 right-2 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-green-600 dark:border-green-700 animate-pulse"></span>
+                  <span className="absolute top-2 right-2 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-green-600 animate-pulse"></span>
                 </button>
               </div>
             </div>
@@ -335,26 +335,26 @@ const OrderManagement: React.FC = () => {
             {/* Content */}
             <div className="p-6 space-y-6">
               {/* Main Item Card */}
-              <div className="bg-white dark:bg-gray-900 rounded-[2.5rem] shadow-2xl p-6 transform hover:scale-[1.01] transition-all border border-transparent dark:border-gray-800">
+              <div className="bg-white rounded-[2.5rem] shadow-2xl p-6 transform hover:scale-[1.01] transition-all border border-transparent">
                 <div className="flex gap-6 items-center">
-                  <div className="w-32 h-32 rounded-[2rem] bg-green-50 dark:bg-green-900/20 flex items-center justify-center shadow-2xl rotate-3">
+                  <div className="w-32 h-32 rounded-[2rem] bg-green-50 flex items-center justify-center shadow-2xl rotate-3">
                     <span className="text-4xl">🍽️</span>
                   </div>
                   <div className="flex-1">
                     <div className="flex justify-between items-start">
                       <div>
-                        <h2 className="text-2xl font-black text-gray-800 dark:text-gray-100 font-inter italic tracking-tighter uppercase whitespace-nowrap">
+                        <h2 className="text-2xl font-black text-gray-800 font-inter  tracking-tighter uppercase whitespace-nowrap">
                           {selectedOrder.title}
                         </h2>
-                        <p className="text-3xl font-black text-green-600 dark:text-green-400 mt-2 font-inter italic tracking-tighter">
+                        <p className="text-3xl font-black text-green-600 mt-2 font-inter  tracking-tighter">
                           {selectedOrder.price}
                         </p>
                       </div>
                       <div className="text-right">
-                        <span className="text-xl font-black text-gray-800 dark:text-gray-100 font-inter italic">
+                        <span className="text-xl font-black text-gray-800 font-inter ">
                           {selectedOrder.quantity}
                         </span>
-                        <div className="mt-2 px-4 py-1.5 bg-green-600 dark:bg-green-700 text-white text-[10px] rounded-xl font-black uppercase italic tracking-widest shadow-lg shadow-green-500/20">
+                        <div className="mt-2 px-4 py-1.5 bg-green-600 text-white text-[10px] rounded-xl font-black uppercase  tracking-widest shadow-lg shadow-green-500/20">
                           {selectedOrder.status}
                         </div>
                       </div>
@@ -364,15 +364,15 @@ const OrderManagement: React.FC = () => {
               </div>
 
               {/* Order Info */}
-              <div className="bg-white dark:bg-gray-900 rounded-[2.5rem] shadow-2xl p-8 space-y-6 border border-transparent dark:border-gray-800">
-                <div className="flex justify-between items-center pb-6 border-b border-gray-100 dark:border-gray-800">
+              <div className="bg-white rounded-[2.5rem] shadow-2xl p-8 space-y-6 border border-transparent">
+                <div className="flex justify-between items-center pb-6 border-b border-gray-100">
                   <div className="flex flex-col">
-                    <span className="text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest italic mb-1">Receipt ID</span>
-                    <span className="font-black text-green-600 dark:text-green-400 text-2xl font-inter italic tracking-tighter">
+                    <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest  mb-1">Receipt ID</span>
+                    <span className="font-black text-green-600 text-2xl font-inter  tracking-tighter">
                       #{selectedOrder.id}
                     </span>
                   </div>
-                  <span className="text-green-600 dark:text-green-500 text-[10px] font-black uppercase italic tracking-widest bg-green-50 dark:bg-green-900/30 px-4 py-2 rounded-full">
+                  <span className="text-green-600 text-[10px] font-black uppercase  tracking-widest bg-green-50 px-4 py-2 rounded-full">
                     order just now
                   </span>
                 </div>
@@ -382,15 +382,15 @@ const OrderManagement: React.FC = () => {
                   {selectedOrder.items.map((item, index) => (
                     <div
                       key={index}
-                      className="flex justify-between items-center py-3 hover:bg-gray-50 dark:hover:bg-gray-800/50 px-4 rounded-2xl transition-all group"
+                      className="flex justify-between items-center py-3 hover:bg-gray-50 px-4 rounded-2xl transition-all group"
                     >
                       <div className="flex items-center gap-4">
-                        <span className="text-green-600 dark:text-green-400 font-black font-inter text-lg group-hover:scale-110 transition-transform">
+                        <span className="text-green-600 font-black font-inter text-lg group-hover:scale-110 transition-transform">
                           x{item.quantity}
                         </span>
-                        <span className="text-gray-700 dark:text-gray-200 font-bold font-inter tracking-tight uppercase text-sm">{item.name}</span>
+                        <span className="text-gray-700 font-bold font-inter tracking-tight uppercase text-sm">{item.name}</span>
                       </div>
-                      <span className="font-black text-gray-800 dark:text-gray-100 font-inter italic tracking-tighter">
+                      <span className="font-black text-gray-800 font-inter  tracking-tighter">
                         {item.price}
                       </span>
                     </div>
@@ -398,21 +398,21 @@ const OrderManagement: React.FC = () => {
                 </div>
 
                 {/* Charges */}
-                <div className="space-y-3 pt-6 border-t border-gray-100 dark:border-gray-800">
-                  <div className="flex justify-between text-xs font-bold uppercase tracking-widest italic">
-                    <span className="text-gray-400 dark:text-gray-500">Services Charges</span>
-                    <span className="text-gray-800 dark:text-gray-100">
+                <div className="space-y-3 pt-6 border-t border-gray-100">
+                  <div className="flex justify-between text-xs font-bold uppercase tracking-widest ">
+                    <span className="text-gray-400">Services Charges</span>
+                    <span className="text-gray-800">
                       {selectedOrder.serviceCharges}
                     </span>
                   </div>
-                  <div className="flex justify-between text-xs font-bold uppercase tracking-widest italic">
-                    <span className="text-gray-400 dark:text-gray-500">Delivery Charges</span>
-                    <span className="text-gray-800 dark:text-gray-100">
+                  <div className="flex justify-between text-xs font-bold uppercase tracking-widest ">
+                    <span className="text-gray-400">Delivery Charges</span>
+                    <span className="text-gray-800">
                       {selectedOrder.deliveryCharges}
                     </span>
                   </div>
-                  <div className="flex justify-between text-xs font-bold uppercase tracking-widest italic">
-                    <span className="text-gray-400 dark:text-gray-500">Promo Applied</span>
+                  <div className="flex justify-between text-xs font-bold uppercase tracking-widest ">
+                    <span className="text-gray-400">Promo Applied</span>
                     <span className="text-red-600 font-black">
                       {selectedOrder.promoCode}
                     </span>
@@ -420,46 +420,46 @@ const OrderManagement: React.FC = () => {
                 </div>
 
                 {/* Total */}
-                <div className="flex justify-between items-center pt-6 border-t-4 border-gray-100 dark:border-gray-800">
-                  <span className="text-xl font-black text-gray-800 dark:text-gray-100 font-inter italic tracking-tighter uppercase">Grand Total</span>
-                  <span className="text-4xl font-black text-green-600 dark:text-green-400 font-inter italic tracking-tighter">
+                <div className="flex justify-between items-center pt-6 border-t-4 border-gray-100">
+                  <span className="text-xl font-black text-gray-800 font-inter  tracking-tighter uppercase">Grand Total</span>
+                  <span className="text-4xl font-black text-green-600 font-inter  tracking-tighter">
                     {selectedOrder.total}
                   </span>
                 </div>
               </div>
 
               {/* Delivery Info */}
-              <div className="bg-green-50 dark:bg-green-900/20 rounded-[2.5rem] shadow-2xl p-8 space-y-8 border border-green-100 dark:border-green-800 relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-green-500/10 dark:bg-green-400/10 rounded-bl-full -mr-10 -mt-10 pointer-events-none" />
+              <div className="bg-green-50 rounded-[2.5rem] shadow-2xl p-8 space-y-8 border border-green-100 relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-green-500/10 rounded-bl-full -mr-10 -mt-10 pointer-events-none" />
                 <div className="relative z-10">
-                  <h3 className="text-[10px] font-black text-green-700 dark:text-green-400 uppercase tracking-widest italic mb-4">
+                  <h3 className="text-[10px] font-black text-green-700 uppercase tracking-widest  mb-4">
                     DELIVERY LOGISTICS
                   </h3>
                   <div className="flex items-start gap-4">
-                    <div className="w-12 h-12 bg-white dark:bg-gray-800 rounded-2xl flex items-center justify-center shadow-lg transform rotate-3 flex-shrink-0">
+                    <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center shadow-lg transform rotate-3 flex-shrink-0">
                       <span className="text-2xl">📍</span>
                     </div>
-                    <p className="text-gray-800 dark:text-gray-100 font-bold font-inter leading-relaxed text-sm">
+                    <p className="text-gray-800 font-bold font-inter leading-relaxed text-sm">
                       {selectedOrder.deliverTo}
                     </p>
                   </div>
                 </div>
 
-                <div className="relative z-10 flex flex-col sm:flex-row justify-between items-center gap-6 pt-6 border-t border-green-200/50 dark:border-green-800/50">
+                <div className="relative z-10 flex flex-col sm:flex-row justify-between items-center gap-6 pt-6 border-t border-green-200/50">
                   <div className="flex items-center gap-4">
-                    <div className="w-14 h-14 bg-white dark:bg-gray-800 rounded-full flex items-center justify-center shadow-xl border-4 border-green-50 dark:border-gray-900 flex-shrink-0">
+                    <div className="w-14 h-14 bg-white rounded-full flex items-center justify-center shadow-xl border-4 border-green-50 flex-shrink-0">
                       <span className="text-2xl">🏍️</span>
                     </div>
                     <div>
-                      <h3 className="text-[10px] font-black text-green-700 dark:text-green-400 uppercase tracking-widest italic mb-1">
+                      <h3 className="text-[10px] font-black text-green-700 uppercase tracking-widest  mb-1">
                         ASSIGNED RIDER
                       </h3>
-                      <p className="text-gray-800 dark:text-gray-100 font-black font-inter uppercase text-sm tracking-tight italic">
+                      <p className="text-gray-800 font-black font-inter uppercase text-sm tracking-tight ">
                         {selectedOrder.assignedRider}
                       </p>
                     </div>
                   </div>
-                  <button className="w-full sm:w-auto px-8 py-4 bg-green-600 dark:bg-green-700 text-white rounded-2xl hover:bg-green-700 dark:hover:bg-green-600 transition-all transform hover:scale-105 shadow-xl shadow-green-500/20 font-black text-xs uppercase italic tracking-widest active:scale-95">
+                  <button className="w-full sm:w-auto px-8 py-4 bg-green-600 text-white rounded-2xl hover:bg-green-700 transition-all transform hover:scale-105 shadow-xl shadow-green-500/20 font-black text-xs uppercase  tracking-widest active:scale-95">
                     Reassign Rider
                   </button>
                 </div>
@@ -472,7 +472,7 @@ const OrderManagement: React.FC = () => {
         {currentScreen === "status-control" && (
           <div className="animate-slideIn h-screen overflow-y-auto">
             {/* Header */}
-            <div className="bg-green-600 dark:bg-green-700 text-white p-6 sticky top-0 z-40 shadow-xl">
+            <div className="bg-green-600 text-white p-6 sticky top-0 z-40 shadow-xl">
               <div className="flex justify-between items-center">
                 <button
                   onClick={handleBackClick}
@@ -480,10 +480,10 @@ const OrderManagement: React.FC = () => {
                 >
                   <ArrowLeft size={24} />
                 </button>
-                <h1 className="text-xl font-bold font-inter italic tracking-tighter uppercase whitespace-nowrap">Status Control</h1>
+                <h1 className="text-xl font-bold font-inter  tracking-tighter uppercase whitespace-nowrap">Status Control</h1>
                 <button className="hover:bg-white/20 p-2 rounded-xl transition-all relative active:scale-95">
                   <Bell size={24} />
-                  <span className="absolute top-2 right-2 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-green-600 dark:border-green-700 animate-pulse"></span>
+                  <span className="absolute top-2 right-2 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-green-600 animate-pulse"></span>
                 </button>
               </div>
             </div>
@@ -493,7 +493,7 @@ const OrderManagement: React.FC = () => {
               {statusOrders.map((order, index) => (
                 <div
                   key={order.id}
-                  className="bg-white dark:bg-gray-900 rounded-[2.5rem] shadow-2xl p-6 hover:shadow-[0_20px_60px_rgba(0,0,0,0.15)] transition-all transform hover:scale-[1.01] animate-slideUp border border-transparent dark:border-gray-800"
+                  className="bg-white rounded-[2.5rem] shadow-2xl p-6 hover:shadow-[0_20px_60px_rgba(0,0,0,0.15)] transition-all transform hover:scale-[1.01] animate-slideUp border border-transparent"
                   style={{ animationDelay: `${index * 100}ms` }}
                 >
                   <div className="flex gap-5">
@@ -505,22 +505,22 @@ const OrderManagement: React.FC = () => {
                     <div className="flex-1">
                       <div className="flex justify-between items-start mb-4">
                         <div className="flex-1 min-w-0">
-                          <h3 className="font-black text-gray-800 dark:text-gray-100 font-inter italic tracking-tighter uppercase text-lg border-b border-gray-100 dark:border-gray-800 pb-2 mb-2">
+                          <h3 className="font-black text-gray-800 font-inter  tracking-tighter uppercase text-lg border-b border-gray-100 pb-2 mb-2">
                             {order.name}
                           </h3>
-                          <p className="text-[10px] text-gray-500 dark:text-gray-400 font-bold uppercase tracking-widest italic flex items-center gap-2 truncate">
-                            <span className="text-green-600 dark:text-green-500">📍</span>
+                          <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest  flex items-center gap-2 truncate">
+                            <span className="text-green-600">📍</span>
                             {order.location}
                           </p>
-                          <p className="text-[10px] text-gray-500 dark:text-gray-400 font-black uppercase italic tracking-widest mt-3">
+                          <p className="text-[10px] text-gray-500 font-black uppercase  tracking-widest mt-3">
                             TIMESTAMP:{" "}
-                            <span className="text-green-600 dark:text-green-500 font-inter not-italic tracking-tighter">{order.time}</span>
+                            <span className="text-green-600 font-inter not-italic tracking-tighter">{order.time}</span>
                           </p>
                         </div>
                         <span
                           className={`px-4 py-1.5 ${getStatusBgColor(
                             order.status
-                          )} text-white text-[10px] rounded-xl font-black uppercase italic tracking-widest shadow-lg shadow-green-500/10 ml-2`}
+                          )} text-white text-[10px] rounded-xl font-black uppercase  tracking-widest shadow-lg shadow-green-500/10 ml-2`}
                         >
                           {order.status}
                         </span>
@@ -528,12 +528,12 @@ const OrderManagement: React.FC = () => {
 
                       <div className="flex gap-3 mt-6">
                         {order.showCheckout && (
-                          <button className="flex-1 px-5 py-3 bg-green-600 dark:bg-green-700 text-white text-[10px] font-black uppercase italic tracking-widest rounded-xl hover:bg-green-700 transition-all transform hover:scale-105 shadow-xl shadow-green-500/20">
+                          <button className="flex-1 px-5 py-3 bg-green-600 text-white text-[10px] font-black uppercase  tracking-widest rounded-xl hover:bg-green-700 transition-all transform hover:scale-105 shadow-xl shadow-green-500/20">
                             Check Out
                           </button>
                         )}
                         {order.status === "Completed" && (
-                          <button className="flex-1 px-5 py-3 border-2 border-green-600 dark:border-green-700 text-green-600 dark:text-green-400 text-[10px] font-black uppercase italic tracking-widest rounded-xl hover:bg-green-50 dark:hover:bg-green-900/10 transition-all transform hover:scale-105">
+                          <button className="flex-1 px-5 py-3 border-2 border-green-600 text-green-600 text-[10px] font-black uppercase  tracking-widest rounded-xl hover:bg-green-50 transition-all transform hover:scale-105">
                             Undo Complete
                           </button>
                         )}

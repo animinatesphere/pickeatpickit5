@@ -124,27 +124,27 @@ const Analysis = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-white dark:bg-gray-950 transition-colors duration-300">
+    <div className="min-h-screen bg-white transition-colors duration-300">
       {/* Header */}
-      <div className="bg-green-600 dark:bg-green-700 text-white px-4 py-6 shadow-xl sticky top-0 z-40">
+      <div className="bg-green-600 text-white px-4 py-6 shadow-xl sticky top-0 z-40">
         <div className="w-full">
           <div className="flex items-center justify-between mb-6">
             <button className="p-2 hover:bg-white/20 rounded-xl transition-all active:scale-95 shadow-lg">
               <Menu className="w-6 h-6" />
             </button>
-            <h1 className="text-xl font-bold font-inter italic tracking-tighter uppercase whitespace-nowrap">
+            <h1 className="text-xl font-bold font-inter  tracking-tighter uppercase whitespace-nowrap">
               Reports & Analytics
             </h1>
             <button className="p-2 hover:bg-white/20 rounded-xl transition-all relative active:scale-95 shadow-lg">
               <Bell className="w-6 h-6" />
-              <span className="absolute top-2 right-2 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-green-600 dark:border-green-700 animate-pulse"></span>
+              <span className="absolute top-2 right-2 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-green-600 animate-pulse"></span>
             </button>
           </div>
 
-          <div className="bg-white/10 dark:bg-black/20 backdrop-blur-xl rounded-3xl p-6 border border-white/20 shadow-2xl">
+          <div className="bg-white/10 backdrop-blur-xl rounded-3xl p-6 border border-white/20 shadow-2xl">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-green-100 dark:text-green-300 text-xs font-bold uppercase tracking-[0.2em] mb-2 font-inter italic">
+                <p className="text-green-100 text-xs font-bold uppercase tracking-[0.2em] mb-2 font-inter ">
                   Total Revenue
                 </p>
                 <p className="text-4xl font-black font-inter tracking-tighter">₦{revenue.toLocaleString()}</p>
@@ -159,20 +159,20 @@ const Analysis = () => {
 
       <div className="w-full px-4 py-6 space-y-6">
         {/* Chart Section */}
-        <div className="bg-white dark:bg-gray-900 rounded-[2.5rem] shadow-2xl p-8 border border-transparent dark:border-gray-800 animate-fade-in transition-all">
+        <div className="bg-white rounded-[2.5rem] shadow-2xl p-8 border border-transparent animate-fade-in transition-all">
           <div className="flex items-center justify-between mb-10">
-            <h2 className="text-xl font-black text-gray-800 dark:text-gray-100 font-inter italic tracking-tighter uppercase underline decoration-green-500 decoration-4 underline-offset-8">
+            <h2 className="text-xl font-black text-gray-800 font-inter  tracking-tighter uppercase underline decoration-green-500 decoration-4 underline-offset-8">
               {new Date().toLocaleString("default", { month: "long" })} {new Date().getFullYear()}
             </h2>
-            <div className="flex gap-2 bg-gray-50 dark:bg-gray-800/50 rounded-2xl p-1.5 border border-gray-100 dark:border-gray-800">
+            <div className="flex gap-2 bg-gray-50 rounded-2xl p-1.5 border border-gray-100">
               {["D", "W", "M", "Y"].map((tab) => (
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
-                  className={`px-5 py-2 rounded-xl text-xs font-bold uppercase italic tracking-widest transition-all ${
+                  className={`px-5 py-2 rounded-xl text-xs font-bold uppercase  tracking-widest transition-all ${
                     activeTab === tab
-                      ? "bg-green-600 dark:bg-green-700 text-white shadow-lg shadow-green-500/20 active:scale-95"
-                      : "text-gray-500 hover:text-gray-800 dark:hover:text-gray-200"
+                      ? "bg-green-600 text-white shadow-lg shadow-green-500/20 active:scale-95"
+                      : "text-gray-500 hover:text-gray-800"
                   }`}
                 >
                   {tab}
@@ -189,7 +189,7 @@ const Analysis = () => {
               <CartesianGrid
                 strokeDasharray="3 3"
                 stroke="currentColor"
-                className="text-gray-100 dark:text-gray-800"
+                className="text-gray-100"
                 vertical={false}
               />
               <XAxis
@@ -197,13 +197,13 @@ const Analysis = () => {
                 axisLine={false}
                 tickLine={false}
                 tick={{ fill: "currentColor", fontSize: 10, fontWeight: 700 }}
-                className="text-gray-400 dark:text-gray-600"
+                className="text-gray-400"
               />
               <YAxis
                 axisLine={false}
                 tickLine={false}
                 tick={{ fill: "currentColor", fontSize: 10, fontWeight: 700 }}
-                className="text-gray-400 dark:text-gray-600"
+                className="text-gray-400"
                 tickFormatter={(value) => `${value / 1000}k`}
               />
               <Tooltip
@@ -230,12 +230,12 @@ const Analysis = () => {
         </div>
 
         {/* User Engagement */}
-        <div className="bg-white dark:bg-gray-900 rounded-[2.5rem] shadow-2xl p-8 border border-transparent dark:border-gray-800 animate-fade-in-delay-1 transition-all">
+        <div className="bg-white rounded-[2.5rem] shadow-2xl p-8 border border-transparent animate-fade-in-delay-1 transition-all">
           <div className="flex items-center gap-4 mb-8">
-            <div className="bg-green-100 dark:bg-green-900/30 p-3 rounded-2xl shadow-inner transform -rotate-6">
-              <Users className="w-6 h-6 text-green-600 dark:text-green-400" />
+            <div className="bg-green-100 p-3 rounded-2xl shadow-inner transform -rotate-6">
+              <Users className="w-6 h-6 text-green-600" />
             </div>
-            <h2 className="text-xl font-black text-gray-800 dark:text-gray-100 font-inter italic tracking-tighter uppercase">
+            <h2 className="text-xl font-black text-gray-800 font-inter  tracking-tighter uppercase">
               User engagement
             </h2>
           </div>
@@ -244,19 +244,19 @@ const Analysis = () => {
             {topUsers.map((user, index) => (
               <div
                 key={user.name}
-                className="flex items-center gap-5 p-4 rounded-3xl hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-all cursor-pointer group border border-transparent hover:border-gray-100 dark:hover:border-gray-700 shadow-sm"
+                className="flex items-center gap-5 p-4 rounded-3xl hover:bg-gray-50 transition-all cursor-pointer group border border-transparent hover:border-gray-100 shadow-sm"
                 style={{ animationDelay: `${index * 100}ms` }}
               >
                 <div
-                  className={`w-14 h-14 bg-green-100 dark:bg-green-900/30 rounded-[1.25rem] flex items-center justify-center text-3xl shadow-2xl group-hover:rotate-6 transition-all duration-300 transform`}
+                  className={`w-14 h-14 bg-green-100 rounded-[1.25rem] flex items-center justify-center text-3xl shadow-2xl group-hover:rotate-6 transition-all duration-300 transform`}
                 >
                   {user.name.charAt(0)}
                 </div>
                 <div className="flex-1">
-                  <p className="font-bold text-gray-800 dark:text-gray-100 font-inter tracking-tight text-lg">{user.name}</p>
-                  <p className="text-xs font-bold text-gray-500 dark:text-gray-500 uppercase tracking-widest italic">{user.orders} orders</p>
+                  <p className="font-bold text-gray-800 font-inter tracking-tight text-lg">{user.name}</p>
+                  <p className="text-xs font-bold text-gray-500 uppercase tracking-widest ">{user.orders} orders</p>
                 </div>
-                <div className="w-20 h-2.5 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden p-0.5">
+                <div className="w-20 h-2.5 bg-gray-100 rounded-full overflow-hidden p-0.5">
                   <div
                     className={`h-full bg-green-500 rounded-full transition-all duration-1000 shadow-[0_0_10px_rgba(34,197,94,0.3)]`}
                     style={{ width: `${(user.orders / (topUsers[0]?.orders || 1)) * 100}%` }}
@@ -266,14 +266,14 @@ const Analysis = () => {
             ))}
           </div>
 
-          <button className="w-full mt-8 py-4 text-green-600 dark:text-green-400 font-bold uppercase italic tracking-widest text-xs hover:bg-green-50 dark:hover:bg-green-900/10 rounded-2xl transition-all border border-green-100 dark:border-green-900/30">
+          <button className="w-full mt-8 py-4 text-green-600 font-bold uppercase  tracking-widest text-xs hover:bg-green-50 rounded-2xl transition-all border border-green-100">
             See all details →
           </button>
         </div>
 
         {/* Order Insights */}
-        <div className="bg-white dark:bg-gray-900 rounded-[2.5rem] shadow-2xl p-8 border border-transparent dark:border-gray-800 animate-fade-in-delay-2 transition-all">
-          <h2 className="text-xl font-black text-gray-800 dark:text-gray-100 mb-8 font-inter italic tracking-tighter uppercase">
+        <div className="bg-white rounded-[2.5rem] shadow-2xl p-8 border border-transparent animate-fade-in-delay-2 transition-all">
+          <h2 className="text-xl font-black text-gray-800 mb-8 font-inter  tracking-tighter uppercase">
             Order insights
           </h2>
 
@@ -283,7 +283,7 @@ const Analysis = () => {
               return (
                 <div
                   key={insight.label}
-                  className="flex items-center gap-5 p-4 rounded-3xl hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-all cursor-pointer group border border-transparent hover:border-gray-100 dark:hover:border-gray-700 shadow-sm"
+                  className="flex items-center gap-5 p-4 rounded-3xl hover:bg-gray-50 transition-all cursor-pointer group border border-transparent hover:border-gray-100 shadow-sm"
                   style={{ animationDelay: `${index * 100}ms` }}
                 >
                   <div
@@ -292,8 +292,8 @@ const Analysis = () => {
                     <Icon className="w-7 h-7 text-white" />
                   </div>
                   <div className="flex-1">
-                    <p className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest italic mb-1">{insight.label}</p>
-                    <p className="font-black text-gray-800 dark:text-gray-100 font-inter tracking-tight text-xl">
+                    <p className="text-xs font-bold text-gray-400 uppercase tracking-widest  mb-1">{insight.label}</p>
+                    <p className="font-black text-gray-800 font-inter tracking-tight text-xl">
                       {insight.value}
                     </p>
                   </div>

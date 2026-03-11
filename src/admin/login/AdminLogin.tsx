@@ -1,12 +1,10 @@
 import { useState } from "react";
-import { Lock, Mail, Eye, EyeOff, Sun, Moon } from "lucide-react";
+import { Lock, Mail, Eye, EyeOff } from "lucide-react";
 import logo from "../../assets/Logo SVG 1.png";
 import { useToast } from "../../context/ToastContext";
-import { useTheme } from "../../context/ThemeContext";
 import { useNavigate } from "react-router-dom";
 
 export default function AdminLogin() {
-  const { theme, toggleTheme } = useTheme();
   const toast = useToast();
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
@@ -34,23 +32,12 @@ export default function AdminLogin() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-white dark:bg-gray-950 p-4 relative overflow-hidden transition-colors duration-300">
-      {/* Theme Toggle Button */}
-      <button
-        onClick={toggleTheme}
-        className="fixed top-8 right-8 z-50 p-4 bg-white/10 dark:bg-gray-900/10 backdrop-blur-xl border border-white/20 dark:border-white/5 rounded-2xl text-gray-800 dark:text-gray-100 shadow-2xl hover:scale-110 active:scale-95 transition-all duration-300 group"
-      >
-        {theme === "dark" ? (
-          <Sun className="w-6 h-6 text-amber-400 group-hover:rotate-45 transition-transform" />
-        ) : (
-          <Moon className="w-6 h-6 text-indigo-600 group-hover:-rotate-12 transition-transform" />
-        )}
-      </button>
+    <div className="min-h-screen flex items-center justify-center bg-white p-4 relative overflow-hidden transition-colors duration-300">
       {/* Animated background elements */}
       <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-orange-200 dark:bg-orange-900/20 rounded-full mix-blend-multiply dark:mix-blend-overlay filter blur-xl opacity-70 animate-pulse"></div>
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-amber-200 dark:bg-amber-900/20 rounded-full mix-blend-multiply dark:mix-blend-overlay filter blur-xl opacity-70 animate-pulse delay-1000"></div>
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-red-200 dark:bg-red-900/20 rounded-full mix-blend-multiply dark:mix-blend-overlay filter blur-xl opacity-70 animate-pulse delay-500"></div>
+        <div className="absolute -top-40 -right-40 w-80 h-80 bg-orange-200 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-pulse"></div>
+        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-amber-200 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-pulse delay-1000"></div>
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-red-200 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-pulse delay-500"></div>
       </div>
 
       <div className="w-full max-w-6xl grid lg:grid-cols-2 gap-8 items-center relative z-10">
@@ -86,7 +73,7 @@ export default function AdminLogin() {
 
         {/* Right side - Login Form */}
         <div className="relative">
-          <div className="bg-white/70 dark:bg-gray-900/70 backdrop-blur-2xl rounded-[2.5rem] shadow-2xl p-6 sm:p-8 md:p-12 border border-white/20 dark:border-white/5 transform hover:scale-[1.02] transition-all duration-500">
+          <div className="bg-white/70 backdrop-blur-2xl rounded-[2.5rem] shadow-2xl p-6 sm:p-8 md:p-12 border border-white/20 transform hover:scale-[1.02] transition-all duration-500">
             {/* Mobile logo */}
             <div className="lg:hidden flex flex-col items-center justify-center gap-4 mb-8 sm:mb-10">
               <div className="p-4 bg-white/10 backdrop-blur-md rounded-2xl border border-white/20">
@@ -101,10 +88,10 @@ export default function AdminLogin() {
               </h2>
             </div>
             <div className="mb-8 sm:mb-10">
-              <h1 className="text-2xl sm:text-4xl font-black text-gray-800 dark:text-gray-100 mb-2 sm:mb-3 animate-fade-in font-inter tracking-tighter uppercase">
+              <h1 className="text-2xl sm:text-4xl font-black text-gray-800 mb-2 sm:mb-3 animate-fade-in font-inter tracking-tighter uppercase">
                 Welcome Back
               </h1>
-              <p className="text-gray-600 dark:text-gray-400 text-base sm:text-lg font-medium font-inter">
+              <p className="text-gray-600 text-base sm:text-lg font-medium font-inter">
                 Login as Admin
               </p>
             </div>
@@ -112,18 +99,18 @@ export default function AdminLogin() {
             <div className="space-y-6">
               {/* Email Input */}
               <div className="group">
-                <label className="block text-xs font-bold text-gray-700 dark:text-gray-400 mb-3 uppercase tracking-widest ml-1">
+                <label className="block text-xs font-bold text-gray-700 mb-3 uppercase tracking-widest ml-1">
                   Email Address
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none">
-                    <Mail className="w-5 h-5 text-gray-400 dark:text-gray-600 group-focus-within:text-orange-500 transition-colors" />
+                    <Mail className="w-5 h-5 text-gray-400 group-focus-within:text-orange-500 transition-colors" />
                   </div>
                   <input
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full pl-14 pr-4 py-5 bg-gray-50/50 dark:bg-black/20 border-2 border-gray-100 dark:border-gray-800 rounded-2xl focus:outline-none focus:border-orange-500 dark:focus:border-orange-500 focus:bg-white dark:focus:bg-black transition-all duration-300 text-gray-800 dark:text-white font-inter"
+                    className="w-full pl-14 pr-4 py-5 bg-gray-50/50 border-2 border-gray-100 rounded-2xl focus:outline-none focus:border-orange-500 focus:bg-white transition-all duration-300 text-gray-800 font-inter"
                     placeholder="admin@fooddash.com"
                     required
                   />
@@ -132,18 +119,18 @@ export default function AdminLogin() {
 
               {/* Password Input */}
               <div className="group">
-                <label className="block text-xs font-bold text-gray-700 dark:text-gray-400 mb-3 uppercase tracking-widest ml-1">
+                <label className="block text-xs font-bold text-gray-700 mb-3 uppercase tracking-widest ml-1">
                   Password
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none">
-                    <Lock className="w-5 h-5 text-gray-400 dark:text-gray-600 group-focus-within:text-orange-500 transition-colors" />
+                    <Lock className="w-5 h-5 text-gray-400 group-focus-within:text-orange-500 transition-colors" />
                   </div>
                   <input
                     type={showPassword ? "text" : "password"}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="w-full pl-14 pr-14 py-5 bg-gray-50/50 dark:bg-black/20 border-2 border-gray-100 dark:border-gray-800 rounded-2xl focus:outline-none focus:border-orange-500 dark:focus:border-orange-500 focus:bg-white dark:focus:bg-black transition-all duration-300 text-gray-800 dark:text-white font-inter"
+                    className="w-full pl-14 pr-14 py-5 bg-gray-50/50 border-2 border-gray-100 rounded-2xl focus:outline-none focus:border-orange-500 focus:bg-white transition-all duration-300 text-gray-800 font-inter"
                     placeholder="Enter your password"
                     required
                   />
@@ -166,9 +153,9 @@ export default function AdminLogin() {
                 <label className="flex items-center cursor-pointer group">
                   <input
                     type="checkbox"
-                    className="w-5 h-5 text-orange-500 dark:bg-gray-800 border-gray-300 dark:border-gray-700 rounded focus:ring-orange-500 cursor-pointer"
+                    className="w-5 h-5 text-orange-500 border-gray-300 rounded focus:ring-orange-500 cursor-pointer"
                   />
-                  <span className="ml-2 text-sm text-gray-600 dark:text-gray-400 font-bold uppercase tracking-widest group-hover:text-gray-800 dark:group-hover:text-gray-200 transition-colors">
+                  <span className="ml-2 text-sm text-gray-600 font-bold uppercase tracking-widest group-hover:text-gray-800 transition-colors">
                     Remember me
                   </span>
                 </label>

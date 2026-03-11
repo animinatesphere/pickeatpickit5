@@ -20,7 +20,7 @@ const PrivacyPolicy: React.FC = () => {
             <div className="w-12 h-12 bg-green-500/10 rounded-xl flex items-center justify-center border border-green-500/20">
               <Shield className="w-6 h-6 text-green-500" />
             </div>
-            <h1 className="text-4xl font-black uppercase italic italic tracking-tighter">Privacy <span className="text-green-500">Policy</span></h1>
+            <h1 className="text-4xl font-black uppercase   tracking-tighter">Privacy <span className="text-green-500">Policy</span></h1>
           </div>
 
           <p className="text-sm text-gray-500 font-bold uppercase mb-12 tracking-widest">Last Updated: February 2026</p>

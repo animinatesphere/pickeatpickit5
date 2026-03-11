@@ -123,7 +123,7 @@ const RiderEarningsPayment = () => {
     return (
       <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-6">
         <Loader2 className="w-12 h-12 text-green-600 animate-spin mb-4" />
-        <p className="text-gray-500 font-bold italic uppercase tracking-widest">Scanning network...</p>
+        <p className="text-gray-500 font-bold  uppercase tracking-widest">Scanning network...</p>
       </div>
     );
   }
@@ -149,7 +149,7 @@ const RiderEarningsPayment = () => {
 
         <div className="max-w-xl mx-auto px-4 py-8 space-y-6">
           <div className="text-center mb-8">
-            <h2 className="text-2xl font-black italic uppercase tracking-tighter text-gray-800">Update Intel</h2>
+            <h2 className="text-2xl font-black  uppercase tracking-tighter text-gray-800">Update Intel</h2>
             <p className="text-gray-500 text-xs font-bold uppercase tracking-widest mt-1">Payment Routing Protocol</p>
           </div>
 
@@ -200,7 +200,7 @@ const RiderEarningsPayment = () => {
           <button
             onClick={handleSaveBankInfo}
             disabled={saving}
-            className="w-full bg-green-600 text-white py-5 rounded-2xl font-black italic uppercase tracking-widest shadow-xl shadow-green-600/20 hover:bg-green-700 active:scale-95 transition-all flex items-center justify-center gap-3 disabled:opacity-50"
+            className="w-full bg-green-600 text-white py-5 rounded-2xl font-black  uppercase tracking-widest shadow-xl shadow-green-600/20 hover:bg-green-700 active:scale-95 transition-all flex items-center justify-center gap-3 disabled:opacity-50"
           >
             {saving ? <Loader2 className="animate-spin" /> : "Verify and Save Intel"}
           </button>
@@ -222,7 +222,7 @@ const RiderEarningsPayment = () => {
             >
               <ArrowLeft size={20} />
             </button>
-            <h1 className="text-xl font-black italic text-gray-800 uppercase tracking-tighter">Earnings Intel</h1>
+            <h1 className="text-xl font-black  text-gray-800 uppercase tracking-tighter">Earnings Intel</h1>
           </div>
           <div className="p-3 bg-green-50 text-green-600 rounded-2xl"><TrendingUp size={20} /></div>
         </div>
@@ -237,16 +237,16 @@ const RiderEarningsPayment = () => {
           
           <div className="relative z-10">
             <div className="flex items-center gap-2 mb-2">
-              <span className="text-[10px] font-black uppercase tracking-[0.3em] text-green-500 italic">Total Operational Revenue</span>
+              <span className="text-[10px] font-black uppercase tracking-[0.3em] text-green-500 ">Total Operational Revenue</span>
               <ChevronDown size={14} className="text-green-500 animate-bounce" />
             </div>
 
             <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6">
               <div>
-                <h2 className="text-6xl font-black italic tracking-tighter mb-2">
+                <h2 className="text-6xl font-black  tracking-tighter mb-2">
                   {showEarnings ? `₦${stats.todayEarnings.toLocaleString()}` : "₦ ••••••"}
                 </h2>
-                <div className="flex items-center gap-2 text-gray-400 font-bold italic uppercase text-[10px] tracking-widest">
+                <div className="flex items-center gap-2 text-gray-400 font-bold  uppercase text-[10px] tracking-widest">
                   <span>Authorized Pending:</span>
                   <span className="text-green-500 font-black">₦{stats.pendingPayout.toLocaleString()}</span>
                 </div>
@@ -263,7 +263,7 @@ const RiderEarningsPayment = () => {
                   onClick={() => setCurrentPage("payment")}
                   className="px-6 h-14 bg-green-600 hover:bg-green-700 rounded-2xl flex items-center justify-center gap-3 transition-all active:scale-90 shadow-xl shadow-green-600/20 cursor-pointer"
                 >
-                  <span className="font-black italic uppercase text-xs tracking-widest">Setup Wallet</span>
+                  <span className="font-black  uppercase text-xs tracking-widest">Setup Wallet</span>
                 </div>
               </div>
             </div>
@@ -274,7 +274,7 @@ const RiderEarningsPayment = () => {
         <div className="flex bg-white rounded-3xl p-2 shadow-xl shadow-gray-200/50 border border-gray-50">
           <button
             onClick={() => setActiveTab("transactions")}
-            className={`flex-1 py-4 rounded-2xl font-black italic uppercase tracking-widest transition-all ${
+            className={`flex-1 py-4 rounded-2xl font-black  uppercase tracking-widest transition-all ${
               activeTab === "transactions" 
                 ? "bg-green-600 text-white shadow-xl shadow-green-600/20 scale-105" 
                 : "text-gray-400 hover:bg-gray-50"
@@ -284,7 +284,7 @@ const RiderEarningsPayment = () => {
           </button>
           <button
             onClick={() => setActiveTab("orders")}
-            className={`flex-1 py-4 rounded-2xl font-black italic uppercase tracking-widest transition-all ${
+            className={`flex-1 py-4 rounded-2xl font-black  uppercase tracking-widest transition-all ${
               activeTab === "orders" 
                 ? "bg-green-600 text-white shadow-xl shadow-green-600/20 scale-105" 
                 : "text-gray-400 hover:bg-gray-50"
@@ -299,7 +299,7 @@ const RiderEarningsPayment = () => {
           {activeTab === "transactions" ? (
             transactions.length === 0 ? (
               <div className="text-center py-20 bg-white rounded-[3rem] border-2 border-dashed border-gray-100">
-                <p className="text-gray-300 font-bold italic uppercase tracking-widest">No transactions logged</p>
+                <p className="text-gray-300 font-bold  uppercase tracking-widest">No transactions logged</p>
               </div>
             ) : (
               transactions.map((tx) => (
@@ -309,15 +309,15 @@ const RiderEarningsPayment = () => {
                       <ArrowUpCircle className="text-green-600 w-8 h-8" />
                     </div>
                     <div>
-                      <h4 className="font-black italic uppercase tracking-tighter text-gray-800">{tx.title || "Withdrawal"}</h4>
+                      <h4 className="font-black  uppercase tracking-tighter text-gray-800">{tx.title || "Withdrawal"}</h4>
                       <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-1">
-                        {new Date(tx.created_at).toLocaleString()} | <span className="text-green-600 uppercase italic">SUCCESS</span>
+                        {new Date(tx.created_at).toLocaleString()} | <span className="text-green-600 uppercase ">SUCCESS</span>
                       </p>
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="text-2xl font-black italic text-gray-800 tracking-tighter">-₦{tx.amount.toLocaleString()}</p>
-                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest italic">Service Charge: ₦{tx.commission || 0}</p>
+                    <p className="text-2xl font-black  text-gray-800 tracking-tighter">-₦{tx.amount.toLocaleString()}</p>
+                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest ">Service Charge: ₦{tx.commission || 0}</p>
                   </div>
                 </div>
               ))
@@ -325,7 +325,7 @@ const RiderEarningsPayment = () => {
           ) : (
             orders.length === 0 ? (
               <div className="text-center py-20 bg-white rounded-[3rem] border-2 border-dashed border-gray-100">
-                <p className="text-gray-300 font-bold italic uppercase tracking-widest">No completed missions</p>
+                <p className="text-gray-300 font-bold  uppercase tracking-widest">No completed missions</p>
               </div>
             ) : (
               orders.map((order) => (
@@ -335,15 +335,15 @@ const RiderEarningsPayment = () => {
                       <TrendingUp className="text-blue-600 w-8 h-8" />
                     </div>
                     <div>
-                      <h4 className="font-black italic uppercase tracking-tighter text-gray-800">Deployment ID: #{order.id.slice(0, 8)}</h4>
+                      <h4 className="font-black  uppercase tracking-tighter text-gray-800">Deployment ID: #{order.id.slice(0, 8)}</h4>
                       <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-1">
                         Completed {new Date(order.created_at).toLocaleDateString()}
                       </p>
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="text-2xl font-black italic text-green-600 tracking-tighter">₦{order.total_amount.toLocaleString()}</p>
-                    <span className="text-[10px] font-black bg-blue-50 text-blue-600 px-3 py-1 rounded-full uppercase italic tracking-widest">Verified</span>
+                    <p className="text-2xl font-black  text-green-600 tracking-tighter">₦{order.total_amount.toLocaleString()}</p>
+                    <span className="text-[10px] font-black bg-blue-50 text-blue-600 px-3 py-1 rounded-full uppercase  tracking-widest">Verified</span>
                   </div>
                 </div>
               ))
@@ -355,12 +355,12 @@ const RiderEarningsPayment = () => {
         <div className="flex flex-col gap-4">
           <button 
             disabled={stats.todayEarnings === 0}
-            className="w-full py-6 bg-green-600 text-white rounded-3xl font-black italic uppercase tracking-widest shadow-xl shadow-green-600/20 active:scale-95 transition-all text-sm disabled:opacity-50"
+            className="w-full py-6 bg-green-600 text-white rounded-3xl font-black  uppercase tracking-widest shadow-xl shadow-green-600/20 active:scale-95 transition-all text-sm disabled:opacity-50"
           >
             Authorize Withdrawal
           </button>
           <button 
-            className="w-full py-6 bg-white border border-gray-100 text-gray-500 rounded-3xl font-black italic uppercase tracking-widest shadow-lg active:scale-95 transition-all text-sm"
+            className="w-full py-6 bg-white border border-gray-100 text-gray-500 rounded-3xl font-black  uppercase tracking-widest shadow-lg active:scale-95 transition-all text-sm"
           >
             Generate Intel Report
           </button>

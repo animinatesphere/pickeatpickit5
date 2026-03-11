@@ -30,7 +30,7 @@ const Careers: React.FC = () => {
             animate={{ opacity: 1, y: 0 }}
             className="text-center mb-20"
           >
-            <h1 className="text-5xl md:text-7xl font-black italic uppercase tracking-tighter mb-6">
+            <h1 className="text-5xl md:text-7xl font-black  uppercase tracking-tighter mb-6">
               Join the <span className="text-blue-500">Fleet</span>
             </h1>
             <p className="text-xl text-gray-400 font-medium leading-relaxed max-w-2xl mx-auto">
@@ -54,7 +54,7 @@ const Careers: React.FC = () => {
           </div>
 
           <div className="space-y-4">
-            <h2 className="text-2xl font-black uppercase italic mb-8">Open Roles</h2>
+            <h2 className="text-2xl font-black uppercase  mb-8">Open Roles</h2>
             {jobs.map((job, i) => (
               <motion.div 
                 key={i}

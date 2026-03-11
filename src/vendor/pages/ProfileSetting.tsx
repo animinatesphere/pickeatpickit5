@@ -231,10 +231,10 @@ const ProfileSetting = () => {
   // }
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-white dark:bg-gray-950 flex items-center justify-center transition-colors duration-300">
+      <div className="min-h-screen bg-white flex items-center justify-center transition-colors duration-300">
         <div className="text-center">
-          <div className="w-16 h-16 border-4 border-green-600 dark:border-green-400 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600 dark:text-gray-400 font-medium">
+          <div className="w-16 h-16 border-4 border-green-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600 font-medium">
             Loading profile...
           </p>
         </div>
@@ -243,10 +243,10 @@ const ProfileSetting = () => {
   }
 
   return (
-    <div className="min-h-screen bg-white dark:bg-gray-950 transition-colors duration-300">
+    <div className="min-h-screen bg-white transition-colors duration-300">
       <VendorNav />
       {/* Header */}
-      <div className="bg-gradient-to-r from-green-600 to-green-700 dark:from-green-700 dark:to-green-800 text-white px-6 py-4 shadow-lg sticky top-0 z-20 transition-all">
+      <div className="bg-gradient-to-r from-green-600 to-green-700 text-white px-6 py-4 shadow-lg sticky top-0 z-20 transition-all">
         <div className="flex items-center gap-4">
           <button
             className="p-2 hover:bg-white/20 rounded-lg transition-all"
@@ -254,7 +254,7 @@ const ProfileSetting = () => {
           >
             <ArrowLeft className="w-6 h-6" />
           </button>
-          <h1 className="text-xl font-bold font-inter italic tracking-tighter uppercase">
+          <h1 className="text-xl font-bold font-inter  tracking-tighter uppercase">
             Profile Settings
           </h1>
         </div>
@@ -262,12 +262,12 @@ const ProfileSetting = () => {
 
       <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 pb-24">
         {/* Restaurant Status Toggle */}
-        <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-lg p-6 mb-6 border border-transparent dark:border-gray-800 flex flex-col sm:flex-row sm:items-center sm:justify-between">
+        <div className="bg-white rounded-2xl shadow-lg p-6 mb-6 border border-transparent flex flex-col sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100 font-inter italic uppercase tracking-tighter">
+            <h3 className="text-lg font-bold text-gray-800 font-inter  uppercase tracking-tighter">
               Restaurant Status
             </h3>
-            <p className="text-sm text-gray-500 dark:text-gray-400 font-medium mt-2">
+            <p className="text-sm text-gray-500 font-medium mt-2">
               {isOpen
                 ? "Your restaurant is currently open"
                 : "Your restaurant is currently closed"}
@@ -276,11 +276,11 @@ const ProfileSetting = () => {
           <button
             onClick={() => setIsOpen(!isOpen)}
             className={`relative w-16 h-8 rounded-full transition-all duration-300 ${
-              isOpen ? "bg-green-600" : "bg-gray-300 dark:bg-gray-800"
+              isOpen ? "bg-green-600" : "bg-gray-300"
             } mt-4 sm:mt-0`}
           >
             <div
-              className={`absolute top-1 w-6 h-6 bg-white dark:bg-gray-100 rounded-full shadow-md transition-all duration-300 ${
+              className={`absolute top-1 w-6 h-6 bg-white rounded-full shadow-md transition-all duration-300 ${
                 isOpen ? "left-9" : "left-1"
               }`}
             />
@@ -288,7 +288,7 @@ const ProfileSetting = () => {
         </div>
 
         {/* Profile Card */}
-        <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-lg p-6 mb-6 border border-transparent dark:border-gray-800 transition-all">
+        <div className="bg-white rounded-2xl shadow-lg p-6 mb-6 border border-transparent transition-all">
           <div className="flex flex-col sm:flex-row items-start gap-4">
             <div className="relative group mx-auto sm:mx-0">
               {/* Hidden File Input */}
@@ -301,11 +301,11 @@ const ProfileSetting = () => {
               />
               <div
                 onClick={() => fileInputRef.current?.click()}
-                className="w-24 h-24 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center shadow-lg cursor-pointer overflow-hidden border-4 border-white dark:border-gray-800 relative group transition-all"
+                className="w-24 h-24 rounded-full bg-gray-100 flex items-center justify-center shadow-lg cursor-pointer overflow-hidden border-4 border-white relative group transition-all"
               >
                 {isPhotoLoading ? (
                   <div className="absolute inset-0 bg-black/40 flex items-center justify-center z-10">
-                    <div className="w-6 h-6 border-2 border-green-600 dark:border-green-400 border-t-transparent rounded-full animate-spin"></div>
+                    <div className="w-6 h-6 border-2 border-green-600 border-t-transparent rounded-full animate-spin"></div>
                   </div>
                 ) : null}
                 {profileImage ? (
@@ -326,16 +326,16 @@ const ProfileSetting = () => {
               </button>
             </div>
             <div className="flex-1 font-inter transition-all text-center sm:text-left">
-              <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100 italic uppercase tracking-tighter">
+              <h2 className="text-2xl font-bold text-gray-800  uppercase tracking-tighter">
                 {formData.restaurantName}
               </h2>
-              <p className="text-green-600 dark:text-green-400 font-bold uppercase text-sm tracking-wide">
+              <p className="text-green-600 font-bold uppercase text-sm tracking-wide">
                 {formData.category}
               </p>
-              <p className="text-sm text-gray-600 dark:text-gray-400 font-medium mt-1 break-all">
+              <p className="text-sm text-gray-600 font-medium mt-1 break-all">
                 {formData.email}
               </p>
-              <p className="text-sm font-bold text-gray-700 dark:text-gray-200 mt-1 break-all">
+              <p className="text-sm font-bold text-gray-700 mt-1 break-all">
                 {formData.phone}
               </p>
             </div>
@@ -343,14 +343,14 @@ const ProfileSetting = () => {
         </div>
 
         {/* Personal Information */}
-        <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-lg p-6 mb-6 border border-transparent dark:border-gray-800 transition-all">
-          <h3 className="text-xl font-bold text-green-700 dark:text-green-500 mb-6 font-inter italic uppercase tracking-tighter">
+        <div className="bg-white rounded-2xl shadow-lg p-6 mb-6 border border-transparent transition-all">
+          <h3 className="text-xl font-bold text-green-700 mb-6 font-inter  uppercase tracking-tighter">
             Personal Information
           </h3>
 
           {/* Full Name */}
           <div className="mb-4">
-            <label className="text-sm text-gray-600 dark:text-gray-400 mb-2 block font-medium">
+            <label className="text-sm text-gray-600 mb-2 block font-medium">
               Full Name
             </label>
             <div className="flex gap-2">
@@ -360,7 +360,7 @@ const ProfileSetting = () => {
                     type="text"
                     value={tempValue}
                     onChange={(e) => setTempValue(e.target.value)}
-                    className="flex-1 px-4 py-3 bg-blue-50 dark:bg-blue-900/20 border-2 border-blue-300 dark:border-blue-800 rounded-xl text-gray-900 dark:text-gray-100 focus:outline-none focus:border-blue-500 dark:focus:border-blue-400 transition-all font-inter"
+                    className="flex-1 px-4 py-3 bg-blue-50 border-2 border-blue-300 rounded-xl text-gray-900 focus:outline-none focus:border-blue-500 transition-all font-inter"
                     autoFocus
                   />
                   <button
@@ -378,12 +378,12 @@ const ProfileSetting = () => {
                 </>
               ) : (
                 <>
-                  <div className="flex-1 px-4 py-3 bg-gray-50 dark:bg-gray-800/50 rounded-xl text-gray-800 dark:text-gray-200 font-bold font-inter border border-transparent dark:border-gray-800">
+                  <div className="flex-1 px-4 py-3 bg-gray-50 rounded-xl text-gray-800 font-bold font-inter border border-transparent">
                     {formData.fullName}
                   </div>
                   <button
                     onClick={() => handleEdit("fullName", formData.fullName)}
-                    className="px-6 py-3 bg-green-600 dark:bg-green-700 text-white rounded-xl hover:bg-green-700 dark:hover:bg-green-800 transition-all font-bold uppercase text-xs tracking-widest italic"
+                    className="px-6 py-3 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-all font-bold uppercase text-xs tracking-widest "
                   >
                     Edit
                   </button>
@@ -394,7 +394,7 @@ const ProfileSetting = () => {
 
           {/* Email Address */}
           <div className="mb-4">
-            <label className="text-sm text-gray-600 dark:text-gray-400 mb-2 block font-medium">
+            <label className="text-sm text-gray-600 mb-2 block font-medium">
               Email Address
             </label>
             <div className="flex gap-2">
@@ -404,7 +404,7 @@ const ProfileSetting = () => {
                     type="email"
                     value={tempValue}
                     onChange={(e) => setTempValue(e.target.value)}
-                    className="flex-1 px-4 py-3 bg-blue-50 dark:bg-blue-900/20 border-2 border-blue-300 dark:border-blue-800 rounded-xl text-gray-900 dark:text-gray-100 focus:outline-none focus:border-blue-500 dark:focus:border-blue-400 transition-all font-inter"
+                    className="flex-1 px-4 py-3 bg-blue-50 border-2 border-blue-300 rounded-xl text-gray-900 focus:outline-none focus:border-blue-500 transition-all font-inter"
                     autoFocus
                   />
                   <button
@@ -422,12 +422,12 @@ const ProfileSetting = () => {
                 </>
               ) : (
                 <>
-                  <div className="flex-1 px-4 py-3 bg-gray-50 dark:bg-gray-800/50 rounded-xl text-gray-800 dark:text-gray-200 font-bold font-inter border border-transparent dark:border-gray-800">
+                  <div className="flex-1 px-4 py-3 bg-gray-50 rounded-xl text-gray-800 font-bold font-inter border border-transparent">
                     {formData.email}
                   </div>
                   <button
                     onClick={() => handleEdit("email", formData.email)}
-                    className="px-6 py-3 bg-green-600 dark:bg-green-700 text-white rounded-xl hover:bg-green-700 dark:hover:bg-green-800 transition-all font-bold uppercase text-xs tracking-widest italic"
+                    className="px-6 py-3 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-all font-bold uppercase text-xs tracking-widest "
                   >
                     Edit
                   </button>
@@ -438,7 +438,7 @@ const ProfileSetting = () => {
 
           {/* Phone Number */}
           <div className="mb-4">
-            <label className="text-sm text-gray-600 dark:text-gray-400 mb-2 block font-medium">
+            <label className="text-sm text-gray-600 mb-2 block font-medium">
               Phone Number
             </label>
             <div className="flex gap-2">
@@ -448,7 +448,7 @@ const ProfileSetting = () => {
                     type="tel"
                     value={tempValue}
                     onChange={(e) => setTempValue(e.target.value)}
-                    className="flex-1 px-4 py-3 bg-blue-50 dark:bg-blue-900/20 border-2 border-blue-300 dark:border-blue-800 rounded-xl text-gray-900 dark:text-gray-100 focus:outline-none focus:border-blue-500 dark:focus:border-blue-400 transition-all font-inter"
+                    className="flex-1 px-4 py-3 bg-blue-50 border-2 border-blue-300 rounded-xl text-gray-900 focus:outline-none focus:border-blue-500 transition-all font-inter"
                     autoFocus
                   />
                   <button
@@ -466,12 +466,12 @@ const ProfileSetting = () => {
                 </>
               ) : (
                 <>
-                  <div className="flex-1 px-4 py-3 bg-gray-50 dark:bg-gray-800/50 rounded-xl text-gray-800 dark:text-gray-200 font-bold font-inter border border-transparent dark:border-gray-800">
+                  <div className="flex-1 px-4 py-3 bg-gray-50 rounded-xl text-gray-800 font-bold font-inter border border-transparent">
                     {formData.phone}
                   </div>
                   <button
                     onClick={() => handleEdit("phone", formData.phone)}
-                    className="px-6 py-3 bg-green-600 dark:bg-green-700 text-white rounded-xl hover:bg-green-700 dark:hover:bg-green-800 transition-all font-bold uppercase text-xs tracking-widest italic"
+                    className="px-6 py-3 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-all font-bold uppercase text-xs tracking-widest "
                   >
                     Edit
                   </button>
@@ -482,8 +482,8 @@ const ProfileSetting = () => {
         </div>
 
         {/* Address Section */}
-        <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-lg p-6 mb-6 border border-transparent dark:border-gray-800 transition-all">
-          <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100 mb-4 font-inter italic uppercase tracking-tighter">
+        <div className="bg-white rounded-2xl shadow-lg p-6 mb-6 border border-transparent transition-all">
+          <h3 className="text-lg font-bold text-gray-800 mb-4 font-inter  uppercase tracking-tighter">
             Address
           </h3>
 
@@ -492,7 +492,7 @@ const ProfileSetting = () => {
               <textarea
                 value={tempValue}
                 onChange={(e) => setTempValue(e.target.value)}
-                className="w-full px-4 py-3 bg-blue-50 dark:bg-blue-900/20 border-2 border-blue-300 dark:border-blue-800 rounded-xl text-gray-900 dark:text-gray-100 focus:outline-none focus:border-blue-500 dark:focus:border-blue-400 transition-all font-inter"
+                className="w-full px-4 py-3 bg-blue-50 border-2 border-blue-300 rounded-xl text-gray-900 focus:outline-none focus:border-blue-500 transition-all font-inter"
                 rows={2}
                 autoFocus
               />
@@ -514,7 +514,7 @@ const ProfileSetting = () => {
           ) : (
             <div
               onClick={() => handleEdit("address", formData.address)}
-              className="text-gray-700 dark:text-gray-300 mb-4 p-4 bg-gray-50 dark:bg-gray-800/50 rounded-xl cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 border border-transparent dark:border-gray-800 transition-all font-inter font-medium"
+              className="text-gray-700 mb-4 p-4 bg-gray-50 rounded-xl cursor-pointer hover:bg-gray-100 border border-transparent transition-all font-inter font-medium"
             >
               {formData.address}
             </div>
@@ -522,7 +522,7 @@ const ProfileSetting = () => {
 
           <div className="grid grid-cols-3 gap-4">
             <div>
-              <label className="text-xs text-gray-600 dark:text-gray-400 mb-1 block font-medium uppercase tracking-widest">
+              <label className="text-xs text-gray-600 mb-1 block font-medium uppercase tracking-widest">
                 Zip
               </label>
               <input
@@ -531,11 +531,11 @@ const ProfileSetting = () => {
                 onChange={(e) =>
                   setFormData({ ...formData, zip: e.target.value })
                 }
-                className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 border-b-2 border-gray-300 dark:border-gray-700 rounded-lg text-gray-900 dark:text-gray-100 focus:border-green-500 dark:focus:border-green-400 focus:outline-none transition-all font-inter font-bold"
+                className="w-full px-3 py-2 bg-gray-50 border-b-2 border-gray-300 rounded-lg text-gray-900 focus:border-green-500 focus:outline-none transition-all font-inter font-bold"
               />
             </div>
             <div>
-              <label className="text-xs text-gray-600 dark:text-gray-400 mb-1 block font-medium uppercase tracking-widest">
+              <label className="text-xs text-gray-600 mb-1 block font-medium uppercase tracking-widest">
                 City
               </label>
               <input
@@ -544,11 +544,11 @@ const ProfileSetting = () => {
                 onChange={(e) =>
                   setFormData({ ...formData, city: e.target.value })
                 }
-                className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 border-b-2 border-gray-300 dark:border-gray-700 rounded-lg text-gray-900 dark:text-gray-100 focus:border-green-500 dark:focus:border-green-400 focus:outline-none transition-all font-inter font-bold"
+                className="w-full px-3 py-2 bg-gray-50 border-b-2 border-gray-300 rounded-lg text-gray-900 focus:border-green-500 focus:outline-none transition-all font-inter font-bold"
               />
             </div>
             <div>
-              <label className="text-xs text-gray-600 dark:text-gray-400 mb-1 block font-medium uppercase tracking-widest">
+              <label className="text-xs text-gray-600 mb-1 block font-medium uppercase tracking-widest">
                 State
               </label>
               <input
@@ -557,30 +557,30 @@ const ProfileSetting = () => {
                 onChange={(e) =>
                   setFormData({ ...formData, state: e.target.value })
                 }
-                className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 border-b-2 border-gray-300 dark:border-gray-700 rounded-lg text-gray-900 dark:text-gray-100 focus:border-green-500 dark:focus:border-green-400 focus:outline-none transition-all font-inter font-bold"
+                className="w-full px-3 py-2 bg-gray-50 border-b-2 border-gray-300 rounded-lg text-gray-900 focus:border-green-500 focus:outline-none transition-all font-inter font-bold"
               />
             </div>
           </div>
         </div>
 
         {/* Delivery Range */}
-        <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-lg p-6 mb-6 border border-transparent dark:border-gray-800 transition-all">
+        <div className="bg-white rounded-2xl shadow-lg p-6 mb-6 border border-transparent transition-all">
           <div className="flex items-center gap-3 mb-4">
-            <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center">
-              <MapPin className="w-6 h-6 text-green-600 dark:text-green-400" />
+            <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+              <MapPin className="w-6 h-6 text-green-600" />
             </div>
             <div>
-              <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100 font-inter italic uppercase tracking-tighter">
+              <h3 className="text-lg font-bold text-gray-800 font-inter  uppercase tracking-tighter">
                 Delivery Range
               </h3>
-              <p className="text-sm text-gray-600 dark:text-gray-400 font-medium">
+              <p className="text-sm text-gray-600 font-medium">
                 {formData.deliveryRange}
               </p>
             </div>
           </div>
 
           {/* Interactive Map */}
-          <div className="relative rounded-xl overflow-hidden shadow-md h-64 bg-gradient-to-br from-green-100 to-blue-100 dark:from-green-900/20 dark:to-blue-900/20 border dark:border-gray-800">
+          <div className="relative rounded-xl overflow-hidden shadow-md h-64 bg-gradient-to-br from-green-100 to-blue-100 border">
             <iframe
               width="100%"
               height="100%"

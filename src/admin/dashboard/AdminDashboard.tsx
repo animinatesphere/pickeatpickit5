@@ -33,7 +33,6 @@ import Content from "../page/Content";
 import OrderManagement from "../page/OrderManagent";
 import Restrict from "../page/Restrict";
 import Help from "../page/Help";
-import { useTheme } from "../../context/ThemeContext";
 import { getAdminStats, getRevenueAnalytics } from "../../services/api";
 
 // Types
@@ -46,7 +45,6 @@ type MenuItem = {
 const AdminDashboard: React.FC = () => {
   const [isOpen, setIsOpen] = useState(true);
   const [activeMenu, setActiveMenu] = useState("dashboard");
-  const { theme, toggleTheme } = useTheme();
 
   const [stats, setStats] = useState<any>(null);
   const [chartData, setChartData] = useState<any[]>([]);
@@ -119,21 +117,21 @@ const AdminDashboard: React.FC = () => {
     return (
       <div className="space-y-6">
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100 font-inter italic tracking-tighter uppercase">
+          <h1 className="text-2xl font-bold text-gray-800 font-inter  tracking-tighter uppercase">
             Dashboard
           </h1>
           <Bell
-            className="text-gray-600 dark:text-gray-400 cursor-pointer hover:text-gray-800 dark:hover:text-gray-200 transition-colors"
+            className="text-gray-600 cursor-pointer hover:text-gray-800 transition-colors"
             size={24}
           />
         </div>
 
-        <div className="bg-white dark:bg-gray-900 rounded-[2rem] shadow-xl p-8 border border-transparent dark:border-gray-800 transition-all">
+        <div className="bg-white rounded-[2rem] shadow-xl p-8 border border-transparent transition-all">
           <div className="flex items-center justify-between mb-8">
-            <h2 className="text-green-600 dark:text-green-400 font-black font-inter italic tracking-tighter uppercase">
+            <h2 className="text-green-600 font-black font-inter  tracking-tighter uppercase">
               Todays Progress
             </h2>
-            <span className="text-gray-400 dark:text-gray-500 text-xs font-bold uppercase tracking-widest italic">
+            <span className="text-gray-400 text-xs font-bold uppercase tracking-widest ">
               {new Date().toLocaleDateString("en-GB", {
                 day: "2-digit",
                 month: "short",
@@ -153,7 +151,7 @@ const AdminDashboard: React.FC = () => {
                     stroke="currentColor"
                     strokeWidth="16"
                     fill="none"
-                    className="text-gray-100 dark:text-gray-800"
+                    className="text-gray-100"
                   />
                   <circle
                     cx="96"
@@ -168,14 +166,14 @@ const AdminDashboard: React.FC = () => {
                       502.4 * (Math.min(stats?.completedOrders || 0, 100) / 100)
                     }
                     strokeLinecap="round"
-                    className="text-blue-600 dark:text-blue-500 shadow-[0_0_15px_rgba(37,99,235,0.3)]"
+                    className="text-blue-600 shadow-[0_0_15px_rgba(37,99,235,0.3)]"
                   />
                 </svg>
                 <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <span className="text-3xl font-black text-blue-600 dark:text-blue-400 font-inter italic tracking-tighter">
+                  <span className="text-3xl font-black text-blue-600 font-inter  tracking-tighter">
                     {stats?.completedOrders || 0}
                   </span>
-                  <span className="text-gray-400 dark:text-gray-500 text-[10px] font-bold uppercase tracking-widest italic">
+                  <span className="text-gray-400 text-[10px] font-bold uppercase tracking-widest ">
                     Lifetime Complete
                   </span>
                 </div>
@@ -197,22 +195,22 @@ const AdminDashboard: React.FC = () => {
                 {
                   label: "Canceled Orders",
                   value: `${stats?.canceledOrders || 0} Orders`,
-                  color: "bg-blue-200 dark:bg-blue-900",
+                  color: "bg-blue-200",
                 },
               ].map((stat) => (
                 <div
                   key={stat.label}
-                  className="flex items-center justify-between p-3 rounded-2xl hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-all"
+                  className="flex items-center justify-between p-3 rounded-2xl hover:bg-gray-50 transition-all"
                 >
                   <div className="flex items-center gap-3">
                     <div
                       className={`w-3 h-3 ${stat.color} rounded-full shadow-sm`}
                     ></div>
-                    <span className="text-gray-600 dark:text-gray-400 font-bold text-xs uppercase italic tracking-widest">
+                    <span className="text-gray-600 font-bold text-xs uppercase  tracking-widest">
                       {stat.label}
                     </span>
                   </div>
-                  <span className="font-black text-gray-800 dark:text-gray-100 font-inter italic">
+                  <span className="font-black text-gray-800 font-inter ">
                     {stat.value}
                   </span>
                 </div>
@@ -221,16 +219,16 @@ const AdminDashboard: React.FC = () => {
           </div>
         </div>
 
-        <div className="bg-white dark:bg-gray-900 rounded-[2rem] shadow-xl p-8 border border-transparent dark:border-gray-800 transition-all">
-          <span className="text-gray-400 dark:text-gray-500 text-[10px] font-bold uppercase tracking-widest italic mb-2 block">
+        <div className="bg-white rounded-[2rem] shadow-xl p-8 border border-transparent transition-all">
+          <span className="text-gray-400 text-[10px] font-bold uppercase tracking-widest  mb-2 block">
             Todays Earning (Completed)
           </span>
           <div className="flex items-center justify-between">
-            <h3 className="text-4xl font-black text-gray-800 dark:text-gray-100 font-inter italic tracking-tighter">
+            <h3 className="text-4xl font-black text-gray-800 font-inter  tracking-tighter">
               ₦ {(stats?.todayEarnings || 0).toLocaleString()}
             </h3>
-            <div className="bg-green-100 dark:bg-green-900/30 p-2 rounded-xl">
-              <span className="text-green-600 dark:text-green-400 text-lg font-black">
+            <div className="bg-green-100 p-2 rounded-xl">
+              <span className="text-green-600 text-lg font-black">
                 ↑
               </span>
             </div>
@@ -239,45 +237,45 @@ const AdminDashboard: React.FC = () => {
 
         <div
           onClick={() => setActiveMenu("users")}
-          className="bg-white dark:bg-gray-900 rounded-[2rem] shadow-xl p-8 border border-transparent dark:border-gray-800 transition-all hover:border-green-500 dark:hover:border-green-500/50 group cursor-pointer"
+          className="bg-white rounded-[2rem] shadow-xl p-8 border border-transparent transition-all hover:border-green-500 group cursor-pointer"
         >
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-6">
-              <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-2xl shadow-inner group-hover:rotate-6 transition-transform">
-                <Clock className="text-gray-600 dark:text-gray-400" size={24} />
+              <div className="bg-gray-50 p-4 rounded-2xl shadow-inner group-hover:rotate-6 transition-transform">
+                <Clock className="text-gray-600" size={24} />
               </div>
               <div>
-                <h3 className="text-gray-400 dark:text-gray-500 text-[10px] font-bold uppercase tracking-widest italic mb-1">
+                <h3 className="text-gray-400 text-[10px] font-bold uppercase tracking-widest  mb-1">
                   Pending Approvals (Riders)
                 </h3>
-                <span className="text-4xl font-black text-green-600 dark:text-green-400 font-inter italic tracking-tighter">
+                <span className="text-4xl font-black text-green-600 font-inter  tracking-tighter">
                   {stats?.pendingApprovals || 0}
                 </span>
               </div>
             </div>
-            <button className="text-green-600 dark:text-green-400 hover:translate-x-1 transition-transform">
+            <button className="text-green-600 hover:translate-x-1 transition-transform">
               <CheckCircle size={24} />
             </button>
           </div>
         </div>
 
-        <div className="bg-white dark:bg-gray-900 rounded-[2.5rem] shadow-xl p-8 border border-transparent dark:border-gray-800 transition-all">
+        <div className="bg-white rounded-[2.5rem] shadow-xl p-8 border border-transparent transition-all">
           <div className="flex items-center justify-between mb-8">
-            <h3 className="text-xl font-black text-gray-800 dark:text-gray-100 font-inter italic tracking-tighter uppercase">
+            <h3 className="text-xl font-black text-gray-800 font-inter  tracking-tighter uppercase">
               Order Stat
             </h3>
-            <div className="flex gap-2 bg-gray-50 dark:bg-gray-800/50 p-1.5 rounded-2xl border border-gray-100 dark:border-gray-800">
+            <div className="flex gap-2 bg-gray-50 p-1.5 rounded-2xl border border-gray-100">
               {["D", "W", "M", "Y"].map((t) => (
                 <button
                   key={t}
-                  className={`px-5 py-2 rounded-xl text-xs font-bold uppercase italic tracking-widest transition-all ${t === "M" ? "bg-green-600 dark:bg-green-700 text-white shadow-lg shadow-green-500/20" : "text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"}`}
+                  className={`px-5 py-2 rounded-xl text-xs font-bold uppercase  tracking-widest transition-all ${t === "M" ? "bg-green-600 text-white shadow-lg shadow-green-500/20" : "text-gray-400 hover:text-gray-800"}`}
                 >
                   {t}
                 </button>
               ))}
             </div>
           </div>
-          <div className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em] italic mb-6">
+          <div className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em]  mb-6">
             {new Date().toLocaleString("default", { month: "long" })}{" "}
             {new Date().getFullYear()}
           </div>
@@ -286,7 +284,7 @@ const AdminDashboard: React.FC = () => {
               <CartesianGrid
                 strokeDasharray="3 3"
                 stroke="currentColor"
-                className="text-gray-100 dark:text-gray-800"
+                className="text-gray-100"
                 vertical={false}
               />
               <XAxis
@@ -294,13 +292,13 @@ const AdminDashboard: React.FC = () => {
                 axisLine={false}
                 tickLine={false}
                 tick={{ fill: "currentColor", fontSize: 10, fontWeight: 700 }}
-                className="text-gray-400 dark:text-gray-600"
+                className="text-gray-400"
               />
               <YAxis
                 axisLine={false}
                 tickLine={false}
                 tick={{ fill: "currentColor", fontSize: 10, fontWeight: 700 }}
-                className="text-gray-400 dark:text-gray-600"
+                className="text-gray-400"
               />
               <Tooltip
                 contentStyle={{
@@ -325,25 +323,25 @@ const AdminDashboard: React.FC = () => {
           </ResponsiveContainer>
         </div>
 
-        <div className="bg-white dark:bg-gray-900 rounded-[2.5rem] shadow-xl p-8 border border-transparent dark:border-gray-800 transition-all">
+        <div className="bg-white rounded-[2.5rem] shadow-xl p-8 border border-transparent transition-all">
           <div className="flex items-center gap-2 mb-6">
-            <h3 className="text-xl font-black text-green-600 dark:text-green-400 font-inter italic tracking-tighter uppercase">
+            <h3 className="text-xl font-black text-green-600 font-inter  tracking-tighter uppercase">
               System Users
             </h3>
             <HelpCircle
-              className="text-gray-300 dark:text-gray-700"
+              className="text-gray-300"
               size={16}
             />
           </div>
-          <div className="text-5xl font-black text-gray-800 dark:text-gray-100 font-inter tracking-tighter mb-4 italic">
+          <div className="text-5xl font-black text-gray-800 font-inter tracking-tighter mb-4 ">
             {stats?.userCounts?.total || 0}{" "}
-            <span className="text-sm font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest ml-2">
+            <span className="text-sm font-bold text-gray-400 uppercase tracking-widest ml-2">
               Total
             </span>
           </div>
-          <div className="w-full bg-gray-100 dark:bg-gray-800 rounded-full h-4 overflow-hidden p-1 border border-gray-200 dark:border-gray-700 shadow-inner mb-8">
+          <div className="w-full bg-gray-100 rounded-full h-4 overflow-hidden p-1 border border-gray-200 shadow-inner mb-8">
             <div
-              className="bg-gradient-to-r from-green-500 to-green-600 dark:from-green-600 dark:to-green-700 h-full rounded-full transition-all duration-1000 ease-out shadow-[0_0_15px_rgba(34,197,94,0.3)]"
+              className="bg-gradient-to-r from-green-500 to-green-600 h-full rounded-full transition-all duration-1000 ease-out shadow-[0_0_15px_rgba(34,197,94,0.3)]"
               style={{ width: "100%" }}
             ></div>
           </div>
@@ -367,15 +365,15 @@ const AdminDashboard: React.FC = () => {
             ].map((item) => (
               <div
                 key={item.label}
-                className="flex flex-col gap-1 bg-gray-50 dark:bg-gray-800/50 p-4 rounded-xl border border-gray-100 dark:border-gray-800"
+                className="flex flex-col gap-1 bg-gray-50 p-4 rounded-xl border border-gray-100"
               >
                 <div className="flex items-center gap-2">
                   <div className={`w-3 h-1 ${item.color} rounded-full`}></div>
-                  <span className="text-gray-600 dark:text-gray-400 text-[10px] font-bold uppercase tracking-widest italic">
+                  <span className="text-gray-600 text-[10px] font-bold uppercase tracking-widest ">
                     {item.label}
                   </span>
                 </div>
-                <span className="text-xl font-black text-gray-800 dark:text-gray-100">
+                <span className="text-xl font-black text-gray-800">
                   {item.value}
                 </span>
               </div>
@@ -416,26 +414,26 @@ const AdminDashboard: React.FC = () => {
   };
 
   return (
-    <div className="flex h-screen bg-gray-50 dark:bg-gray-950 transition-colors duration-300 overflow-hidden">
+    <div className="flex h-screen bg-gray-50 transition-colors duration-300 overflow-hidden">
       <div
-        className={`${isOpen ? "w-64" : "w-24"} bg-white dark:bg-gray-900 border-r border-gray-100 dark:border-gray-800 shadow-2xl transition-all duration-500 ease-in-out flex flex-col z-50`}
+        className={`${isOpen ? "w-64" : "w-24"} bg-white border-r border-gray-100 shadow-2xl transition-all duration-500 ease-in-out flex flex-col z-50`}
       >
-        <div className="h-20 flex items-center justify-between px-6 border-b border-gray-50 dark:border-gray-800">
+        <div className="h-20 flex items-center justify-between px-6 border-b border-gray-50">
           {isOpen ? (
             <>
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-green-600 rounded-xl flex items-center justify-center shadow-lg shadow-green-500/30 rotate-3 transition-transform hover:rotate-0">
-                  <span className="text-white font-black text-xl italic tracking-tighter font-inter uppercase">
+                  <span className="text-white font-black text-xl  tracking-tighter font-inter uppercase">
                     M
                   </span>
                 </div>
-                <span className="font-black text-gray-800 dark:text-gray-100 font-inter italic tracking-tighter uppercase whitespace-nowrap">
+                <span className="font-black text-gray-800 font-inter  tracking-tighter uppercase whitespace-nowrap">
                   Dashboard
                 </span>
               </div>
               <button
                 onClick={() => setIsOpen(false)}
-                className="text-gray-400 hover:text-green-600 dark:hover:text-green-400 transition-all p-2 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-xl"
+                className="text-gray-400 hover:text-green-600 transition-all p-2 hover:bg-green-50 rounded-xl"
               >
                 <X size={20} />
               </button>
@@ -443,7 +441,7 @@ const AdminDashboard: React.FC = () => {
           ) : (
             <button
               onClick={() => setIsOpen(true)}
-              className="text-gray-400 hover:text-green-600 dark:hover:text-green-400 transition-all mx-auto p-3 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-xl"
+              className="text-gray-400 hover:text-green-600 transition-all mx-auto p-3 hover:bg-green-50 rounded-xl"
             >
               <Menu size={24} />
             </button>
@@ -455,7 +453,7 @@ const AdminDashboard: React.FC = () => {
             <button
               key={item.id}
               onClick={() => setActiveMenu(item.id)}
-              className={`w-full flex items-center gap-4 px-4 py-4 rounded-2xl transition-all duration-300 group ${activeMenu === item.id ? "bg-green-600 text-white shadow-xl shadow-green-500/30 active:scale-95" : "text-gray-500 dark:text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-green-600 dark:hover:text-green-400"}`}
+              className={`w-full flex items-center gap-4 px-4 py-4 rounded-2xl transition-all duration-300 group ${activeMenu === item.id ? "bg-green-600 text-white shadow-xl shadow-green-500/30 active:scale-95" : "text-gray-500 hover:bg-gray-50 hover:text-green-600"}`}
             >
               <span
                 className={`flex-shrink-0 transition-transform group-hover:scale-110 ${activeMenu === item.id ? "rotate-3" : ""}`}
@@ -463,7 +461,7 @@ const AdminDashboard: React.FC = () => {
                 {item.icon}
               </span>
               {isOpen && (
-                <span className="text-xs font-black uppercase italic tracking-widest whitespace-nowrap overflow-hidden">
+                <span className="text-xs font-black uppercase  tracking-widest whitespace-nowrap overflow-hidden">
                   {item.label}
                 </span>
               )}
@@ -471,16 +469,16 @@ const AdminDashboard: React.FC = () => {
           ))}
         </nav>
 
-        <div className="mt-auto px-3 py-6 border-t border-gray-50 dark:border-gray-800 space-y-4">
+        <div className="mt-auto px-3 py-6 border-t border-gray-50 space-y-4">
           <button
             onClick={toggleTheme}
-            className={`w-full flex items-center gap-4 px-4 py-4 rounded-2xl transition-all duration-300 group hover:bg-gray-50 dark:hover:bg-gray-800 ${theme === "dark" ? "text-amber-400" : "text-indigo-600"}`}
+            className={`w-full flex items-center gap-4 px-4 py-4 rounded-2xl transition-all duration-300 group hover:bg-gray-50 ${theme === "dark" ? "text-amber-400" : "text-indigo-600"}`}
           >
             <span className="flex-shrink-0 transition-transform group-hover:rotate-12">
               {theme === "dark" ? <Sun size={20} /> : <Moon size={20} />}
             </span>
             {isOpen && (
-              <span className="text-xs font-black uppercase italic tracking-widest whitespace-nowrap overflow-hidden text-gray-500 dark:text-gray-400">
+              <span className="text-xs font-black uppercase  tracking-widest whitespace-nowrap overflow-hidden text-gray-500">
                 {theme === "dark" ? "Light Mode" : "Dark Mode"}
               </span>
             )}
@@ -488,15 +486,15 @@ const AdminDashboard: React.FC = () => {
           <div
             className={`flex items-center gap-4 px-4 py-2 transition-all duration-300 ${!isOpen && "justify-center"}`}
           >
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-green-500 to-green-600 flex items-center justify-center text-white font-black italic shadow-lg">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-green-500 to-green-600 flex items-center justify-center text-white font-black  shadow-lg">
               JS
             </div>
             {isOpen && (
               <div className="flex flex-col">
-                <span className="text-xs font-black text-gray-800 dark:text-gray-100 uppercase italic tracking-tighter">
+                <span className="text-xs font-black text-gray-800 uppercase  tracking-tighter">
                   PIckeatpickit 
                 </span>
-                <span className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest italic">
+                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ">
                   Super Admin
                 </span>
               </div>

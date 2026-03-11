@@ -31,7 +31,7 @@ const OnboardingScreen: React.FC = () => {
             Elite Logistics Program
           </div>
           
-          <h1 className="text-5xl md:text-7xl font-black uppercase italic italic tracking-tighter leading-[0.9] mb-8">
+          <h1 className="text-5xl md:text-7xl font-black uppercase   tracking-tighter leading-[0.9] mb-8">
             DRIVE YOUR <br />
             <span className="text-orange-500">DESTINY</span>
           </h1>
@@ -65,7 +65,7 @@ const OnboardingScreen: React.FC = () => {
               <motion.button 
                 whileHover={{ scale: 1.02, y: -2 }}
                 whileTap={{ scale: 0.98 }}
-                className="w-full max-w-md mx-auto bg-white text-black font-black uppercase italic tracking-widest py-6 rounded-2xl shadow-2xl flex items-center justify-center gap-3"
+                className="w-full max-w-md mx-auto bg-white text-black font-black uppercase  tracking-widest py-6 rounded-2xl shadow-2xl flex items-center justify-center gap-3"
               >
                 Register
                 <ArrowRight className="w-5 h-5" />

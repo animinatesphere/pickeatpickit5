@@ -28,7 +28,7 @@ const About: React.FC = () => {
             className="text-center mb-20"
           >
             <img src={logo} alt="PickEAT" className="w-20 h-20 mx-auto mb-8 grayscale opacity-50" />
-            <h1 className="text-5xl md:text-7xl font-black italic uppercase tracking-tighter mb-6">
+            <h1 className="text-5xl md:text-7xl font-black  uppercase tracking-tighter mb-6">
               About <span className="text-green-500">PickEAT</span>
             </h1>
             <p className="text-xl text-gray-400 font-medium leading-relaxed">
