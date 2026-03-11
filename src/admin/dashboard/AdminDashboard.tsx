@@ -13,8 +13,6 @@ import {
   Bell,
   CheckCircle,
   Clock,
-  Sun,
-  Moon,
   Loader2,
 } from "lucide-react";
 import {
@@ -46,7 +44,9 @@ const AdminDashboard: React.FC = () => {
   const [isOpen, setIsOpen] = useState(true);
   const [activeMenu, setActiveMenu] = useState("dashboard");
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [stats, setStats] = useState<any>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [chartData, setChartData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -55,14 +55,18 @@ const AdminDashboard: React.FC = () => {
       try {
         const [data, revRes] = await Promise.all([
           getAdminStats(),
-          getRevenueAnalytics('M')
+          getRevenueAnalytics("M"),
         ]);
         setStats(data);
 
         if (!revRes.error && revRes.data) {
           const grouped: Record<string, number> = {};
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           revRes.data.forEach((o: any) => {
-            const day = new Date(o.created_at).getDate().toString().padStart(2, '0');
+            const day = new Date(o.created_at)
+              .getDate()
+              .toString()
+              .padStart(2, "0");
             grouped[day] = (grouped[day] || 0) + (o.total_amount || 0);
           });
           const formatted = Object.entries(grouped)
@@ -228,9 +232,7 @@ const AdminDashboard: React.FC = () => {
               ₦ {(stats?.todayEarnings || 0).toLocaleString()}
             </h3>
             <div className="bg-green-100 p-2 rounded-xl">
-              <span className="text-green-600 text-lg font-black">
-                ↑
-              </span>
+              <span className="text-green-600 text-lg font-black">↑</span>
             </div>
           </div>
         </div>
@@ -328,10 +330,7 @@ const AdminDashboard: React.FC = () => {
             <h3 className="text-xl font-black text-green-600 font-inter  tracking-tighter uppercase">
               System Users
             </h3>
-            <HelpCircle
-              className="text-gray-300"
-              size={16}
-            />
+            <HelpCircle className="text-gray-300" size={16} />
           </div>
           <div className="text-5xl font-black text-gray-800 font-inter tracking-tighter mb-4 ">
             {stats?.userCounts?.total || 0}{" "}
@@ -471,16 +470,11 @@ const AdminDashboard: React.FC = () => {
 
         <div className="mt-auto px-3 py-6 border-t border-gray-50 space-y-4">
           <button
-            onClick={toggleTheme}
-            className={`w-full flex items-center gap-4 px-4 py-4 rounded-2xl transition-all duration-300 group hover:bg-gray-50 ${theme === "dark" ? "text-amber-400" : "text-indigo-600"}`}
+            className={`w-full flex items-center gap-4 px-4 py-4 rounded-2xl transition-all duration-300 group hover:bg-gray-50 `}
           >
-            <span className="flex-shrink-0 transition-transform group-hover:rotate-12">
-              {theme === "dark" ? <Sun size={20} /> : <Moon size={20} />}
-            </span>
+            <span className="flex-shrink-0 transition-transform group-hover:rotate-12"></span>
             {isOpen && (
-              <span className="text-xs font-black uppercase  tracking-widest whitespace-nowrap overflow-hidden text-gray-500">
-                {theme === "dark" ? "Light Mode" : "Dark Mode"}
-              </span>
+              <span className="text-xs font-black uppercase  tracking-widest whitespace-nowrap overflow-hidden text-gray-500"></span>
             )}
           </button>
           <div
@@ -492,7 +486,7 @@ const AdminDashboard: React.FC = () => {
             {isOpen && (
               <div className="flex flex-col">
                 <span className="text-xs font-black text-gray-800 uppercase  tracking-tighter">
-                  PIckeatpickit 
+                  PIckeatpickit
                 </span>
                 <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ">
                   Super Admin
