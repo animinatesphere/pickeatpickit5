@@ -137,7 +137,7 @@ const Account = () => {
         }
 
         // Fetch vendor profile
-        const { data: profileData, error: profileError } = await supabase
+        const { data: profileData } = await supabase
           .from("vendor_profiles")
           .select("*")
           .eq("vendor_id", vendorData.id)
