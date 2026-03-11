@@ -28,7 +28,7 @@ export const Rider5 = () => {
         {/* welcome text */}
         {/* butt */}
         <div className="flex  justify-center ">
-          <Link to="/welcome6" className="w-full flex justify-center">
+          <Link to="/vendor-signup" className="w-full flex justify-center">
             {" "}
             <button className="text-[10px] sm:text-[12px] md:text-[14px] lg:text-[16px] text-[#E3EAF2] font-sans font-bold max-w-[289px] w-full   bg-[#228B22] max-h-[49px] h-[30px] lg:[49px] rounded-[10px] mt-[5rem] *:hover:bg-[#1e6f1e] cursor-pointer hover:scale-105 hover:shadow-lg transition-all duration-300 mb-[2rem]">
               Next
