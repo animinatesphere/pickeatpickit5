@@ -45,7 +45,9 @@ const Help: React.FC = () => {
               <button className="hover:bg-white/20 p-2 rounded-xl transition-all active:scale-95">
                 <Menu size={24} />
               </button>
-              <h1 className="text-xl font-bold font-inter italic tracking-tighter uppercase">Help & Support</h1>
+              <h1 className="text-xl font-bold font-inter italic tracking-tighter uppercase">
+                Help & Support
+              </h1>
               <button className="hover:bg-white/20 p-2 rounded-xl transition-all relative active:scale-95">
                 <Bell size={24} />
                 <span className="absolute top-2 right-2 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-green-600 dark:border-green-700 animate-pulse"></span>
@@ -56,7 +58,7 @@ const Help: React.FC = () => {
           {/* Content */}
           <div className="p-6 space-y-6">
             {/* Info Banner */}
-            <div className="bg-green-50 dark:bg-green-900/20 border-l-4 border-green-600 dark:border-green-500 p-5 rounded-3xl flex gap-4 items-center animate-slideDown shadow-inner border dark:border-green-800/30">
+            <div className="bg-green-50 dark:bg-green-900/20 border-l-4 border-green-600 dark:border-green-500 p-5 rounded-3xl flex gap-4 items-center animate-slideDown shadow-inner border ">
               <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-xl">
                 <AlertCircle
                   className="text-green-600 dark:text-green-400 flex-shrink-0"
@@ -71,10 +73,16 @@ const Help: React.FC = () => {
             {/* Success Message */}
             {showSuccess && (
               <div className="bg-green-100 dark:bg-green-900/30 border border-green-400 dark:border-green-500 text-green-800 dark:text-green-300 px-6 py-4 rounded-[2rem] animate-slideDown shadow-xl flex items-center gap-4">
-                <div className="w-10 h-10 bg-green-500 text-white rounded-full flex items-center justify-center shadow-lg">✓</div>
+                <div className="w-10 h-10 bg-green-500 text-white rounded-full flex items-center justify-center shadow-lg">
+                  ✓
+                </div>
                 <div>
-                  <p className="font-black font-inter tracking-tighter uppercase italic">Successfully saved!</p>
-                  <p className="text-xs font-bold uppercase tracking-widest opacity-70">Contact information updated.</p>
+                  <p className="font-black font-inter tracking-tighter uppercase italic">
+                    Successfully saved!
+                  </p>
+                  <p className="text-xs font-bold uppercase tracking-widest opacity-70">
+                    Contact information updated.
+                  </p>
                 </div>
               </div>
             )}
@@ -139,8 +147,12 @@ const Help: React.FC = () => {
                                 : "text-gray-700 dark:text-gray-300"
                             }`}
                           >
-                            <span className="text-2xl group-hover:scale-125 transition-transform">{item.flag}</span>
-                            <span className="flex-1 font-bold font-inter tracking-tight">{item.country}</span>
+                            <span className="text-2xl group-hover:scale-125 transition-transform">
+                              {item.flag}
+                            </span>
+                            <span className="flex-1 font-bold font-inter tracking-tight">
+                              {item.country}
+                            </span>
                             <span className="font-mono text-sm font-black text-green-600 dark:text-green-500">
                               {item.code}
                             </span>
@@ -190,7 +202,8 @@ const Help: React.FC = () => {
               className="text-center text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest italic animate-slideUp"
               style={{ animationDelay: "400ms" }}
             >
-              Make sure your contact information is accurate to receive premium support updating
+              Make sure your contact information is accurate to receive premium
+              support updating
             </p>
           </div>
         </div>

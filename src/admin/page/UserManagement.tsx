@@ -70,7 +70,7 @@ const UserManagement = () => {
       }));
       setUsers(formattedData);
     } catch (err) {
-      console.error(err);
+      // Failed to fetch users
     } finally {
       setLoading(false);
     }

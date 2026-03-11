@@ -84,7 +84,7 @@ const Analysis = () => {
         setTopCategory((itemsRes.data[0] as any).category || "General");
       }
     } catch (err) {
-      console.error("Failed to fetch analytics", err);
+      // Failed to fetch analytics
     } finally {
       setLoading(false);
     }
@@ -161,7 +161,9 @@ const Analysis = () => {
         {/* Chart Section */}
         <div className="bg-white dark:bg-gray-900 rounded-[2.5rem] shadow-2xl p-8 border border-transparent dark:border-gray-800 animate-fade-in transition-all">
           <div className="flex items-center justify-between mb-10">
-            <h2 className="text-xl font-black text-gray-800 dark:text-gray-100 font-inter italic tracking-tighter uppercase underline decoration-green-500 decoration-4 underline-offset-8">August 2021</h2>
+            <h2 className="text-xl font-black text-gray-800 dark:text-gray-100 font-inter italic tracking-tighter uppercase underline decoration-green-500 decoration-4 underline-offset-8">
+              {new Date().toLocaleString("default", { month: "long" })} {new Date().getFullYear()}
+            </h2>
             <div className="flex gap-2 bg-gray-50 dark:bg-gray-800/50 rounded-2xl p-1.5 border border-gray-100 dark:border-gray-800">
               {["D", "W", "M", "Y"].map((tab) => (
                 <button

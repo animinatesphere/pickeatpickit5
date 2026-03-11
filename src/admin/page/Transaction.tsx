@@ -45,7 +45,7 @@ const Transaction = () => {
       if (!payoutRes.error) setPayoutRequests(payoutRes.data || []);
       setTotals(totalsRes);
     } catch (err) {
-      console.error("Failed to fetch transaction data", err);
+      // Failed to fetch transaction data
     } finally {
       setLoading(false);
     }
@@ -71,7 +71,7 @@ const Transaction = () => {
         setShowModal(false);
       }
     } catch (err) {
-      console.error("Failed to update payout status", err);
+      // Failed to update payout status
     }
   };
 
@@ -301,7 +301,7 @@ const Transaction = () => {
               </div>
               <div className="mt-8 flex justify-between items-center border-t border-gray-50 dark:border-gray-800 pt-6">
                 <span className="text-gray-400 dark:text-gray-500 text-[10px] font-bold uppercase tracking-widest italic">Pending payouts</span>
-                <span className="text-green-600 dark:text-green-400 font-black font-inter italic">₦ 2,859.87</span>
+                <span className="text-green-600 dark:text-green-400 font-black font-inter italic">₦ {totals.totalPendingPayouts.toLocaleString()}</span>
               </div>
             </div>
           </div>

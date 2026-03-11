@@ -34,7 +34,7 @@ import OrderManagement from "../page/OrderManagent";
 import Restrict from "../page/Restrict";
 import Help from "../page/Help";
 import { useTheme } from "../../context/ThemeContext";
-import { getAdminStats } from "../../services/api";
+import { getAdminStats, getRevenueAnalytics } from "../../services/api";
 
 // Types
 type MenuItem = {
@@ -43,39 +43,37 @@ type MenuItem = {
   icon: React.ReactNode;
 };
 
-const chartData = [
-  { day: "02", value: 45000 },
-  { day: "04", value: 78000 },
-  { day: "06", value: 52000 },
-  { day: "08", value: 95000 },
-  { day: "10", value: 68000 },
-  { day: "12", value: 125000 },
-  { day: "14", value: 88000 },
-  { day: "16", value: 145000 },
-  { day: "18", value: 92000 },
-  { day: "20", value: 168000 },
-  { day: "22", value: 115000 },
-  { day: "24", value: 78000 },
-  { day: "26", value: 198000 },
-  { day: "28", value: 145000 },
-  { day: "30", value: 225000 },
-];
-
 const AdminDashboard: React.FC = () => {
   const [isOpen, setIsOpen] = useState(true);
   const [activeMenu, setActiveMenu] = useState("dashboard");
   const { theme, toggleTheme } = useTheme();
 
   const [stats, setStats] = useState<any>(null);
+  const [chartData, setChartData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function loadStats() {
       try {
-        const data = await getAdminStats();
+        const [data, revRes] = await Promise.all([
+          getAdminStats(),
+          getRevenueAnalytics('M')
+        ]);
         setStats(data);
-      } catch (err) {
-        console.error("Failed to load admin stats", err);
+
+        if (!revRes.error && revRes.data) {
+          const grouped: Record<string, number> = {};
+          revRes.data.forEach((o: any) => {
+            const day = new Date(o.created_at).getDate().toString().padStart(2, '0');
+            grouped[day] = (grouped[day] || 0) + (o.total_amount || 0);
+          });
+          const formatted = Object.entries(grouped)
+            .map(([day, value]) => ({ day, value }))
+            .sort((a, b) => parseInt(a.day) - parseInt(b.day));
+          setChartData(formatted);
+        }
+      } catch {
+        // Failed to load admin stats
       } finally {
         setLoading(false);
       }

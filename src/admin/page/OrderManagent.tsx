@@ -68,12 +68,13 @@ const OrderManagement: React.FC = () => {
           }),
           amount: `₦${(o.total_amount || 0).toLocaleString()}`,
           status: (o.status.charAt(0).toUpperCase() + o.status.slice(1)) as OrderStatus,
-          image: "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=400&h=400&fit=crop" // Placeholder image for now
-        }));
+          image: o.menu_items?.[0]?.image_url || "",
+          delivery_address: o.delivery_address || ""
+        } as any));
         setOrders(formattedOrders);
       }
     } catch (err) {
-      console.error("Failed to fetch orders", err);
+      // Failed to fetch orders
     } finally {
       setLoading(false);
     }
@@ -98,8 +99,8 @@ const OrderManagement: React.FC = () => {
             name: item.menu_items?.name || "Unknown Item",
             price: `₦${(item.price || 0).toLocaleString()}`
           })),
-          serviceCharges: "₦500", // Fixed or calculated
-          deliveryCharges: "₦1,000",
+          serviceCharges: `₦${(data.service_fee || 0).toLocaleString()}`,
+          deliveryCharges: `₦${(data.delivery_fee || 0).toLocaleString()}`,
           promoCode: "None",
           total: `₦${(data.total_amount || 0).toLocaleString()}`,
           deliverTo: data.delivery_address,
@@ -109,14 +110,14 @@ const OrderManagement: React.FC = () => {
         setCurrentScreen("details");
       }
     } catch (err) {
-      console.error("Failed to fetch order details", err);
+      // Failed to fetch order details
     }
   };
 
   const statusOrders: StatusOrder[] = orders.slice(0, 5).map(o => ({
     id: o.id,
     name: o.name,
-    location: "Vila Nova Estate, New Agp Ext.", // Hardcoded as it's not in the summary item
+    location: (o as any).delivery_address || "No address provided",
     time: o.date,
     status: o.status,
     image: o.image,
@@ -235,7 +236,7 @@ const OrderManagement: React.FC = () => {
                   <span className="font-bold text-gray-800 dark:text-gray-100 font-inter italic tracking-tighter uppercase">
                     Order dispute{" "}
                   </span>
-                  <span className="text-green-600 dark:text-green-400 font-black ml-2 animate-pulse">(5)</span>
+                  <span className="text-green-600 dark:text-green-400 font-black ml-2 animate-pulse">({orders.filter(o => o.status === "Cancelled").length})</span>
                 </div>
                 <ChevronRight
                   className="text-green-600 dark:text-green-400 group-hover:translate-x-1 transition-transform"
@@ -253,11 +254,17 @@ const OrderManagement: React.FC = () => {
                   >
                     <div className="flex gap-5">
                       <div className="relative">
-                        <img
-                          src={order.image}
-                          alt={order.name}
-                          className="w-24 h-24 rounded-3xl object-cover shadow-2xl"
-                        />
+                        {order.image ? (
+                          <img
+                            src={order.image}
+                            alt={order.name}
+                            className="w-24 h-24 rounded-3xl object-cover shadow-2xl"
+                          />
+                        ) : (
+                          <div className="w-24 h-24 rounded-3xl bg-green-50 dark:bg-green-900/20 flex items-center justify-center shadow-2xl">
+                            <span className="text-3xl">🍽️</span>
+                          </div>
+                        )}
                         <div className={`absolute -bottom-2 -right-2 w-8 h-8 ${getStatusBgColor(order.status)} rounded-full border-4 border-white dark:border-gray-900 shadow-lg flex items-center justify-center`}>
                           <span className="text-white text-[10px] font-black">!</span>
                         </div>
@@ -330,11 +337,9 @@ const OrderManagement: React.FC = () => {
               {/* Main Item Card */}
               <div className="bg-white dark:bg-gray-900 rounded-[2.5rem] shadow-2xl p-6 transform hover:scale-[1.01] transition-all border border-transparent dark:border-gray-800">
                 <div className="flex gap-6 items-center">
-                  <img
-                    src="https://images.unsplash.com/photo-1603133872878-684f208fb84b?w=400&h=400&fit=crop"
-                    alt={selectedOrder.title}
-                    className="w-32 h-32 rounded-[2rem] object-cover shadow-2xl rotate-3"
-                  />
+                  <div className="w-32 h-32 rounded-[2rem] bg-green-50 dark:bg-green-900/20 flex items-center justify-center shadow-2xl rotate-3">
+                    <span className="text-4xl">🍽️</span>
+                  </div>
                   <div className="flex-1">
                     <div className="flex justify-between items-start">
                       <div>

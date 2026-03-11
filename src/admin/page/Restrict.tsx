@@ -72,7 +72,7 @@ const Restrict: React.FC = () => {
         setUsers(uRes.data.map(u => ({
           id: u.user_id,
           name: `${u.firstname} ${u.lastname}`,
-          avatar: u.avatar_url || "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&h=150&fit=crop",
+          avatar: u.avatar_url || "",
           orders: 0, // In a real app, we'd fetch this too
           pages: [...defaultUserPages]
         })));
@@ -82,7 +82,7 @@ const Restrict: React.FC = () => {
         setVendors(vRes.data.map(v => ({
           id: v.id,
           name: v.business_name || "Unknown Vendor",
-          avatar: v.avatar_url || "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&h=150&fit=crop",
+          avatar: v.avatar_url || "",
           orders: 0,
           pages: [...defaultVendorPages]
         })));
@@ -92,13 +92,13 @@ const Restrict: React.FC = () => {
         setRiders(rRes.data.map(r => ({
           id: r.id,
           name: `${r.firstname} ${r.lastname}`,
-          avatar: r.avatar_url || "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop",
+          avatar: r.avatar_url || "",
           orders: 0,
           pages: [...defaultRiderPages]
         })));
       }
     } catch (err) {
-      console.error("Restriction fetch error:", err);
+      // Failed to fetch restriction data
     } finally {
       setLoading(false);
     }
@@ -319,7 +319,7 @@ const Restrict: React.FC = () => {
                   <h1 className="text-xl font-bold">{getScreenTitle()}</h1>
                 </div>
                 <span className="text-white/90 font-semibold text-lg">
-                  64,098
+                  {filteredList.length.toLocaleString()}
                 </span>
               </div>
             </div>
@@ -350,11 +350,17 @@ const Restrict: React.FC = () => {
                   className="w-full flex items-center gap-4 p-4 bg-white border-b border-gray-200 hover:bg-gray-50 hover:shadow-md transition-all animate-slideUp rounded-lg group"
                   style={{ animationDelay: `${index * 50}ms` }}
                 >
-                  <img
-                    src={item.avatar}
-                    alt={item.name}
-                    className="w-12 h-12 rounded-full object-cover shadow-md"
-                  />
+                  {item.avatar ? (
+                    <img
+                      src={item.avatar}
+                      alt={item.name}
+                      className="w-12 h-12 rounded-full object-cover shadow-md"
+                    />
+                  ) : (
+                    <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center shadow-md text-green-600 font-bold text-lg">
+                      {item.name.charAt(0)}
+                    </div>
+                  )}
                   <div className="flex-1 text-left">
                     <h3 className="font-semibold text-gray-800">{item.name}</h3>
                     <p className="text-sm text-gray-500">
@@ -393,11 +399,17 @@ const Restrict: React.FC = () => {
             {getSelectedUser() && (
               <div className="p-6 pb-4 bg-white border-b border-gray-200">
                 <div className="flex items-center gap-4">
-                  <img
-                    src={getSelectedUser()!.avatar}
-                    alt={getSelectedUser()!.name}
-                    className="w-16 h-16 rounded-full object-cover shadow-lg"
-                  />
+                  {getSelectedUser()!.avatar ? (
+                    <img
+                      src={getSelectedUser()!.avatar}
+                      alt={getSelectedUser()!.name}
+                      className="w-16 h-16 rounded-full object-cover shadow-lg"
+                    />
+                  ) : (
+                    <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center shadow-lg text-green-600 font-bold text-2xl">
+                      {getSelectedUser()!.name.charAt(0)}
+                    </div>
+                  )}
                   <div>
                     <h2 className="text-lg font-bold text-gray-800">
                       {getSelectedUser()!.name}
