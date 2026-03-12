@@ -163,7 +163,7 @@ function StepOTP({ formData, onChange, onNext, onBack, isLoading, setIsLoading, 
   const handleVerify = async () => {
     setIsLoading(true);
     try {
-      const { user } = await authService.verifyEmailOTP(formData.email, formData.emailOTP);
+      const { user } = await authService.verifyEmailOTP(formData.email, formData.emailOTP, formData.password);
       if (user) {
         const id = await authService.createInitialRiderProfile(user.id, formData.email);
         setRiderId(id);

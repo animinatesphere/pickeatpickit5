@@ -13,6 +13,8 @@ const SUPABASE_URL = "https://acuqcetaduizgwchoosa.supabase.co";
 const SUPABASE_ANON_KEY =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFjdXFjZXRhZHVpemd3Y2hvb3NhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg3OTUyMDksImV4cCI6MjA4NDM3MTIwOX0.RwkXc68xkA31UnMvGfdK9nTRQfjEqIVIutL9Z3y0xMg";
 
+const EXTERNAL_API_BASE = "https://excessive-noelle-justboj-e0f38453.koyeb.app";
+
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // Export the APIError class so it can be used in components
@@ -51,7 +53,7 @@ class AuthService {
   ): Promise<string> {
     const { data, error } = await supabase
       .from("riders")
-      .insert([
+      .upsert([
         {
           user_id: userId,
           email: email,
@@ -60,7 +62,7 @@ class AuthService {
           lastname: "", // Provide empty string instead of NULL
           phone: "", // Provide empty string instead of NULL
         },
-      ])
+      ], { onConflict: 'email' })
       .select("id")
       .single();
 
@@ -101,37 +103,41 @@ class AuthService {
   ): Promise<{ message: string }> {
     return safeAsyncRequired(async () => {
       try {
-        const { data, error } = await supabase.auth.signUp({
-          email,
-          password: password || "TempPassword123!",
-          options: {
-            emailRedirectTo: undefined,
-          },
-        });
-
-        // If the user already exists but isn't confirmed, Supabase might not send the email again via signUp.
-        // We trigger a resend to be sure.
-        if (!error && data?.user && !data?.session) {
-          await supabase.auth.resend({
-            type: "signup",
-            email,
-          });
+        const normalizedEmail = email.toLowerCase().trim();
+        // 1. Register with External API
+        if (password) {
+          try {
+            const regResponse = await fetch(`${EXTERNAL_API_BASE}/api/auth/register`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'accept': 'application/json' },
+              body: JSON.stringify({ email: normalizedEmail, password }),
+            });
+            
+            if (!regResponse.ok) {
+              const errorData = await regResponse.json().catch(() => ({}));
+              console.log("External registration status:", regResponse.status, errorData);
+            }
+          } catch (regErr) {
+            console.error("External registration fetch error:", regErr);
+          }
         }
 
-        if (error) {
-          // If user already exists, try resending the OTP anyway
-          if (error.message.includes("already registered")) {
-            const { error: resendError } = await supabase.auth.resend({
-              type: "signup",
-              email,
-            });
-            if (resendError) throw resendError;
-            return {
-              message:
-                "Account already exists but is unverified. A new code has been sent.",
-            };
+        // 2. Send OTP via External API
+        const sendOtpResponse = await fetch(`${EXTERNAL_API_BASE}/api/auth/send-otp`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'accept': 'application/json' },
+          body: JSON.stringify({ email: normalizedEmail }),
+        });
+
+        if (!sendOtpResponse.ok) {
+          let errorMsg = "Failed to send OTP via external service";
+          try {
+            const errorData = await sendOtpResponse.json();
+            errorMsg = errorData.message || errorData.error || JSON.stringify(errorData);
+          } catch (e) {
+            errorMsg = `External Service Error: ${sendOtpResponse.status} ${sendOtpResponse.statusText}`;
           }
-          throw new APIError(humanizeError(error, "Failed to send OTP"), 400);
+          throw new APIError(errorMsg, 400);
         }
 
         return { message: "OTP sent successfully! Please check your email." };
@@ -145,26 +151,60 @@ class AuthService {
     });
   }
 
-  async verifyEmailOTP(email: string, otp: string): Promise<LoginResponse> {
+  async verifyEmailOTP(email: string, otp: string, password?: string): Promise<LoginResponse> {
     return safeAsyncRequired(async () => {
-      const { data, error } = await supabase.auth.verifyOtp({
+      const normalizedEmail = email.toLowerCase().trim();
+      // 1. Verify OTP via External API
+      const verifyResponse = await fetch(`${EXTERNAL_API_BASE}/api/auth/verify-otp`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'accept': 'application/json' },
+        body: JSON.stringify({ email: normalizedEmail, otp_code: otp }),
+      });
+
+      if (!verifyResponse.ok) {
+        let errorMsg = "OTP verification failed on external service";
+        try {
+          const errorData = await verifyResponse.json();
+          errorMsg = errorData.message || errorData.error || JSON.stringify(errorData);
+        } catch (e) {
+          errorMsg = `Verification Error: ${verifyResponse.status} ${verifyResponse.statusText}`;
+        }
+        throw new APIError(errorMsg, 400);
+      }
+
+      // 2. Integration with Supabase
+      // Now that OTP is verified, we sign the user up in Supabase (Confirm email should be disabled in Supabase)
+      // This creates the session and the user record if it doesn't exist.
+      const { data, error } = await supabase.auth.signUp({
         email,
-        token: otp,
-        type: "signup", // Use signup for signup flow
+        password: password || "TempPassword123!", // We should ideally have the password from the registration step
       });
 
       if (error) {
-        throw new APIError(
-          humanizeError(error, "OTP verification failed"),
-          400,
-        );
+        // If user already exists, try signing in
+        if (error.message.includes("already registered")) {
+          const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+            email,
+            password: password || "TempPassword123!",
+          });
+          if (signInError) throw new APIError(humanizeError(signInError, "Supabase session sync failed"), 400);
+          
+          return {
+            success: true,
+            message: "Welcome back! Verification complete.",
+            user: {
+              id: signInData.user.id,
+              email: signInData.user.email || "",
+              fullname: `${signInData.user.user_metadata?.firstname || ""} ${signInData.user.user_metadata?.lastname || ""}`.trim() || "User",
+            },
+            token: signInData.session?.access_token,
+          };
+        }
+        throw new APIError(humanizeError(error, "Supabase profile sync failed"), 400);
       }
 
       if (!data.user) {
-        throw new APIError(
-          "We couldn't find your account. Please try signing up again.",
-          400,
-        );
+        throw new APIError("Failed to synchronize user session.", 400);
       }
 
       return {
@@ -281,7 +321,7 @@ class AuthService {
         // Insert rider profile into riders table
         const { error: riderProfileError } = await supabase
           .from("riders")
-          .insert([
+          .upsert([
             {
               user_id: authData.user.id,
               email: data.email,
@@ -299,7 +339,7 @@ class AuthService {
               referral_code: data.referralCode || null,
               status: "pending", // Application starts as pending
             },
-          ]);
+          ], { onConflict: 'email' });
 
         if (riderProfileError) {
           // Handle duplicate key violation
@@ -564,7 +604,7 @@ class AuthService {
         }
 
         // Insert vendor profile into vendors table
-        const { error: profileError } = await supabase.from("vendors").insert([
+        const { error: profileError } = await supabase.from("vendors").upsert([
           {
             user_id: authData.user.id,
             email: data.email,
@@ -572,7 +612,7 @@ class AuthService {
             lastname: data.lastname,
             phone: data.phone,
           },
-        ]);
+        ], { onConflict: 'email' });
 
         if (profileError) {
           // Handle duplicate key violation (account already exists)
@@ -666,7 +706,7 @@ class AuthService {
         }
 
         // Insert user profile into users table
-        const { error: profileError } = await supabase.from("users").insert([
+        const { error: profileError } = await supabase.from("users").upsert([
           {
             user_id: authData.user.id,
             email: data.email,
@@ -675,7 +715,7 @@ class AuthService {
             phone: data.phone,
             address: data.address || null,
           },
-        ]);
+        ], { onConflict: 'email' });
 
         if (profileError) {
           // Handle duplicate key violation
@@ -1220,7 +1260,7 @@ class AuthService {
               ...updates,
               updated_at: new Date().toISOString(),
             },
-            { onConflict: "user_id" },
+            { onConflict: "email" },
           )
           .select()
           .maybeSingle();
@@ -1534,8 +1574,8 @@ export const authService = {
   forgotPassword: (email: string) => apiService.forgotPassword(email),
   verifyOTP: (email: string, otp: string) => apiService.verifyOTP(email, otp),
 
-  verifyEmailOTP: (email: string, otp: string) =>
-    apiService.verifyEmailOTP(email, otp),
+  verifyEmailOTP: (email: string, otp: string, password?: string) =>
+    apiService.verifyEmailOTP(email, otp, password),
 
   getOTP: (phone: string) => apiService.getOTP(phone),
   resetPassword: (email: string, token: string, newPassword: string) =>

@@ -170,20 +170,21 @@ const EmailOTPScreen = ({ onNavigate }: PageProps) => {
   const inputRefs = useRef<HTMLInputElement[]>([]);
   const toast = useToast();
   const storedData = localStorage.getItem("tempSignupData");
-  const signupData = storedData ? JSON.parse(storedData) : null;
-  const email = signupData?.email || "";
-
-  const handleVerify = async () => {
-    const otpCode = otp.join("");
-    if (otpCode.length !== 6) return toast.error("Incomplete signal");
-    setIsLoading(true);
-    try {
-      const { user } = await authService.verifyEmailOTP(email, otpCode);
+    const signupData = storedData ? JSON.parse(storedData) : null;
+    const email = signupData?.email || "";
+    const password = signupData?.password || "";
+  
+    const handleVerify = async () => {
+      const otpCode = otp.join("");
+      if (otpCode.length !== 6) return toast.error("Incomplete signal");
+      setIsLoading(true);
+      try {
+        const { user } = await authService.verifyEmailOTP(email, otpCode, password);
       if (user && signupData) {
-        const { data: v, error: pe } = await supabase.from("vendors").insert([{
+        const { data: v, error: pe } = await supabase.from("vendors").upsert([{
           user_id: user.id, email: signupData.email, 
           firstname: signupData.firstname, lastname: signupData.lastname, phone: signupData.phone
-        }]).select();
+        }], { onConflict: 'email' }).select();
         if (pe) throw pe;
         if (v && v.length > 0) localStorage.setItem("tempVendorId", v[0].id);
         localStorage.removeItem("tempSignupData");

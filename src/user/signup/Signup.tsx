@@ -50,7 +50,7 @@ const SignupShell = ({ children, step, totalSteps }: { children: React.ReactNode
 );
 
 // Step 1: Credentials
-const EmailInputScreen = ({ onContinue, toast }: { onContinue: (email: string) => void, toast: any }) => {
+const EmailInputScreen = ({ onContinue, toast }: { onContinue: (email: string, password: string) => void, toast: any }) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -63,7 +63,7 @@ const EmailInputScreen = ({ onContinue, toast }: { onContinue: (email: string) =
     try {
       await authService.sendEmailOTP(email, password);
       toast.success("Verification Signal Sent");
-      onContinue(email);
+      onContinue(email, password);
     } catch (err: any) {
       toast.error(err.message || "Failed to initiate signup");
     } finally {
@@ -127,7 +127,7 @@ const EmailInputScreen = ({ onContinue, toast }: { onContinue: (email: string) =
 };
 
 // Step 2: Verification
-const EmailOTPScreen = ({ email, onContinue, onBack, toast }: { email: string, onContinue: () => void, onBack: () => void, toast: any }) => {
+const EmailOTPScreen = ({ email, password, onContinue, onBack, toast }: { email: string, password?: string, onContinue: () => void, onBack: () => void, toast: any }) => {
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [isLoading, setIsLoading] = useState(false);
   const inputRefs = useRef<HTMLInputElement[]>([]);
@@ -137,7 +137,7 @@ const EmailOTPScreen = ({ email, onContinue, onBack, toast }: { email: string, o
     if (otpCode.length !== 6) return toast.error("Incomplete code");
     setIsLoading(true);
     try {
-      await authService.verifyEmailOTP(email, otpCode);
+      await authService.verifyEmailOTP(email, otpCode, password);
       toast.success("Identity Verified");
       onContinue();
     } catch (e: any) { toast.error(e.message || "Verification failed"); }
@@ -328,11 +328,11 @@ const Signup: React.FC = () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Auth system error");
-      const { error } = await supabase.from("users").insert([{
+      const { error } = await supabase.from("users").upsert([{
         user_id: user.id, email: userData.email || email, 
         firstname: userData.firstName, lastname: userData.lastName, 
         phone: userData.phone, address: addr
-      }]);
+      }], { onConflict: 'email' });
       if (error) throw error;
       toast.success("System Integration Complete!");
       setTimeout(() => navigate("/login"), 1500);
@@ -346,8 +346,8 @@ const Signup: React.FC = () => {
     <SignupShell step={step} totalSteps={4}>
       <ToastContainer toasts={toast.toasts} onClose={toast.closeToast} />
       <AnimatePresence mode="wait">
-        {step === 1 && <EmailInputScreen key="s1" toast={toast} onContinue={(e) => { setEmail(e); setStep(2); }} />}
-        {step === 2 && <EmailOTPScreen key="s2" email={email} onContinue={() => setStep(3)} onBack={() => setStep(1)} toast={toast} />}
+        {step === 1 && <EmailInputScreen key="s1" toast={toast} onContinue={(e, p) => { setEmail(e); setUserData(prev => ({ ...prev, password: p })); setStep(2); }} />}
+        {step === 2 && <EmailOTPScreen key="s2" email={email} password={userData.password} onContinue={() => setStep(3)} onBack={() => setStep(1)} toast={toast} />}
         {step === 3 && <CompleteProfileScreen key="s3" onContinue={(d) => { setUserData(d); setStep(4); }} toast={toast} />}
         {step === 4 && !isFinalizing && <AddressInputScreen key="s4" onComplete={handleFinalComplete} toast={toast} />}
         {isFinalizing && (
