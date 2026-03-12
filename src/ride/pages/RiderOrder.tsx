@@ -335,7 +335,7 @@ const RiderOrder = () => {
               <div className="bg-white rounded-[2rem] p-6 shadow-xl border-l-[6px] border-green-500">
                 <div className="flex items-center gap-3 mb-4">
                   <div className="p-3 bg-green-50 rounded-2xl"><MapPin className="w-5 h-5 text-green-600" /></div>
-                  <h3 className="font-black  uppercase tracking-widest text-green-600 text-xs">Origin Node</h3>
+                  <h3 className="font-black  uppercase tracking-widest text-green-600 text-xs">Vendor Details</h3>
                 </div>
                 <p className="font-black text-gray-800  uppercase tracking-tighter">{selectedOrder.vendor_profiles?.business_name}</p>
                 <p className="text-xs text-gray-400 font-bold mt-1 uppercase leading-relaxed">{selectedOrder.vendor_profiles?.business_address}</p>
@@ -355,7 +355,7 @@ const RiderOrder = () => {
               <div className="bg-white rounded-[2rem] p-6 shadow-xl border-l-[6px] border-blue-500">
                 <div className="flex items-center gap-3 mb-4">
                   <div className="p-3 bg-blue-50 rounded-2xl"><MapPin className="w-5 h-5 text-blue-600" /></div>
-                  <h3 className="font-black  uppercase tracking-widest text-blue-600 text-xs">Target Destination</h3>
+                  <h3 className="font-black  uppercase tracking-widest text-blue-600 text-xs">Customer Address</h3>
                 </div>
                 <p className="text-sm text-gray-700 font-bold uppercase leading-relaxed">{selectedOrder.delivery_address}</p>
               </div>
@@ -367,7 +367,7 @@ const RiderOrder = () => {
                 {selectedOrder.customer_name?.charAt(0) || "U"}
               </div>
               <div className="flex-1">
-                <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-1 ">Target Contact</p>
+                <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-1 ">Customer Contact</p>
                 <h3 className="font-black text-gray-800 text-2xl  tracking-tighter uppercase">{selectedOrder.customer_name || "Unknown User"}</h3>
                 <div className="mt-2 text-green-600 flex items-center gap-3">
                   <button 
@@ -389,7 +389,7 @@ const RiderOrder = () => {
               
               <div className="flex items-center justify-between mb-10">
                 <div>
-                  <h3 className="text-2xl font-black  tracking-tighter uppercase text-gray-800">Deployment Manifest</h3>
+                  <h3 className="text-2xl font-black  tracking-tighter uppercase text-gray-800">Delivery Manifest</h3>
                   <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em] ">REF ID: {selectedOrder.id.slice(0, 12)}</p>
                 </div>
                 <span className="text-[10px] font-black bg-gray-100 px-4 py-2 rounded-full uppercase tracking-widest  text-gray-500">Verified Protocol</span>
