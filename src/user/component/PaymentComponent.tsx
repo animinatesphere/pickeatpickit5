@@ -36,6 +36,13 @@ const PaymentComponent: React.FC = () => {
     "online",
   );
   const [userEmail, setUserEmail] = useState("");
+  const [promoCode, setPromoCode] = useState("");
+  const [discountInfo, setDiscountInfo] = useState<{
+    code: string;
+    type: "percentage" | "fixed";
+    value: number;
+  } | null>(null);
+  const [isValidatingPromo, setIsValidatingPromo] = useState(false);
 
   useEffect(() => {
     const pendingOrder = sessionStorage.getItem("pendingOrder");
@@ -69,17 +76,77 @@ const PaymentComponent: React.FC = () => {
     getUserEmail();
   }, [navigate, toast]);
 
-  const calculateTotal = () => {
-    if (!orderData) return { subtotal: 0, delivery: 5, total: 5 };
+  const calculateTotal = (): {
+    subtotal: number;
+    delivery: number;
+    discount: number;
+    total: number;
+  } => {
+    if (!orderData) return { subtotal: 0, delivery: 5, discount: 0, total: 5 };
 
     const subtotal = orderData.items.reduce(
       (sum, item) => sum + item.price * item.quantity,
       0,
     );
     const delivery = 5.0;
-    const total = subtotal + delivery;
 
-    return { subtotal, delivery, total };
+    let discount = 0;
+    if (discountInfo) {
+      if (discountInfo.type === "percentage") {
+        discount = (subtotal * discountInfo.value) / 100;
+      } else {
+        discount = discountInfo.value;
+      }
+    }
+
+    const total = Math.max(0, subtotal + delivery - discount);
+
+    return { subtotal, delivery, discount, total };
+  };
+
+  const handleApplyPromoCode = async () => {
+    if (!promoCode.trim()) return;
+
+    setIsValidatingPromo(true);
+    try {
+      const { data, error } = await supabase
+        .from("promo_codes")
+        .select("*")
+        .eq("code", promoCode.toUpperCase())
+        .eq("active", true)
+        .single();
+
+      if (error || !data) {
+        toast.error("Invalid or inactive promo code", "Invalid Code");
+        setDiscountInfo(null);
+        return;
+      }
+
+      // Check expiry
+      if (new Date(data.expiry_date) < new Date()) {
+        toast.error("This promo code has expired", "Expired Code");
+        setDiscountInfo(null);
+        return;
+      }
+
+      // Check usage limit
+      if (data.usage_limit && data.usage_count >= data.usage_limit) {
+        toast.error("This promo code has reached its usage limit", "Limit Reached");
+        setDiscountInfo(null);
+        return;
+      }
+
+      setDiscountInfo({
+        code: data.code,
+        type: data.discount_type,
+        value: data.discount_value,
+      });
+      toast.success(`${data.code} applied successfully!`, "Promo Applied");
+    } catch (err) {
+      toast.error("Something went wrong validating promo code", "Error");
+    } finally {
+      setIsValidatingPromo(false);
+    }
   };
 
   // FIXED handlePayment function
@@ -87,8 +154,7 @@ const PaymentComponent: React.FC = () => {
 
   // FINAL CORRECTED handlePayment function
   // Replace your current handlePayment function with this:
-  const totals = calculateTotal();
-  const total = totals.total;
+  const { subtotal, delivery, discount, total } = calculateTotal();
 
   const config = {
     reference: new Date().getTime().toString(),
@@ -374,7 +440,7 @@ const PaymentComponent: React.FC = () => {
     );
   }
 
-  const { subtotal, delivery } = totals;
+  // totals is already destructured at the component level
 
   return (
     <div className="min-h-screen bg-white transition-colors duration-300">
@@ -454,6 +520,50 @@ const PaymentComponent: React.FC = () => {
           </div>
         </div>
 
+        {/* Promo Code */}
+        <div className="bg-white rounded-2xl p-6 mb-4 shadow-lg border border-transparent">
+          <div className="flex items-center gap-2 mb-4">
+            <span className="text-xl">🏷️</span>
+            <h2 className="font-bold text-gray-900 text-lg font-inter uppercase tracking-tighter">
+              Promo Code
+            </h2>
+          </div>
+          <div className="flex gap-2">
+            <input
+              type="text"
+              placeholder="Enter promo code"
+              value={promoCode}
+              onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
+              disabled={!!discountInfo || isValidatingPromo}
+              className="flex-1 px-4 py-3 bg-white border-2 border-gray-200 rounded-xl text-gray-900 focus:outline-none focus:border-green-500 transition-all font-inter uppercase"
+            />
+            {discountInfo ? (
+              <button
+                onClick={() => {
+                  setDiscountInfo(null);
+                  setPromoCode("");
+                }}
+                className="px-6 py-3 bg-red-50 text-red-600 font-bold rounded-xl hover:bg-red-100 transition-all"
+              >
+                Remove
+              </button>
+            ) : (
+              <button
+                onClick={handleApplyPromoCode}
+                disabled={!promoCode.trim() || isValidatingPromo}
+                className="px-6 py-3 bg-green-600 text-white font-bold rounded-xl hover:bg-green-700 disabled:opacity-50 transition-all"
+              >
+                {isValidatingPromo ? "..." : "Apply"}
+              </button>
+            )}
+          </div>
+          {discountInfo && (
+            <p className="text-sm text-green-600 mt-2 font-medium">
+              ✓ Promo code {discountInfo.code} applied!
+            </p>
+          )}
+        </div>
+
         {/* Order Summary */}
         <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-2xl p-6 mb-4 shadow-lg border-2 border-green-100">
           <h2 className="font-bold text-gray-900 text-lg mb-4 font-inter  uppercase tracking-tighter">
@@ -464,15 +574,23 @@ const PaymentComponent: React.FC = () => {
               <span>Subtotal</span>
               <span className="font-semibold">
                 {" "}
-                ₦{subtotal.toFixed(2).toLocaleString()}
+                ₦{subtotal.toLocaleString()}
               </span>
             </div>
             <div className="flex justify-between text-gray-700">
               <span>Delivery Fee</span>
               <span className="font-semibold">
-                ₦{delivery.toFixed(2).toLocaleString()}
+                ₦{delivery.toLocaleString()}
               </span>
             </div>
+            {discount > 0 && (
+              <div className="flex justify-between text-green-600">
+                <span>Discount ({discountInfo?.code})</span>
+                <span className="font-semibold">
+                  -₦{discount.toLocaleString()}
+                </span>
+              </div>
+            )}
             {orderData.spiceLevel && (
               <div className="flex justify-between text-gray-600 text-sm pt-2 border-t font-medium">
                 <span>Spice Level</span>
@@ -500,7 +618,7 @@ const PaymentComponent: React.FC = () => {
                 Total Amount
               </span>
               <span className="text-green-600">
-                ₦{total.toFixed(2).toLocaleString()}
+                ₦{total.toLocaleString()}
               </span>
             </div>
           </div>
@@ -586,7 +704,7 @@ const PaymentComponent: React.FC = () => {
               Processing...
             </span>
           ) : (
-            `Place Order - $${total.toFixed(2)}`
+            `Place Order - ₦${total.toLocaleString()}`
           )}
         </button>
 
