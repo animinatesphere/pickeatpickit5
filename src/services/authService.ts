@@ -1,5 +1,6 @@
 // src/services/authService.ts
 import { createClient } from "@supabase/supabase-js";
+import api from "./api";
 import type {
   RegisterRequest,
   RegisterResponse,
@@ -13,7 +14,8 @@ const SUPABASE_URL = "https://acuqcetaduizgwchoosa.supabase.co";
 const SUPABASE_ANON_KEY =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFjdXFjZXRhZHVpemd3Y2hvb3NhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg3OTUyMDksImV4cCI6MjA4NDM3MTIwOX0.RwkXc68xkA31UnMvGfdK9nTRQfjEqIVIutL9Z3y0xMg";
 
-const EXTERNAL_API_BASE = "https://excessive-noelle-justboj-e0f38453.koyeb.app";
+// const EXTERNAL_API_BASE = "https://excessive-noelle-justboj-e0f38453.koyeb.app";
+ const EXTERNAL_API_BASE = "http://localhost:8000";
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
@@ -45,6 +47,28 @@ const safeAsyncRequired = async <T>(
 };
 
 class AuthService {
+  async registerVendor(vendorData: any): Promise<any> {
+    console.log("Attempting to register vendor with data:", vendorData);
+
+    return safeAsyncRequired(async () => {
+      try {
+        const response = await api.post('/vendors/', vendorData);
+        console.log("Vendor registration successful:", response.data);
+        return response.data;
+      } catch (error: any) {
+        console.error("Vendor registration failed:", error);
+        console.error("Error details:", error.response?.data);
+        console.error("Error status:", error.response?.status);
+        console.error("Error message:", error.message);
+        
+        throw new APIError(
+          error.response?.data?.detail || "Failed to register vendor. Please check if the backend server is running.",
+          error.response?.status || 400,
+        );
+      }
+    });
+  }
+
   // src/services/authService.ts
 
   async createInitialRiderProfile(
@@ -107,38 +131,14 @@ class AuthService {
         // 1. Register with External API
         if (password) {
           try {
-            const regResponse = await fetch(`${EXTERNAL_API_BASE}/api/auth/register`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json', 'accept': 'application/json' },
-              body: JSON.stringify({ email: normalizedEmail, password }),
-            });
-            
-            if (!regResponse.ok) {
-              const errorData = await regResponse.json().catch(() => ({}));
-              console.log("External registration status:", regResponse.status, errorData);
-            }
+            await api.post('/auth/register', { email: normalizedEmail, password });
           } catch (regErr) {
-            console.error("External registration fetch error:", regErr);
+            console.error("External registration error:", regErr);
           }
         }
 
         // 2. Send OTP via External API
-        const sendOtpResponse = await fetch(`${EXTERNAL_API_BASE}/api/auth/send-otp`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'accept': 'application/json' },
-          body: JSON.stringify({ email: normalizedEmail }),
-        });
-
-        if (!sendOtpResponse.ok) {
-          let errorMsg = "Failed to send OTP via external service";
-          try {
-            const errorData = await sendOtpResponse.json();
-            errorMsg = errorData.message || errorData.error || JSON.stringify(errorData);
-          } catch (e) {
-            errorMsg = `External Service Error: ${sendOtpResponse.status} ${sendOtpResponse.statusText}`;
-          }
-          throw new APIError(errorMsg, 400);
-        }
+        await api.post('/auth/send-otp', { email: normalizedEmail });
 
         return { message: "OTP sent successfully! Please check your email." };
       } catch (error) {
@@ -155,21 +155,10 @@ class AuthService {
     return safeAsyncRequired(async () => {
       const normalizedEmail = email.toLowerCase().trim();
       // 1. Verify OTP via External API
-      const verifyResponse = await fetch(`${EXTERNAL_API_BASE}/api/auth/verify-otp`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'accept': 'application/json' },
-        body: JSON.stringify({ email: normalizedEmail, otp_code: otp }),
-      });
-
-      if (!verifyResponse.ok) {
-        let errorMsg = "OTP verification failed on external service";
-        try {
-          const errorData = await verifyResponse.json();
-          errorMsg = errorData.message || errorData.error || JSON.stringify(errorData);
-        } catch (e) {
-          errorMsg = `Verification Error: ${verifyResponse.status} ${verifyResponse.statusText}`;
-        }
-        throw new APIError(errorMsg, 400);
+      try {
+        await api.post('/auth/verify-otp', { email: normalizedEmail, otp_code: otp });
+      } catch (e: any) {
+        throw new APIError(e.response?.data?.detail || "OTP verification failed", 400);
       }
 
       // 2. Integration with Supabase
@@ -1613,6 +1602,8 @@ export const authService = {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   savePaymentDetails: (vendorId: string, payment: any) =>
     apiService.savePaymentDetails(vendorId, payment),
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  registerVendor: (vendorData: any) => apiService.registerVendor(vendorData),
   getVendorProfile: (vendorId: string) => apiService.getVendorProfile(vendorId),
   uploadRiderPhoto: (riderId: string, file: File, type: string) =>
     apiService.uploadRiderPhoto(riderId, file, type),

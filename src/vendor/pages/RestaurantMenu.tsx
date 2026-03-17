@@ -16,7 +16,7 @@ import {
   ChevronDown,
 } from "lucide-react";
 import { VendorNav } from "../component/VendorNav";
-import { supabase } from "../../services/authService";
+import { backendAuthService } from "../../services/backendAuthService";
 import { useToast } from "../../context/ToastContext";
 
 interface MenuItem {
@@ -65,49 +65,53 @@ const RestaurantMenu: React.FC = () => {
 
   // Update the useEffect to get vendor ID first
   useEffect(() => {
-    const initializeVendor = async () => {
+    const loadVendorData = async () => {
       try {
-        // Get current user from session
-        const {
-          data: { session },
-        } = await supabase.auth.getSession();
+        // Get current user from backend authentication
+        const currentUser = await backendAuthService.getCurrentUser();
 
-        if (!session?.user) {
+        if (!currentUser) {
           console.error("No user session found");
           setLoading(false);
           return;
         }
 
-        // Get vendor ID from vendors table
-        const { data: vendorData, error: vendorError } = await supabase
-          .from("vendors")
-          .select("id")
-          .eq("user_id", session.user.id)
-          .single();
-
-        if (vendorError || !vendorData) {
-          console.error("Vendor not found:", vendorError);
+        // Get vendor ID from backend API
+        // For now, we'll assume the vendor ID is available in the user object
+        // or we need to fetch it from the vendors endpoint
+        // This is a temporary implementation - we need to check the backend user response structure
+        const vendorId = currentUser.vendor_id || currentUser.id;
+        
+        if (!vendorId) {
+          console.error("No vendor ID found for user");
           setLoading(false);
           return;
         }
 
-        setVendorId(vendorData.id);
+        setVendorId(vendorId);
 
         // Now load menu items with the vendor ID
-        const { data, error } = await getMenuItems(vendorData.id);
+        const { data, error } = await getMenuItems(vendorId);
         if (!error && data) {
           setMenuItems(data);
           setCurrentView(data.length > 0 ? "menu" : "empty");
+        } else {
+          console.error("Error loading menu items:", error);
         }
       } catch (error) {
-        console.error("Error initializing:", error);
+        console.error("Error in loadVendorData:", error);
+        // If getCurrentUser fails, try to get vendor ID from local storage or other means
+        const token = localStorage.getItem('authToken');
+        if (!token) {
+          console.error("No authentication token found");
+        }
       } finally {
         setLoading(false);
         setIsVisible(true);
       }
     };
 
-    initializeVendor();
+    loadVendorData();
   }, []);
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {

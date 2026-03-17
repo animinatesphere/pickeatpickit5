@@ -15,9 +15,7 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { Navbar } from "../component/Navbar";
 import { useNavigate } from "react-router-dom";
-import { authService } from "../services/authService";
-import { supabase } from "../services/authService";
-import { getOrderTracking } from "../services/api";
+import { backendAuthService } from "../services/backendAuthService";
 
 interface Order {
   id: string;
@@ -72,26 +70,11 @@ const Booking: React.FC = () => {
     const fetchUserOrders = async () => {
       try {
         setLoading(true);
-        const authUser = await authService.getCurrentUser();
-        if (!authUser) return;
+        
+        // Use backendAuthService to get orders
+        const ordersData = await backendAuthService.getOrders();
 
-        const { data, error } = await supabase
-          .from("orders")
-          .select(`
-            *,
-            vendor_profiles (
-              business_name,
-              business_address,
-              business_phone,
-              logo_url
-            )
-          `)
-          .eq("user_id", authUser.id)
-          .order("created_at", { ascending: false });
-
-        if (error) throw error;
-
-        const formattedOrders = (data || []).map(
+        const formattedOrders = ordersData.map(
           (order: {
             id: string;
             restaurant_name: string;
@@ -100,6 +83,13 @@ const Booking: React.FC = () => {
             scheduled_time: string;
             status: string;
             image_url: string;
+            vendor_id?: string;
+            vendor?: {
+              business_name: string;
+              business_address: string;
+              business_phone: string;
+              logo_url?: string;
+            };
           }) => ({
             id: order.id,
             restaurant_name: order.restaurant_name,
@@ -113,8 +103,8 @@ const Booking: React.FC = () => {
               | "accepted"
               | "preparing",
             image_url: order.image_url,
-            vendor_id: (order as any).vendor_id,
-            vendor: (order as any).vendor_profiles
+            vendor_id: order.vendor_id,
+            vendor: order.vendor
           }),
         );
 
@@ -127,37 +117,6 @@ const Booking: React.FC = () => {
     };
 
     fetchUserOrders();
-
-    authService.getCurrentUser().then((user) => {
-      const subscription = supabase
-        .channel("user-orders-changes")
-        .on(
-          "postgres_changes" as unknown as "postgres_changes",
-          {
-            event: "*",
-            schema: "public",
-            table: "orders",
-            filter: `user_id=eq.${user?.id}`,
-          },
-          (payload: {
-            eventType: string;
-            new?: Record<string, unknown>;
-            old?: Record<string, unknown>;
-          }) => {
-            if (payload.eventType === "INSERT") {
-              // Handle insert
-            } else if (payload.eventType === "UPDATE") {
-              // Handle update
-            }
-          },
-        )
-        .subscribe();
-
-      // Unsubscribe on cleanup
-      return () => {
-        subscription.unsubscribe();
-      };
-    });
   }, []);
 
   const orderProgress: OrderProgress[] = [
@@ -183,8 +142,12 @@ const Booking: React.FC = () => {
   const handleTrackOrder = async (order: Order) => {
     setSelectedOrder(order);
     setCurrentView("track");
-    const { data: updates } = await getOrderTracking(order.id);
-    if (updates) setTrackingUpdates(updates);
+    try {
+      const updates = await backendAuthService.getOrderTracking(order.id);
+      if (updates) setTrackingUpdates(updates);
+    } catch (error) {
+      console.error('Failed to get tracking updates:', error);
+    }
   };
 
   const getStatusColor = (status: string) => {

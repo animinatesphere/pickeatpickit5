@@ -1,5 +1,5 @@
 import React, { useState, useRef } from "react";
-import { supabase, authService } from "../../services/authService";
+import { backendAuthService } from "../../services/backendAuthService";
 import { ArrowLeft, Mail, Lock, User, Phone, MapPin, CheckCircle2, ShieldCheck, ChevronRight } from "lucide-react";
 import logo from "../../assets/Logo SVG 1.png";
 import { Link, useNavigate } from "react-router-dom";
@@ -12,6 +12,7 @@ interface UserData {
   email?: string;
   password?: string;
   phone?: string;
+  user_id?: string;
 }
 
 const SignupShell = ({ children, step, totalSteps }: { children: React.ReactNode, step: number, totalSteps: number }) => (
@@ -50,7 +51,7 @@ const SignupShell = ({ children, step, totalSteps }: { children: React.ReactNode
 );
 
 // Step 1: Credentials
-const EmailInputScreen = ({ onContinue, toast }: { onContinue: (email: string, password: string) => void, toast: any }) => {
+const EmailInputScreen = ({ onContinue, toast }: { onContinue: (email: string, password: string, user_id: string) => void, toast: ReturnType<typeof useToast> }) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -61,11 +62,12 @@ const EmailInputScreen = ({ onContinue, toast }: { onContinue: (email: string, p
     
     setIsLoading(true);
     try {
-      await authService.sendEmailOTP(email, password);
+      // Register with FastAPI backend - this automatically sends OTP
+      const response = await backendAuthService.customerRegister({ email, password });
       toast.success("Verification Signal Sent");
-      onContinue(email, password);
-    } catch (err: any) {
-      toast.error(err.message || "Failed to initiate signup");
+      onContinue(email, password, response.data?.user_id || "");
+    } catch (err) {
+      toast.error((err as Error).message || "Failed to initiate signup");
     } finally {
       setIsLoading(false);
     }
@@ -127,7 +129,7 @@ const EmailInputScreen = ({ onContinue, toast }: { onContinue: (email: string, p
 };
 
 // Step 2: Verification
-const EmailOTPScreen = ({ email, password, onContinue, onBack, toast }: { email: string, password?: string, onContinue: () => void, onBack: () => void, toast: any }) => {
+const EmailOTPScreen = ({ email, onContinue, onBack, toast }: { email: string, onContinue: () => void, onBack: () => void, toast: ReturnType<typeof useToast> }) => {
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [isLoading, setIsLoading] = useState(false);
   const inputRefs = useRef<HTMLInputElement[]>([]);
@@ -137,10 +139,11 @@ const EmailOTPScreen = ({ email, password, onContinue, onBack, toast }: { email:
     if (otpCode.length !== 6) return toast.error("Incomplete code");
     setIsLoading(true);
     try {
-      await authService.verifyEmailOTP(email, otpCode, password);
+      // Verify OTP with FastAPI backend
+      await backendAuthService.verifyOTP(email, otpCode);
       toast.success("Identity Verified");
       onContinue();
-    } catch (e: any) { toast.error(e.message || "Verification failed"); }
+    } catch (e) { toast.error((e as Error).message || "Verification failed"); }
     finally { setIsLoading(false); }
   };
 
@@ -194,10 +197,10 @@ const EmailOTPScreen = ({ email, password, onContinue, onBack, toast }: { email:
         <button 
           onClick={async () => {
             try {
-              await authService.resendOtp(email);
+              await backendAuthService.sendOTP(email);
               toast.success("New code sent to your email");
-            } catch (e: any) {
-              toast.error(e.message || "Failed to resend");
+            } catch (e) {
+              toast.error((e as Error).message || "Failed to resend");
             }
           }} 
           className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-500 hover:text-green-500 transition-colors w-full mt-4"
@@ -210,7 +213,7 @@ const EmailOTPScreen = ({ email, password, onContinue, onBack, toast }: { email:
 };
 
 // Step 3: Profile
-const CompleteProfileScreen = ({ onContinue, toast }: { onContinue: (data: UserData) => void, toast: any }) => {
+const CompleteProfileScreen = ({ onContinue, toast }: { onContinue: (data: UserData) => void, toast: ReturnType<typeof useToast> }) => {
   const [fName, setFName] = useState("");
   const [lName, setLName] = useState("");
   const [ph, setPh] = useState("");
@@ -277,7 +280,7 @@ const CompleteProfileScreen = ({ onContinue, toast }: { onContinue: (data: UserD
 };
 
 // Step 4: Address
-const AddressInputScreen = ({ onComplete, toast }: { onComplete: (addr: string) => void, toast: any }) => {
+const AddressInputScreen = ({ onComplete, toast }: { onComplete: (addr: string) => void, toast: ReturnType<typeof useToast> }) => {
   const [addr, setAddr] = useState("");
   return (
     <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-lg">
@@ -326,18 +329,31 @@ const Signup: React.FC = () => {
   const handleFinalComplete = async (addr: string) => {
     setIsFinalizing(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Auth system error");
-      const { error } = await supabase.from("users").upsert([{
-        user_id: user.id, email: userData.email || email, 
-        firstname: userData.firstName, lastname: userData.lastName, 
-        phone: userData.phone, address: addr
-      }], { onConflict: 'email' });
-      if (error) throw error;
+      // Use FastAPI backend to update profile
+      // First, we need to login to get the token
+      if (!userData.email || !userData.password) {
+        throw new Error("Missing credentials. Please restart registration.");
+      }
+      
+      // Login to get JWT token
+      const loginResponse = await backendAuthService.customerLogin(userData.email, userData.password);
+      
+      if (!loginResponse.success) {
+        throw new Error("Failed to authenticate. Please try logging in.");
+      }
+      
+      // Update profile with collected data
+      await backendAuthService.updateProfile({
+        firstname: userData.firstName,
+        lastname: userData.lastName,
+        phone: userData.phone,
+        address: addr,
+      });
+      
       toast.success("System Integration Complete!");
       setTimeout(() => navigate("/login"), 1500);
-    } catch (e: any) { 
-      toast.error(e.message || "Integration error"); 
+    } catch (e) { 
+      toast.error((e as Error).message || "Integration error"); 
       setIsFinalizing(false);
     }
   };
@@ -346,9 +362,9 @@ const Signup: React.FC = () => {
     <SignupShell step={step} totalSteps={4}>
       <ToastContainer toasts={toast.toasts} onClose={toast.closeToast} />
       <AnimatePresence mode="wait">
-        {step === 1 && <EmailInputScreen key="s1" toast={toast} onContinue={(e, p) => { setEmail(e); setUserData(prev => ({ ...prev, password: p })); setStep(2); }} />}
-        {step === 2 && <EmailOTPScreen key="s2" email={email} password={userData.password} onContinue={() => setStep(3)} onBack={() => setStep(1)} toast={toast} />}
-        {step === 3 && <CompleteProfileScreen key="s3" onContinue={(d) => { setUserData(d); setStep(4); }} toast={toast} />}
+        {step === 1 && <EmailInputScreen key="s1" toast={toast} onContinue={(e, p, user_id) => { setEmail(e); setUserData(prev => ({ ...prev, email: e, password: p, user_id })); setStep(2); }} />}
+        {step === 2 && <EmailOTPScreen key="s2" email={email} onContinue={() => setStep(3)} onBack={() => setStep(1)} toast={toast} />}
+        {step === 3 && <CompleteProfileScreen key="s3" onContinue={(d) => { setUserData(prev => ({ ...prev, ...d })); setStep(4); }} toast={toast} />}
         {step === 4 && !isFinalizing && <AddressInputScreen key="s4" onComplete={handleFinalComplete} toast={toast} />}
         {isFinalizing && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center">

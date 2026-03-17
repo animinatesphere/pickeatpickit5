@@ -2,7 +2,8 @@ import { useState } from "react";
 import { Eye, EyeOff, Mail, Lock, ArrowLeft, ShieldCheck } from "lucide-react";
 import logo from "../../assets/Logo SVG 1.png";
 import { Link, useNavigate } from "react-router-dom";
-import { authService, APIError } from "../../services/authService";
+import { APIError } from "../../services/authService";
+import { backendAuthService } from "../../services/backendAuthService";
 import { useToast, ToastContainer } from "../../component/Toast";
 import { motion } from "framer-motion";
 
@@ -29,17 +30,12 @@ const Login = () => {
     setIsLoading(true);
 
     try {
-      const response = await authService.loginUser(email, password);
+      // Use FastAPI backend with JWT authentication
+      const response = await backendAuthService.customerLogin(email, password);
       toast.success(response.message || "Login successful!");
 
-      if (response.token) {
-        localStorage.setItem("authToken", response.token);
-      }
-
-      if (response.user) {
-        localStorage.setItem("userData", JSON.stringify(response.user));
-      }
-
+      // Token and user data are already stored by customerLogin method
+      // Navigate to dashboard
       setTimeout(() => {
         navigate("/user-dashboard");
       }, 1000);

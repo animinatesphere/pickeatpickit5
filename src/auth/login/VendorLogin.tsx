@@ -2,7 +2,8 @@ import { useState } from "react";
 import { Eye, EyeOff, Mail, Lock, ChefHat, ArrowLeft, ShieldCheck } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useToast, ToastContainer } from "../../component/Toast";
-import { authService, APIError } from "../../services/authService";
+import { APIError } from "../../services/authService";
+import { backendAuthService } from "../../services/backendAuthService";
 import { motion } from "framer-motion";
 
 const VendorLogin = () => {
@@ -25,10 +26,16 @@ const VendorLogin = () => {
     }
     setIsLoading(true);
     try {
-      const response = await authService.login(email, password);
+      // Use vendor-specific login endpoint for enhanced JWT token
+      const response = await backendAuthService.vendorLogin(email, password);
       toast.success(response.message || "Login successful!");
-      if (response.token) localStorage.setItem("authToken", response.token);
-      if (response.user) localStorage.setItem("userData", JSON.stringify(response.user));
+      
+      // The token and user data are already stored by vendorLogin method
+      // Token is stored in localStorage as 'authToken'
+      // User data is stored in localStorage as 'userData'
+      // Vendor data is stored in localStorage as 'vendorData'
+      
+      // Navigate to vendor dashboard
       setTimeout(() => navigate("/vendor-dashboard"), 1000);
     } catch (error) {
       if (error instanceof APIError) toast.error(error.message);

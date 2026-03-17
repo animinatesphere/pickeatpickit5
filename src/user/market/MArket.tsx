@@ -15,9 +15,8 @@ import {
 } from "lucide-react";
 import { Navbar } from "../../component/Navbar";
 import { useNavigate } from "react-router-dom";
-import { getMenuItems } from '../../services/api'
+import { backendAuthService } from '../../services/backendAuthService'
 import { useToast } from "../../context/ToastContext";
-import { supabase } from "../../services/authService";
 
 type Screen = "kitchen" | "confirm";
 
@@ -52,31 +51,25 @@ export default function Market() {
   
   const navigate = useNavigate();
   const toast = useToast();
-const fetchVendorDetails = async (menuItemId: number) => {
+const fetchVendorDetails = async (menuItemId: string) => {
   try {
-    // Fetch menu info to get vendor_id
-    const { data: menuInfo, error: menuErr } = await supabase
-      .from('menu_items')
-      .select('vendor_id')
-      .eq('id', menuItemId)
-      .single();
-
-    if (menuErr || !menuInfo) {
-      console.error("Error fetching menu info:", menuErr);
+    // Get menu items and find the vendor
+    const menuItems = await backendAuthService.getMenuItems(100);
+    const menuItem = menuItems.find((item: { id: string }) => item.id === menuItemId);
+    
+    if (!menuItem) {
+      console.error("Menu item not found");
       return;
     }
 
-    // Fetch vendor profile using vendor_id
-    const { data: vendorProfile, error: vendorErr } = await supabase
-      .from('vendor_profiles')
-      .select('business_name, image_url')
-      .eq('vendor_id', menuInfo.vendor_id)
-      .single();
+    // Get vendors and find the one matching the vendor_id
+    const vendors = await backendAuthService.getVendors(100);
+    const vendor = vendors.find((v: { id: string }) => v.id === menuItem.vendor_id);
 
-    if (!vendorErr && vendorProfile) {
+    if (vendor) {
       setVendorInfo({
-        businessName: vendorProfile.business_name,
-        image_url: vendorProfile.image_url || "https://images.unsplash.com/photo-1555939594-58d7cb561404?w=400"
+        businessName: vendor.business_name || "Unknown Vendor",
+        image_url: vendor.logo_url || "https://images.unsplash.com/photo-1555939594-58d7cb561404?w=400"
       });
     }
   } catch (error) {
@@ -85,17 +78,19 @@ const fetchVendorDetails = async (menuItemId: number) => {
 };
 useEffect(() => {
   const loadMenu = async () => {
-    const { data, error } = await getMenuItems();
-    if (!error && data) {
+    try {
+      const data = await backendAuthService.getMenuItems(100);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const formattedItems = data.map((item: any) => ({
         ...item,
         quantity: 0,
-        businessName: item.vendor_profiles?.business_name || "Unknown Vendor",
-        // keep original name for menu item
+        businessName: item.vendor_name || "Unknown Vendor",
         image_url: item.image_url || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500",
         discount: item.discount || 15
       }));
       setItems(formattedItems);
+    } catch (error) {
+      console.error('Failed to load menu items:', error);
     }
   };
   loadMenu();

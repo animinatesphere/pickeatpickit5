@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { ChevronLeft, CreditCard, MapPin, Package } from "lucide-react";
 import { createOrder } from "../../services/api";
-import { supabase } from "../../services/authService";
+import { backendAuthService } from "../../services/backendAuthService";
 import { Navbar } from "../../component/Navbar";
 import { useToast } from "../../context/ToastContext";
 import { usePaystackPayment } from "react-paystack";
@@ -66,11 +66,11 @@ const PaymentComponent: React.FC = () => {
     }
 
     const getUserEmail = async () => {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      if (session?.user?.email) {
-        setUserEmail(session.user.email);
+      // Get user email from stored user data
+      const userData = localStorage.getItem('userData');
+      if (userData) {
+        const user = JSON.parse(userData);
+        setUserEmail(user.email);
       }
     };
     getUserEmail();
@@ -109,40 +109,21 @@ const PaymentComponent: React.FC = () => {
 
     setIsValidatingPromo(true);
     try {
-      const { data, error } = await supabase
-        .from("promo_codes")
-        .select("*")
-        .eq("code", promoCode.toUpperCase())
-        .eq("active", true)
-        .single();
+      const data = await backendAuthService.validatePromoCode(promoCode.toUpperCase());
 
-      if (error || !data) {
+      if (!data.valid) {
         toast.error("Invalid or inactive promo code", "Invalid Code");
-        setDiscountInfo(null);
-        return;
-      }
-
-      // Check expiry
-      if (new Date(data.expiry_date) < new Date()) {
-        toast.error("This promo code has expired", "Expired Code");
-        setDiscountInfo(null);
-        return;
-      }
-
-      // Check usage limit
-      if (data.usage_limit && data.usage_count >= data.usage_limit) {
-        toast.error("This promo code has reached its usage limit", "Limit Reached");
         setDiscountInfo(null);
         return;
       }
 
       setDiscountInfo({
         code: data.code,
-        type: data.discount_type,
+        type: data.discount_type as "percentage" | "fixed",
         value: data.discount_value,
       });
       toast.success(`${data.code} applied successfully!`, "Promo Applied");
-    } catch (err) {
+    } catch {
       toast.error("Something went wrong validating promo code", "Error");
     } finally {
       setIsValidatingPromo(false);
@@ -202,62 +183,43 @@ const PaymentComponent: React.FC = () => {
 
   const processOrderCreation = async (paymentRef: string | null = null) => {
     try {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      if (!session?.user) return;
-
-      // 1. Fetch user profile data from 'users' table (the correct table name!)
-      const { data: userProfile, error: profileError } = await supabase
-        .from("users") // ← Changed from 'user_profiles' to 'users'
-        .select("firstname, lastname, phone")
-        .eq("user_id", session.user.id)
-        .single();
-
-      if (profileError) {
-        // Profile fetch failed, will use defaults
+      // Get user data from localStorage (set during login)
+      const userDataStr = localStorage.getItem('userData');
+      if (!userDataStr) {
+        toast.error("Please log in to place an order", "Authentication Required");
+        return;
       }
-
-      // Build fullName and phoneNum from the fetched profile
-      const fullName = userProfile
-        ? `${userProfile.firstname || ""} ${userProfile.lastname || ""}`.trim() ||
-          "Customer"
-        : "Customer";
-      const phoneNum = userProfile?.phone || "No phone";
+      const userData = JSON.parse(userDataStr);
+      
+      // Build fullName from user data
+      const fullName = `${userData.firstname || ""} ${userData.lastname || ""}`.trim() || "Customer";
+      const phoneNum = userData.phone || "No phone";
 
       // 2. Fetch vendor business name correctly
       const firstItemId = orderData!.items[0].id;
 
-      // Fetch menu info to get the vendor_id
-      const { data: menuInfo, error: menuErr } = await supabase
-        .from("menu_items")
-        .select("vendor_id")
-        .eq("id", firstItemId)
-        .single();
-
-      if (menuErr || !menuInfo) {
-        toast.error("Unable to find vendor information.", "Vendor Error");
+      // Get menu items to find vendor_id
+      const menuItems = await backendAuthService.getMenuItems(100);
+      const menuItem = menuItems.find((item: { id: string | number }) => String(item.id) === String(firstItemId));
+      
+      if (!menuItem) {
+        toast.error("Unable to find menu item information.", "Menu Error");
         setLoading(false);
         return;
       }
 
-      // Fetch the restaurant name using vendor_id
-      const { data: vendorProfile } = await supabase
-        .from("vendor_profiles")
-        .select("business_name")
-        .eq("vendor_id", menuInfo.vendor_id)
-        .single();
-
-      // Define the variables the payload is looking for
-      const restaurantName = vendorProfile?.business_name || "Restaurant";
+      // Get vendor info
+      const vendors = await backendAuthService.getVendors(100);
+      const vendor = vendors.find((v: { id: string }) => v.id === menuItem.vendor_id);
+      const restaurantName = vendor?.business_name || "Restaurant";
 
       // 3. Prepare Payload
       const orderPayload = {
-        vendor_id: menuInfo.vendor_id,
+        vendor_id: menuItem.vendor_id,
         restaurant_name: restaurantName,
-        user_id: session.user.id,
-        customer_name: fullName, // Now correctly from users table
-        customer_phone: phoneNum, // Now correctly from users table
+        user_id: userData.id,
+        customer_name: fullName,
+        customer_phone: phoneNum,
         delivery_address: deliveryAddress,
         total_amount: total,
         status: "pending",

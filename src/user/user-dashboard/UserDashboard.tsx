@@ -15,8 +15,8 @@ import { Navbar } from "../../component/Navbar";
 import HeroFoodCarousel from "../../component/HeroFoodCarousel";
 import { Link, useNavigate } from "react-router-dom";
 import FoodScrollCarousel from "../component/FoodScrollCarouse";
-import { supabase } from "../../services/authService";
 import { useToast } from "../../context/ToastContext";
+import { backendAuthService } from "../../services/backendAuthService";
 
 interface LikedState {
   [key: string]: boolean;
@@ -28,7 +28,6 @@ interface UserProfile {
   email?: string;
   phone?: string;
 }
-import { authService } from "../../services/authService";
 export default function UserDashboard() {
   const navigate = useNavigate();
   const toast = useToast();
@@ -45,8 +44,7 @@ export default function UserDashboard() {
   });  const [loading, setLoading] = useState(true);
 
   const toggleLike = async (vendorId: string) => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session?.user) {
+    if (!backendAuthService.isAuthenticated()) {
       toast.warning("Please log in to save favorites!", "Login Required");
       return;
     }
@@ -56,13 +54,14 @@ export default function UserDashboard() {
 
     try {
       if (isCurrentlyLiked) {
-        await supabase.from("user_favorites").delete().eq("user_id", session.user.id).eq("vendor_id", vendorId);
+        await backendAuthService.removeFavorite(vendorId);
       } else {
-        await supabase.from("user_favorites").insert([{ user_id: session.user.id, vendor_id: vendorId }]);
+        await backendAuthService.addFavorite(vendorId);
       }
     } catch (error) {
       // Revert on error
       setLiked(prev => ({ ...prev, [vendorId]: isCurrentlyLiked }));
+      console.error('Failed to update favorite:', error);
     }
   };
 
@@ -70,44 +69,60 @@ export default function UserDashboard() {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const { data: { session } } = await supabase.auth.getSession();
       
-      if (session?.user) {
-        // Update to use the UserProfile structure
-        setUserProfile({
-          firstname: session.user.user_metadata?.firstname || "",
-          lastname: session.user.user_metadata?.lastname || "",
-          email: session.user.user_metadata?.email || session.user.email || "",
-          phone: session.user.user_metadata?.phone || ""
-        });
+      // Fetch user profile if authenticated
+      if (backendAuthService.isAuthenticated()) {
+        try {
+          const profile = await backendAuthService.getProfile();
+          setUserProfile({
+            firstname: profile.firstname || "",
+            lastname: profile.lastname || "",
+            email: profile.email || "",
+            phone: profile.phone || ""
+          });
+        } catch (error) {
+          console.error('Failed to fetch profile:', error);
+        }
 
-        const { data: favs } = await supabase
-          .from("user_favorites")
-          .select("vendor_id")
-          .eq("user_id", session.user.id);
-
-        if (favs) {
-          const likedMap: LikedState = {};
-          favs.forEach(f => { likedMap[f.vendor_id] = true; });
-          setLiked(likedMap);
+        // Fetch favorites
+        try {
+          const favs = await backendAuthService.getFavorites();
+          if (favs && favs.length > 0) {
+            const likedMap: LikedState = {};
+            favs.forEach((f: { vendor_id: string }) => { likedMap[f.vendor_id] = true; });
+            setLiked(likedMap);
+          }
+        } catch (error) {
+          console.error('Failed to fetch favorites:', error);
         }
       }
 
-      const { data: menuData } = await supabase.from("menu_items").select("*").limit(10);
-      if (menuData) setFoods(menuData);
+      // Fetch menu items
+      try {
+        const menuData = await backendAuthService.getMenuItems(10);
+        setFoods(menuData);
+      } catch (error) {
+        console.error('Failed to fetch menu items:', error);
+      }
 
-      const { data: profileData } = await supabase.from("vendor_profiles").select("*").limit(8);
-      if (profileData) setVendors(profileData);
+      // Fetch vendors
+      try {
+        const vendorData = await backendAuthService.getVendors(8);
+        setVendors(vendorData);
+      } catch (error) {
+        console.error('Failed to fetch vendors:', error);
+      }
 
-      const { data: offerData } = await supabase
-        .from("menu_items")
-        .select("*, vendor_profiles(business_name)")
-        .gt("discount", 0)
-        .limit(5);
-      if (offerData) setOffers(offerData);
+      // Fetch offers
+      try {
+        const offerData = await backendAuthService.getOffers(5);
+        setOffers(offerData);
+      } catch (error) {
+        console.error('Failed to fetch offers:', error);
+      }
 
     } catch (error) {
-      // Dashboard fetch error
+      console.error('Dashboard fetch error:', error);
     } finally {
       setTimeout(() => setLoading(false), 800);
     }
@@ -115,21 +130,7 @@ export default function UserDashboard() {
 
   fetchData();
 }, []);
-    useEffect(() => {
-    const fetchUserProfile = async () => {
-      try {
-        setLoading(true);
-        const profile = await authService.getCurrentUserProfile();
-        setUserProfile(profile);
-      } catch (error) {
-        // Profile fetch error
-      } finally {
-        setTimeout(() => setLoading(false), 600);
-      }
-    };
 
-    fetchUserProfile();
-  }, []); 
   const fullName = `${userProfile.firstname || ""} ${userProfile.lastname || ""}`.trim() || "Guest";
   const initials = (userProfile.firstname?.[0] || "U") + (userProfile.lastname?.[0] || "S");
   const containerVariants = {

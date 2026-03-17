@@ -1,15 +1,18 @@
-﻿import logo from "../../assets/Logo SVG 1.png";
+import logo from "../../assets/Logo SVG 1.png";
 import { useState, useRef} from "react";
 import { Eye, EyeOff, Camera, Mail, Lock, Phone, Clock, CheckCircle2, Sparkles } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useToast, ToastContainer } from "../../component/Toast";
-import { authService, supabase } from "../../services/authService";
+import { authService } from "../../services/authService";
+import { backendAuthService } from "../../services/backendAuthService";
 import { motion, AnimatePresence } from "framer-motion";
 
 type NavigateFunction = (page: string) => void;
 
 interface PageProps {
   onNavigate: NavigateFunction;
+  onUpdate?: (data: any) => void;
+  registrationData?: any;
 }
 
 
@@ -49,7 +52,7 @@ const VendorSignupShell = ({ children, step, totalSteps }: { children: React.Rea
 );
 
 // Step 1: Personal Info
-const SignUpPage = ({ onNavigate }: PageProps) => {
+const SignUpPage = ({ onNavigate, onUpdate }: PageProps) => {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
@@ -66,8 +69,31 @@ const SignUpPage = ({ onNavigate }: PageProps) => {
     
     setIsLoading(true);
     try {
-      await authService.sendEmailOTP(formData.email, formData.password);
-      localStorage.setItem("tempSignupData", JSON.stringify(formData));
+      // Use FastAPI backend for vendor registration
+      const response = await backendAuthService.register({
+        email: formData.email,
+        password: formData.password,
+        firstname: formData.firstname,
+        lastname: formData.lastname,
+        phone: formData.phone,
+        user_type: "vendor"
+      });
+      
+      // Store temp data including user_id from backend
+      localStorage.setItem("tempSignupData", JSON.stringify({
+        ...formData,
+        user_id: response.data?.user_id || response.data?.id
+      }));
+      
+      if (onUpdate) {
+        onUpdate({
+          firstname: formData.firstname,
+          lastname: formData.lastname,
+          email: formData.email,
+          phone: formData.phone,
+          user_id: response.data?.user_id || response.data?.id
+        });
+      }
       toast.success("Verification Signal Sent");
       onNavigate("confirm-otp");
     } catch (err: any) { toast.error(err.message || "Signup failed"); }
@@ -164,7 +190,7 @@ const SignUpPage = ({ onNavigate }: PageProps) => {
 };
 
 // Step 2: OTP
-const EmailOTPScreen = ({ onNavigate }: PageProps) => {
+const EmailOTPScreen = ({ onNavigate, onUpdate, registrationData }: PageProps) => {
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [isLoading, setIsLoading] = useState(false);
   const inputRefs = useRef<HTMLInputElement[]>([]);
@@ -172,26 +198,22 @@ const EmailOTPScreen = ({ onNavigate }: PageProps) => {
   const storedData = localStorage.getItem("tempSignupData");
     const signupData = storedData ? JSON.parse(storedData) : null;
     const email = signupData?.email || "";
-    const password = signupData?.password || "";
   
     const handleVerify = async () => {
       const otpCode = otp.join("");
       if (otpCode.length !== 6) return toast.error("Incomplete signal");
       setIsLoading(true);
       try {
-        const { user } = await authService.verifyEmailOTP(email, otpCode, password);
-      if (user && signupData) {
-        const { data: v, error: pe } = await supabase.from("vendors").upsert([{
-          user_id: user.id, email: signupData.email, 
-          firstname: signupData.firstname, lastname: signupData.lastname, phone: signupData.phone
-        }], { onConflict: 'email' }).select();
-        if (pe) throw pe;
-        if (v && v.length > 0) localStorage.setItem("tempVendorId", v[0].id);
-        localStorage.removeItem("tempSignupData");
-        toast.success("Identity Verified");
-        onNavigate("profile1");
-      }
-    } catch (e: any) { toast.error(e.message || "Verification failed"); }
+        // Use FastAPI backend for OTP verification
+        await backendAuthService.verifyOTP(email, otpCode);
+        
+        if (signupData) {
+          if (onUpdate) onUpdate({ user_id: signupData.user_id });
+          localStorage.removeItem("tempSignupData");
+          toast.success("Identity Verified");
+          onNavigate("profile1");
+        }
+    } catch (e) { toast.error((e as Error).message || "Verification failed"); }
     finally { setIsLoading(false); }
   };
 
@@ -252,26 +274,24 @@ const EmailOTPScreen = ({ onNavigate }: PageProps) => {
 };
 
 // Step 3: Business Basics
-const CreateProfile1 = ({ onNavigate }: PageProps) => {
+const CreateProfile1 = ({ onNavigate, onUpdate }: PageProps) => {
   const [profileData, setProfileData] = useState({
-    businessName: "", howToAddress: "", fullName: "", yearsOfExperience: "",
-    businessEmail: "", country: "Nigeria", businessPhone: "", 
-    businessAddress: "", profession: "", vendorType: "", 
-    workAlone: "YES", membershipId: "",
+    business_name: "", how_to_address: "", full_name: "", years_of_experience: "",
+    business_email: "", country_name: "Nigeria", business_phone: "", 
+    business_address: "", profession: "", vendor_type: "", 
+    work_alone: "YES", membership_id: "",
   });
   const [agreed, setAgreed] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const toast = useToast();
 
   const handleSave = async () => {
-    if (!profileData.businessName || !profileData.fullName || !profileData.businessEmail || !agreed) return toast.error("Missing requirements");
+    if (!profileData.business_name || !profileData.full_name || !profileData.business_email || !agreed) return toast.error("Missing requirements");
     setIsLoading(true);
     try {
-      const vId = localStorage.getItem("tempVendorId");
-      if (!vId) throw new Error("Session expired");
-      await authService.saveProfileDetails(vId, profileData);
+      if (onUpdate) onUpdate(profileData);
       onNavigate("profile2");
-    } catch (e: any) { toast.error(e.message); }
+    } catch (e) { toast.error((e as Error).message); }
     finally { setIsLoading(false); }
   };
 
@@ -286,15 +306,15 @@ const CreateProfile1 = ({ onNavigate }: PageProps) => {
         <div className="space-y-4">
            <div className="space-y-1">
               <label className="text-[10px] font-black uppercase text-gray-500 ml-4">Establishment Name</label>
-              <input placeholder="Business Name" value={profileData.businessName} onChange={e => setProfileData({...profileData, businessName: e.target.value})} className="w-full px-6 py-4 bg-white/5 border border-white/10 rounded-2xl text-white font-bold text-sm" />
+              <input placeholder="Business Name" value={profileData.business_name} onChange={e => setProfileData({...profileData, business_name: e.target.value})} className="w-full px-6 py-4 bg-white/5 border border-white/10 rounded-2xl text-white font-bold text-sm" />
            </div>
            <div className="space-y-1">
               <label className="text-[10px] font-black uppercase text-gray-500 ml-4">Legal Representative</label>
-              <input placeholder="Full Name" value={profileData.fullName} onChange={e => setProfileData({...profileData, fullName: e.target.value})} className="w-full px-6 py-4 bg-white/5 border border-white/10 rounded-2xl text-white font-bold text-sm" />
+              <input placeholder="Full Name" value={profileData.full_name} onChange={e => setProfileData({...profileData, full_name: e.target.value})} className="w-full px-6 py-4 bg-white/5 border border-white/10 rounded-2xl text-white font-bold text-sm" />
            </div>
            <div className="space-y-1">
               <label className="text-[10px] font-black uppercase text-gray-500 ml-4">Operational Email</label>
-              <input placeholder="biz@email.com" value={profileData.businessEmail} onChange={e => setProfileData({...profileData, businessEmail: e.target.value})} className="w-full px-6 py-4 bg-white/5 border border-white/10 rounded-2xl text-white font-bold text-sm" />
+              <input placeholder="biz@email.com" value={profileData.business_email} onChange={e => setProfileData({...profileData, business_email: e.target.value})} className="w-full px-6 py-4 bg-white/5 border border-white/10 rounded-2xl text-white font-bold text-sm" />
            </div>
         </div>
 
@@ -310,7 +330,7 @@ const CreateProfile1 = ({ onNavigate }: PageProps) => {
            </div>
            <div className="space-y-1">
               <label className="text-[10px] font-black uppercase text-gray-500 ml-4">Vendor Type</label>
-              <select value={profileData.vendorType} onChange={e => setProfileData({...profileData, vendorType: e.target.value})} className="w-full px-6 py-4 bg-zinc-800 border-white/10 rounded-2xl text-white font-bold text-sm appearance-none cursor-pointer">
+              <select value={profileData.vendor_type} onChange={e => setProfileData({...profileData, vendor_type: e.target.value})} className="w-full px-6 py-4 bg-zinc-800 border-white/10 rounded-2xl text-white font-bold text-sm appearance-none cursor-pointer">
                  <option value="">Select Category</option>
                  <option value="restaurant">Restaurant</option>
                  <option value="delivery">Cloud Kitchen</option>
@@ -318,7 +338,7 @@ const CreateProfile1 = ({ onNavigate }: PageProps) => {
            </div>
            <div className="space-y-1">
               <label className="text-[10px] font-black uppercase text-gray-500 ml-4">Years of Experience</label>
-              <select value={profileData.yearsOfExperience} onChange={e => setProfileData({...profileData, yearsOfExperience: e.target.value})} className="w-full px-6 py-4 bg-zinc-800 border-white/10 rounded-2xl text-white font-bold text-sm appearance-none cursor-pointer">
+              <select value={profileData.years_of_experience} onChange={e => setProfileData({...profileData, years_of_experience: e.target.value})} className="w-full px-6 py-4 bg-zinc-800 border-white/10 rounded-2xl text-white font-bold text-sm appearance-none cursor-pointer">
                  <option value="">Select Years</option>
                  <option value="1">1-3 Years</option>
                  <option value="3">3-5 Years</option>
@@ -330,11 +350,11 @@ const CreateProfile1 = ({ onNavigate }: PageProps) => {
         <div className="space-y-4">
            <div className="space-y-1">
               <label className="text-[10px] font-black uppercase text-gray-500 ml-4">Business Phone</label>
-              <input placeholder="Phone" value={profileData.businessPhone} onChange={e => setProfileData({...profileData, businessPhone: e.target.value})} className="w-full px-6 py-4 bg-white/5 border border-white/10 rounded-2xl text-white font-bold text-sm" />
+              <input placeholder="Phone" value={profileData.business_phone} onChange={e => setProfileData({...profileData, business_phone: e.target.value})} className="w-full px-6 py-4 bg-white/5 border border-white/10 rounded-2xl text-white font-bold text-sm" />
            </div>
            <div className="space-y-1">
               <label className="text-[10px] font-black uppercase text-gray-500 ml-4">Business Address</label>
-              <input placeholder="Full Address" value={profileData.businessAddress} onChange={e => setProfileData({...profileData, businessAddress: e.target.value})} className="w-full px-6 py-4 bg-white/5 border border-white/10 rounded-2xl text-white font-bold text-sm" />
+              <input placeholder="Full Address" value={profileData.business_address} onChange={e => setProfileData({...profileData, business_address: e.target.value})} className="w-full px-6 py-4 bg-white/5 border border-white/10 rounded-2xl text-white font-bold text-sm" />
            </div>
            <div className="flex items-center gap-4 h-[60px] pt-4">
               <input type="checkbox" checked={agreed} onChange={e => setAgreed(e.target.checked)} className="w-5 h-5 accent-blue-500" />
@@ -359,8 +379,10 @@ const CreateProfile1 = ({ onNavigate }: PageProps) => {
 };
 
 // Step 4: Visuals & Description
-const CreateProfile2 = ({ onNavigate }: PageProps) => {
+const CreateProfile2 = ({ onNavigate, onUpdate }: PageProps) => {
   const [desc, setDesc] = useState("");
+  const [logoUrl, setLogoUrl] = useState("");
+  const [coverUrl, setCoverUrl] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const toast = useToast();
 
@@ -368,11 +390,15 @@ const CreateProfile2 = ({ onNavigate }: PageProps) => {
     if (!desc.trim()) return toast.error("Description required");
     setIsLoading(true);
     try {
-      const vId = localStorage.getItem("tempVendorId");
-      if (!vId) throw new Error("Session expired. Please restart signup.");
-      await authService.saveBusinessDetails(vId, { businessDescription: desc, additionalInfo: "" });
+      if (onUpdate) {
+        onUpdate({
+          business_description: desc,
+          logo_url: logoUrl,
+          cover_url: coverUrl
+        });
+      }
       onNavigate("availability");
-    } catch (e: any) { toast.error(e.message); }
+    } catch (e) { toast.error((e as Error).message); }
     finally { setIsLoading(false); }
   };
 
@@ -380,11 +406,12 @@ const CreateProfile2 = ({ onNavigate }: PageProps) => {
     const file = e.target.files?.[0];
     if (!file) return;
     try {
-      const vId = localStorage.getItem("tempVendorId");
-      if (!vId) return;
-      await authService.uploadVendorPhoto(vId, file, type);
+      const vId = localStorage.getItem("tempVendorId") || "temp"; // Fallback for upload service
+      const { publicUrl } = await authService.uploadVendorPhoto(vId, file, type);
+      if (type === "store_logo") setLogoUrl(publicUrl);
+      else setCoverUrl(publicUrl);
       toast.success("Asset Uploaded");
-    } catch (e: any) { toast.error(e.message); }
+    } catch (e) { toast.error((e as Error).message); }
   };
 
   return (
@@ -431,10 +458,10 @@ const CreateProfile2 = ({ onNavigate }: PageProps) => {
 };
 
 // Step 5: Availability
-const AvailabilityScreen = ({ onNavigate }: PageProps) => {
+const AvailabilityScreen = ({ onNavigate, onUpdate }: PageProps) => {
   const [data, setData] = useState({
-    dayFrom: "MONDAY", dayTo: "SUNDAY", holidaysAvailable: "YES",
-    timeStart: "08:00", timeEnd: "22:00", workers: "5",
+    day_from: "MONDAY", day_to: "SUNDAY", holidays_available: true,
+    opening_time: "08:00", closing_time: "22:00", total_workers: 5,
   });
   const [isLoading, setIsLoading] = useState(false);
   const toast = useToast();
@@ -442,11 +469,9 @@ const AvailabilityScreen = ({ onNavigate }: PageProps) => {
   const handleSave = async () => {
     setIsLoading(true);
     try {
-      const vId = localStorage.getItem("tempVendorId");
-      if (!vId) throw new Error("Session expired. Please restart signup.");
-      await authService.saveAvailabilityDetails(vId, data as any);
+      if (onUpdate) onUpdate(data);
       onNavigate("payment");
-    } catch (e: any) { toast.error(e.message); }
+    } catch (e) { toast.error((e as Error).message); }
     finally { setIsLoading(false); }
   };
 
@@ -465,9 +490,9 @@ const AvailabilityScreen = ({ onNavigate }: PageProps) => {
                  <span className="text-[10px] font-black uppercase text-gray-500 tracking-widest">Active Days</span>
               </div>
               <div className="flex gap-2">
-                 <select value={data.dayFrom} onChange={e => setData({...data, dayFrom: e.target.value})} className="flex-1 bg-white/5 border-white/10 rounded-xl p-3 text-xs font-bold text-white uppercase appearance-none"><option value="MONDAY">Mon</option><option value="FRIDAY">Fri</option></select>
+                 <select value={data.day_from} onChange={e => setData({...data, day_from: e.target.value})} className="flex-1 bg-white/5 border-white/10 rounded-xl p-3 text-xs font-bold text-white uppercase appearance-none"><option value="MONDAY">Mon</option><option value="FRIDAY">Fri</option></select>
                  <span className="pt-3">→</span>
-                 <select value={data.dayTo} onChange={e => setData({...data, dayTo: e.target.value})} className="flex-1 bg-white/5 border-white/10 rounded-xl p-3 text-xs font-bold text-white uppercase appearance-none"><option value="SUNDAY">Sun</option><option value="SATURDAY">Sat</option></select>
+                 <select value={data.day_to} onChange={e => setData({...data, day_to: e.target.value})} className="flex-1 bg-white/5 border-white/10 rounded-xl p-3 text-xs font-bold text-white uppercase appearance-none"><option value="SUNDAY">Sun</option><option value="SATURDAY">Sat</option></select>
               </div>
            </div>
            <div className="space-y-4">
@@ -476,9 +501,9 @@ const AvailabilityScreen = ({ onNavigate }: PageProps) => {
                  <span className="text-[10px] font-black uppercase text-gray-500 tracking-widest">Shift Hours</span>
               </div>
               <div className="flex gap-2">
-                 <input type="time" value={data.timeStart} onChange={e => setData({...data, timeStart: e.target.value})} className="flex-1 bg-white/5 border-white/10 rounded-xl p-3 text-xs font-bold text-white" />
+                 <input type="time" value={data.opening_time} onChange={e => setData({...data, opening_time: e.target.value})} className="flex-1 bg-white/5 border-white/10 rounded-xl p-3 text-xs font-bold text-white" />
                  <span className="pt-3">→</span>
-                 <input type="time" value={data.timeEnd} onChange={e => setData({...data, timeEnd: e.target.value})} className="flex-1 bg-white/5 border-white/10 rounded-xl p-3 text-xs font-bold text-white" />
+                 <input type="time" value={data.closing_time} onChange={e => setData({...data, closing_time: e.target.value})} className="flex-1 bg-white/5 border-white/10 rounded-xl p-3 text-xs font-bold text-white" />
               </div>
            </div>
         </div>
@@ -497,20 +522,50 @@ const AvailabilityScreen = ({ onNavigate }: PageProps) => {
 };
 
 // Step 6: Bank Info
-const PaymentOption = ({ onNavigate }: PageProps) => {
-  const [data, setData] = useState({ bankName: "", accountNumber: "", accountName: "" });
+const PaymentOption = ({ onNavigate, onUpdate, registrationData }: PageProps) => {
+  const [data, setData] = useState({ bank_name: "", account_number: "", account_name: "" });
   const [isLoading, setIsLoading] = useState(false);
   const toast = useToast();
 
   const handleSave = async () => {
-    if (!data.accountNumber || !data.bankName) return toast.error("Bank details required");
+    if (!data.account_number || !data.bank_name) return toast.error("Bank details required");
+    
+    // Check if we have a user_id from the authentication process
+    if (!registrationData.user_id) {
+      toast.error("User authentication missing. Please restart registration.");
+      return;
+    }
+    
+    console.log("Save Bank Details button clicked");
+    console.log("Registration data:", registrationData);
+    
     setIsLoading(true);
     try {
-      const vId = localStorage.getItem("tempVendorId");
-      if (!vId) throw new Error("Session expired. Please restart signup.");
-      await authService.savePaymentDetails(vId, data);
+      // 1. Prepare final payload - Unified structure
+      const finalData = {
+        ...registrationData,
+        ...registrationData.profile,
+        ...registrationData.availability,
+        ...data, // bank_info fields
+        user_id: registrationData.user_id // Ensure user_id is included
+      };
+      
+      // Clean up the nested objects before sending
+      delete (finalData as any).profile;
+      delete (finalData as any).availability;
+      delete (finalData as any).bank_info;
+
+      console.log("Final registration data prepared:", finalData);
+
+      // 2. Call FastAPI Backend to create vendor profile
+      await backendAuthService.registerVendor(finalData);
+      
+      toast.success("Vendor Registration Complete!");
       onNavigate("confirm");
-    } catch (e: any) { toast.error(e.message); }
+    } catch (e: any) { 
+      console.error("Registration failed with error:", e);
+      toast.error(e.message || "Final registration failed. Check console for details."); 
+    }
     finally { setIsLoading(false); }
   };
 
@@ -525,15 +580,15 @@ const PaymentOption = ({ onNavigate }: PageProps) => {
         <div className="space-y-4">
            <div className="space-y-1">
               <label className="text-[10px] font-black uppercase text-gray-500 ml-4">Bank Name</label>
-              <input placeholder="Bank Name" value={data.bankName} onChange={e => setData({...data, bankName: e.target.value})} className="w-full px-6 py-4 bg-white/5 border border-white/10 rounded-2xl text-white font-bold text-sm" />
+              <input placeholder="Bank Name" value={data.bank_name} onChange={e => setData({...data, bank_name: e.target.value})} className="w-full px-6 py-4 bg-white/5 border border-white/10 rounded-2xl text-white font-bold text-sm" />
            </div>
            <div className="space-y-1">
               <label className="text-[10px] font-black uppercase text-gray-500 ml-4">Account Number</label>
-              <input placeholder="000XXX0000" value={data.accountNumber} onChange={e => setData({...data, accountNumber: e.target.value})} className="w-full px-6 py-4 bg-white/5 border border-white/10 rounded-2xl text-white font-bold text-sm tracking-[0.2em]" />
+              <input placeholder="000XXX0000" value={data.account_number} onChange={e => setData({...data, account_number: e.target.value})} className="w-full px-6 py-4 bg-white/5 border border-white/10 rounded-2xl text-white font-bold text-sm tracking-[0.2em]" />
            </div>
            <div className="space-y-1">
               <label className="text-[10px] font-black uppercase text-gray-500 ml-4">Account Name</label>
-              <input placeholder="Beneficiary Name" value={data.accountName} onChange={e => setData({...data, accountName: e.target.value})} className="w-full px-6 py-4 bg-white/5 border border-white/10 rounded-2xl text-white font-bold text-sm" />
+              <input placeholder="Beneficiary Name" value={data.account_name} onChange={e => setData({...data, account_name: e.target.value})} className="w-full px-6 py-4 bg-white/5 border border-white/10 rounded-2xl text-white font-bold text-sm" />
            </div>
         </div>
 
@@ -574,18 +629,34 @@ const ConfirmationScreen = () => {
 
 const VendorSignup = () => {
   const [page, setPage] = useState("main");
+  const [registrationData, setRegistrationData] = useState<any>({
+    firstname: "", lastname: "", email: "", phone: "",
+    profile: {}, availability: {}, bank_info: {}
+  });
+  
   const steps: Record<string, number> = { "main": 1, "confirm-otp": 2, "profile1": 3, "profile2": 4, "availability": 5, "payment": 6, "confirm": 7 };
   
+  const updateData = (section: string, data: any) => {
+    if (section === 'root') {
+      setRegistrationData((prev: any) => ({ ...prev, ...data }));
+    } else {
+      setRegistrationData((prev: any) => ({
+        ...prev,
+        [section]: { ...prev[section], ...data }
+      }));
+    }
+  };
+
   return (
     <VendorSignupShell step={steps[page]} totalSteps={7}>
       <ToastContainer toasts={useToast().toasts} onClose={useToast().closeToast} />
       <AnimatePresence mode="wait">
-        {page === "main" && <SignUpPage key="p1" onNavigate={setPage} />}
-        {page === "confirm-otp" && <EmailOTPScreen key="p2" onNavigate={setPage} />}
-        {page === "profile1" && <CreateProfile1 key="p3" onNavigate={setPage} />}
-        {page === "profile2" && <CreateProfile2 key="p4" onNavigate={setPage} />}
-        {page === "availability" && <AvailabilityScreen key="p5" onNavigate={setPage} />}
-        {page === "payment" && <PaymentOption key="p6" onNavigate={setPage} />}
+        {page === "main" && <SignUpPage key="p1" onNavigate={setPage} onUpdate={(data) => updateData('root', data)} />}
+        {page === "confirm-otp" && <EmailOTPScreen key="p2" onNavigate={setPage} registrationData={registrationData} />}
+        {page === "profile1" && <CreateProfile1 key="p3" onNavigate={setPage} onUpdate={(data) => updateData('profile', data)} />}
+        {page === "profile2" && <CreateProfile2 key="p4" onNavigate={setPage} onUpdate={(data) => updateData('profile', data)} />}
+        {page === "availability" && <AvailabilityScreen key="p5" onNavigate={setPage} onUpdate={(data) => updateData('availability', data)} />}
+        {page === "payment" && <PaymentOption key="p6" onNavigate={setPage} registrationData={registrationData} onUpdate={(data) => updateData('bank_info', data)} />}
         {page === "confirm" && <ConfirmationScreen key="p7" />}
       </AnimatePresence>
     </VendorSignupShell>

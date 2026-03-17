@@ -2,11 +2,11 @@ import { useState, useEffect } from "react";
 import { MapPin, Check, Package, MessageSquare, Phone } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { VendorNav } from "../component/VendorNav";
-import { supabase } from "../../services/authService"; // Add this import
+import { backendAuthService } from "../../services/backendAuthService";
 import {
-  getVendorOrders,
+  getVendorOrdersBackend,
   updateOrderStatus,
-  addTrackingUpdate,
+  addOrderTrackingUpdate,
 } from "../../services/api";
 
 interface OrderData {
@@ -57,141 +57,110 @@ const OrdersManagement = () => {
     navigate(`/vendor-chat?recipientId=${recipientId}`);
   };
 
-  // Update useEffect to get vendor ID first
   useEffect(() => {
-    const initializeOrders = async () => {
+    const loadOrders = async () => {
       try {
-        // Get current user from session
-        const {
-          data: { session },
-        } = await supabase.auth.getSession();
+        setLoading(true);
 
-        if (!session?.user) {
+        // Get current user from backend authentication
+        const currentUser = await backendAuthService.getCurrentUser();
+
+        if (!currentUser) {
           setLoading(false);
           return;
         }
 
-        // Get vendor ID from vendors table
-        const { data: vendorData, error: vendorError } = await supabase
-          .from("vendors")
-          .select("id")
-          .eq("user_id", session.user.id)
-          .single();
+        // Get vendor ID - assuming it's available in user object or we need to fetch it
+        const vendorId = currentUser.vendor_id || currentUser.id;
 
-        if (vendorError || !vendorData) {
+        if (!vendorId) {
           setLoading(false);
           return;
         }
 
-        setVendorId(vendorData.id);
+        setVendorId(vendorId);
 
-        const { data, error } = await getVendorOrders(vendorData.id);
+        // Use backend API to get vendor orders
+        const response = await getVendorOrdersBackend(vendorId);
 
-        if (!error && data) {
-          const formattedOrders: Order[] = data.map((order: OrderData) => {
-            const customerName = order.customer_name || "Guest";
-            const customerPhone = order.customer_phone || "No Phone";
-            let image = "🍽️";
-            if (
-              order.order_items &&
-              order.order_items[0]?.menu_items?.image_url
-            ) {
-              image = order.order_items[0].menu_items.image_url;
-            }
-            
-            let riderInfo;
-            if (order.riders) {
-              riderInfo = {
-                name: `${order.riders.firstname} ${order.riders.lastname}`.trim(),
-                phone: order.riders.phone
-              };
-            }
-
-            return {
-              id: order.id,
-              customerName,
-              phone: customerPhone,
-              address: order.delivery_address || "No address",
-              time: new Date(order.created_at).toLocaleString(),
-              image,
-              status: order.status as Order["status"],
-              total: order.total_amount || 0,
-              rider_id: order.rider_id,
-              rider_user_id: (order.riders as any)?.user_id,
-              rider: riderInfo
-            };
-          });
+        if (response.data) {
+          const formattedOrders: Order[] = response.data.map((order: any) => ({
+            id: order.id,
+            customerName: order.customer_name || "Customer",
+            phone: order.customer_phone || "",
+            address: order.delivery_address || "",
+            time: new Date(order.created_at).toLocaleString(),
+            image: order.order_items?.[0]?.menu_items?.image_url ||
+                   "🍽️",
+            status: order.status as Order["status"],
+            total: order.total_amount || 0,
+            rider_id: order.rider_id,
+            rider_user_id: order.riders?.user_id,
+            rider: order.riders
+              ? {
+                  name: `${order.riders.firstname} ${order.riders.lastname}`.trim(),
+                  phone: order.riders.phone,
+                }
+              : undefined,
+          }));
 
           setOrders(formattedOrders);
+        } else {
+          console.error("Error loading orders:", response.error);
         }
-      } catch {
-        // Error loading orders
+      } catch (error) {
+        console.error("Error in loadOrders:", error);
       } finally {
         setLoading(false);
       }
     };
 
-    initializeOrders();
-  }, []);
+    loadOrders();
+  }, [activeTab]);
 
   // Fix the handler types
   const handleAccept = async (orderId: string) => {
-    const { error } = await updateOrderStatus(orderId, "preparing");
-    if (!error) {
+    try {
+      await updateOrderStatus(orderId, { status: "preparing" });
       // Add tracking update
-      await addTrackingUpdate(orderId, {
-        status: "accepted",
-        message: "Your order has been accepted and is being prepared",
-        timestamp: new Date().toISOString(),
+      await addOrderTrackingUpdate(orderId, {
+        status: "preparing",
+        message: "Order accepted and being prepared",
       });
-
-      setOrders(
-        orders.map((order) =>
-          order.id === orderId
-            ? { ...order, status: "accepted" as const }
-            : order,
-        ),
-      );
+      toast.success("Order accepted!");
+      loadOrders();
+    } catch (error) {
+      toast.error("Failed to accept order");
     }
   };
 
   const handleCancel = async (orderId: string) => {
-    const { error } = await updateOrderStatus(orderId, "canceled");
-    if (!error) {
+    try {
+      await updateOrderStatus(orderId, { status: "canceled" });
       // Add tracking update
-      await addTrackingUpdate(orderId, {
+      await addOrderTrackingUpdate(orderId, {
         status: "canceled",
-        message: "Your order has been canceled",
-        timestamp: new Date().toISOString(),
+        message: "Order canceled by vendor",
       });
-
-      setOrders(
-        orders.map((order) =>
-          order.id === orderId
-            ? { ...order, status: "canceled" as const }
-            : order,
-        ),
-      );
+      toast.success("Order canceled!");
+      loadOrders();
+    } catch (error) {
+      toast.error("Failed to cancel order");
     }
   };
 
   const handleCheckOut = async (orderId: string) => {
-    const { error } = await updateOrderStatus(orderId, "completed");
-    if (!error) {
+    try {
+      await updateOrderStatus(orderId, { status: "completed" });
       // Add tracking update
-      await addTrackingUpdate(orderId, {
+      await addOrderTrackingUpdate(orderId, {
         status: "completed",
-        message: "Your order has been delivered",
-        timestamp: new Date().toISOString(),
+        message: "Order completed successfully",
       });
-
-      setOrders(
-        orders.map((order) =>
-          order.id === orderId
-            ? { ...order, status: "completed" as const }
-            : order,
-        ),
-      );
+      toast.success("Order completed!");
+      loadOrders();
+    } catch (error) {
+      toast.error("Failed to complete order");
     }
   };
 
