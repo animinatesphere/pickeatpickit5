@@ -15,7 +15,7 @@ const SUPABASE_ANON_KEY =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFjdXFjZXRhZHVpemd3Y2hvb3NhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg3OTUyMDksImV4cCI6MjA4NDM3MTIwOX0.RwkXc68xkA31UnMvGfdK9nTRQfjEqIVIutL9Z3y0xMg";
 
 // const EXTERNAL_API_BASE = "https://excessive-noelle-justboj-e0f38453.koyeb.app";
- const EXTERNAL_API_BASE = "http://localhost:8000";
+// const EXTERNAL_API_BASE = "http://localhost:8000";
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 

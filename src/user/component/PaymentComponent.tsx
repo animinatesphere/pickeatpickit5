@@ -236,22 +236,29 @@ const PaymentComponent: React.FC = () => {
         price_at_order: item.price,
       }));
 
-      const { data: createdOrder, error: orderError } = await createOrder(
-        orderPayload,
-        orderItems,
-      );
+      try {
+        const response = await createOrder(
+          orderPayload,
+          orderItems,
+        );
+        const createdOrder = response.data;
 
-      if (!orderError && createdOrder?.order?.id) {
-        sessionStorage.removeItem("cart");
-        sessionStorage.removeItem("pendingOrder");
-        sessionStorage.removeItem("checkoutItems");
-        setTrackingCode(createdOrder.order.id);
-      } else {
+        if (createdOrder?.order?.id) {
+          sessionStorage.removeItem("cart");
+          sessionStorage.removeItem("pendingOrder");
+          sessionStorage.removeItem("checkoutItems");
+          setTrackingCode(createdOrder.order.id);
+        } else {
+          toast.error("Unable to place your order at this time. Please try again.", "Order Failed");
+        }
+      } catch (orderError: any) {
         // Humanize error messages instead of showing technical database errors
         let errorMessage =
           "Unable to place your order at this time. Please try again.";
 
-        if (orderError?.message) {
+        if (orderError?.response?.data?.detail) {
+          errorMessage = orderError.response.data.detail;
+        } else if (orderError?.message) {
           if (
             orderError.message.includes("column") ||
             orderError.message.includes("schema")

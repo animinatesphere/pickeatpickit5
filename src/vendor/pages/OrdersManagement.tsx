@@ -3,12 +3,14 @@ import { MapPin, Check, Package, MessageSquare, Phone } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { VendorNav } from "../component/VendorNav";
 import { backendAuthService } from "../../services/backendAuthService";
+import { useToast } from "../../context/ToastContext";
 import {
   getVendorOrdersBackend,
   updateOrderStatus,
   addOrderTrackingUpdate,
 } from "../../services/api";
 
+/*
 interface OrderData {
   id: string;
   customer_name: string;
@@ -26,6 +28,7 @@ interface OrderData {
     avatar_url?: string;
   };
 }
+*/
 
 interface Order {
   id: string;
@@ -52,69 +55,68 @@ const OrdersManagement = () => {
   const [vendorId, setVendorId] = useState<string | null>(null); // Add this
   const [loading, setLoading] = useState(true); // Add this
   const navigate = useNavigate();
+  const toast = useToast();
 
   const handleMessage = (recipientId: string) => {
     navigate(`/vendor-chat?recipientId=${recipientId}`);
   };
 
-  useEffect(() => {
-    const loadOrders = async () => {
-      try {
-        setLoading(true);
+  const loadOrders = async () => {
+    try {
+      setLoading(true);
 
-        // Get current user from backend authentication
-        const currentUser = await backendAuthService.getCurrentUser();
+      // Get current user from backend authentication
+      const currentUser = await backendAuthService.getCurrentUser();
 
-        if (!currentUser) {
-          setLoading(false);
-          return;
-        }
-
-        // Get vendor ID - assuming it's available in user object or we need to fetch it
-        const vendorId = currentUser.vendor_id || currentUser.id;
-
-        if (!vendorId) {
-          setLoading(false);
-          return;
-        }
-
-        setVendorId(vendorId);
-
-        // Use backend API to get vendor orders
-        const response = await getVendorOrdersBackend(vendorId);
-
-        if (response.data) {
-          const formattedOrders: Order[] = response.data.map((order: any) => ({
-            id: order.id,
-            customerName: order.customer_name || "Customer",
-            phone: order.customer_phone || "",
-            address: order.delivery_address || "",
-            time: new Date(order.created_at).toLocaleString(),
-            image: order.order_items?.[0]?.menu_items?.image_url ||
-                   "🍽️",
-            status: order.status as Order["status"],
-            total: order.total_amount || 0,
-            rider_id: order.rider_id,
-            rider_user_id: order.riders?.user_id,
-            rider: order.riders
-              ? {
-                  name: `${order.riders.firstname} ${order.riders.lastname}`.trim(),
-                  phone: order.riders.phone,
-                }
-              : undefined,
-          }));
-
-          setOrders(formattedOrders);
-        } else {
-          console.error("Error loading orders:", response.error);
-        }
-      } catch (error) {
-        console.error("Error in loadOrders:", error);
-      } finally {
+      if (!currentUser) {
         setLoading(false);
+        return;
       }
-    };
 
+      // Get vendor ID - assuming it's available in user object or we need to fetch it
+      const vendorIdValue = currentUser.vendor_id || currentUser.id;
+
+      if (!vendorIdValue) {
+        setLoading(false);
+        return;
+      }
+
+      setVendorId(vendorIdValue);
+
+      // Use backend API to get vendor orders
+      const response = await getVendorOrdersBackend(vendorIdValue);
+
+      if (response.data) {
+        const formattedOrders: Order[] = response.data.map((order: any) => ({
+          id: order.id,
+          customerName: order.customer_name || "Customer",
+          phone: order.customer_phone || "",
+          address: order.delivery_address || "",
+          time: new Date(order.created_at).toLocaleString(),
+          image: order.order_items?.[0]?.menu_items?.image_url ||
+                 "🍽️",
+          status: order.status as Order["status"],
+          total: order.total_amount || 0,
+          rider_id: order.rider_id,
+          rider_user_id: order.riders?.user_id,
+          rider: order.riders
+            ? {
+                name: `${order.riders.firstname} ${order.riders.lastname}`.trim(),
+                phone: order.riders.phone,
+              }
+            : undefined,
+        }));
+
+        setOrders(formattedOrders);
+      }
+    } catch (error) {
+      console.error("Error in loadOrders:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     loadOrders();
   }, [activeTab]);
 

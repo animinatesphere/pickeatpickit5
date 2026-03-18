@@ -91,11 +91,14 @@ const RestaurantMenu: React.FC = () => {
         setVendorId(vendorId);
 
         // Now load menu items with the vendor ID
-        const { data, error } = await getMenuItems(vendorId);
-        if (!error && data) {
-          setMenuItems(data);
-          setCurrentView(data.length > 0 ? "menu" : "empty");
-        } else {
+        try {
+          const response = await getMenuItems(vendorId);
+          const data = response.data;
+          if (data) {
+            setMenuItems(data);
+            setCurrentView(data.length > 0 ? "menu" : "empty");
+          }
+        } catch (error) {
           console.error("Error loading menu items:", error);
         }
       } catch (error) {
@@ -139,9 +142,13 @@ const RestaurantMenu: React.FC = () => {
     let imageUrl = imagePreview || "🍚";
 
     if (selectedImage) {
-      const { data, error } = await uploadMenuImage(selectedImage, vendorId);
-      if (!error && data) {
-        imageUrl = data;
+      try {
+        const response = await uploadMenuImage(selectedImage, vendorId);
+        if (response.data) {
+          imageUrl = response.data;
+        }
+      } catch (error) {
+        console.error("Error uploading image:", error);
       }
     }
 
@@ -157,21 +164,23 @@ const RestaurantMenu: React.FC = () => {
     };
 
     if (editingItem) {
-      const { error } = await updateMenuItem(
-        editingItem.id.toString(),
-        mealData,
-      );
-      if (!error) {
+      try {
+        await updateMenuItem(
+          editingItem.id.toString(),
+          mealData,
+        );
         setMenuItems(
           menuItems.map((item) =>
             item.id === editingItem.id ? { ...item, ...mealData } : item,
           ),
         );
         toast.success("Meal updated successfully!", "Menu Updated");
-      } else {
+      } catch (error: any) {
         // Humanize error message
         let errorMessage = "Unable to update the menu item. Please try again.";
-        if (error?.message) {
+        if (error?.response?.data?.detail) {
+          errorMessage = error.response.data.detail;
+        } else if (error?.message) {
           if (
             error.message.includes("network") ||
             error.message.includes("connection")
@@ -188,14 +197,19 @@ const RestaurantMenu: React.FC = () => {
         toast.error(errorMessage, "Update Failed");
       }
     } else {
-      const { data, error } = await addMenuItem(mealData);
-      if (!error && data) {
-        setMenuItems([...menuItems, data[0]]);
-        toast.success("Meal added to your menu!", "Menu Updated");
-      } else {
+      try {
+        const response = await addMenuItem(mealData);
+        const data = response.data;
+        if (data) {
+          setMenuItems([...menuItems, Array.isArray(data) ? data[0] : data]);
+          toast.success("Meal added to your menu!", "Menu Updated");
+        }
+      } catch (error: any) {
         // Humanize error message
         let errorMessage = "Unable to add the menu item. Please try again.";
-        if (error?.message) {
+        if (error?.response?.data?.detail) {
+          errorMessage = error.response.data.detail;
+        } else if (error?.message) {
           if (
             error.message.includes("network") ||
             error.message.includes("connection")
@@ -242,9 +256,11 @@ const RestaurantMenu: React.FC = () => {
   };
 
   const handleRemove = async (id: number) => {
-    const { error } = await deleteMenuItem(id.toString());
-    if (!error) {
+    try {
+      await deleteMenuItem(id.toString());
       setMenuItems(menuItems.filter((item) => item.id !== id));
+    } catch (error) {
+      console.error("Error removing menu item:", error);
     }
   };
   const filteredItems = menuItems.filter((item) => {

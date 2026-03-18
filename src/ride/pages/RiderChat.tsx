@@ -94,7 +94,7 @@ export default function RiderChat() {
     if (activeChat) {
       loadMessages(activeChat.id);
       setConversations(prev => prev.map(c => c.id === activeChat.id ? { ...c, unread: 0 } : c));
-      const subscription = subscribeToMessages(activeChat.id, (payload) => {
+      const subscription = subscribeToMessages(activeChat.id, (payload: any) => {
         const newMessage = payload.new as Message;
         setChatMessages((prev) => [...prev, newMessage]);
         scrollToBottom();

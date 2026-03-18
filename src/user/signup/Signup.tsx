@@ -65,7 +65,7 @@ const EmailInputScreen = ({ onContinue, toast }: { onContinue: (email: string, p
       // Register with FastAPI backend - this automatically sends OTP
       const response = await backendAuthService.customerRegister({ email, password });
       toast.success("Verification Signal Sent");
-      onContinue(email, password, response.data?.user_id || "");
+      onContinue(email, password, response.data?.id || "");
     } catch (err) {
       toast.error((err as Error).message || "Failed to initiate signup");
     } finally {

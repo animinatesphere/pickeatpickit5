@@ -82,7 +82,7 @@ const SignUpPage = ({ onNavigate, onUpdate }: PageProps) => {
       // Store temp data including user_id from backend
       localStorage.setItem("tempSignupData", JSON.stringify({
         ...formData,
-        user_id: response.data?.user_id || response.data?.id
+        user_id: response.data?.id
       }));
       
       if (onUpdate) {
@@ -91,7 +91,7 @@ const SignUpPage = ({ onNavigate, onUpdate }: PageProps) => {
           lastname: formData.lastname,
           email: formData.email,
           phone: formData.phone,
-          user_id: response.data?.user_id || response.data?.id
+          user_id: response.data?.id
         });
       }
       toast.success("Verification Signal Sent");
@@ -190,7 +190,7 @@ const SignUpPage = ({ onNavigate, onUpdate }: PageProps) => {
 };
 
 // Step 2: OTP
-const EmailOTPScreen = ({ onNavigate, onUpdate, registrationData }: PageProps) => {
+const EmailOTPScreen = ({ onNavigate, onUpdate }: PageProps) => {
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [isLoading, setIsLoading] = useState(false);
   const inputRefs = useRef<HTMLInputElement[]>([]);
@@ -522,7 +522,7 @@ const AvailabilityScreen = ({ onNavigate, onUpdate }: PageProps) => {
 };
 
 // Step 6: Bank Info
-const PaymentOption = ({ onNavigate, onUpdate, registrationData }: PageProps) => {
+const PaymentOption = ({ onNavigate, registrationData }: PageProps) => {
   const [data, setData] = useState({ bank_name: "", account_number: "", account_name: "" });
   const [isLoading, setIsLoading] = useState(false);
   const toast = useToast();

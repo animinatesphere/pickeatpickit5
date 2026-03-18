@@ -51,11 +51,11 @@ export default function Market() {
   
   const navigate = useNavigate();
   const toast = useToast();
-const fetchVendorDetails = async (menuItemId: string) => {
+const fetchVendorDetails = async (menuItemId: string | number) => {
   try {
     // Get menu items and find the vendor
     const menuItems = await backendAuthService.getMenuItems(100);
-    const menuItem = menuItems.find((item: { id: string }) => item.id === menuItemId);
+    const menuItem = menuItems.find((item: { id: string | number }) => String(item.id) === String(menuItemId));
     
     if (!menuItem) {
       console.error("Menu item not found");
