@@ -12,48 +12,50 @@ import {
   Loader2,
 } from "lucide-react";
 import { RiderNav } from "../component/RiderNav";
-import { Link } from "react-router-dom";
-import { supabase } from "../../services/authService";
-import { getRiderStats } from "../../services/api";
+import { useNavigate, Link } from "react-router-dom";
+import { backendAuthService } from "../../services/backendAuthService";
+import { getRiderStats, updateRiderStatus } from "../../services/api";
 
 export default function RiderDashboard() {
   const [activeStatus, setActiveStatus] = useState(true);
   const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [riderId, setRiderId] = useState<string | null>(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     async function initDashboard() {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        const { data: rider } = await supabase
-          .from('riders')
-          .select('id, is_active')
-          .eq('user_id', session.user.id)
-          .maybeSingle();
-
-        if (rider) {
-          setRiderId(rider.id);
-          setActiveStatus(rider.is_active ?? true);
-          try {
-            const riderStats = await getRiderStats(rider.id);
-            setStats(riderStats);
-          } catch (err) {
-            // Failed to fetch rider stats
-          }
+      try {
+        const user = await backendAuthService.getCurrentUser();
+        if (user && user.role === 'rider') {
+          setRiderId(user.rider_id || user.id);
+          setActiveStatus(true); // Default to active, or fetch from stats
+          
+          const riderStats = await getRiderStats(user.rider_id || user.id);
+          setStats(riderStats);
+          setActiveStatus(riderStats.is_active);
+        } else {
+          navigate("/rider-login");
         }
+      } catch (err) {
+        console.error("Dashboard initialization failed:", err);
+        // Handle error, maybe redirect to login
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     }
     initDashboard();
-  }, []);
+  }, [navigate]);
 
   const toggleStatus = async () => {
     if (!riderId) return;
     const newStatus = !activeStatus;
-    setActiveStatus(newStatus);
-    // Optional: update DB if column exists
-    await supabase.from('riders').update({ is_active: newStatus }).eq('id', riderId);
+    try {
+      await updateRiderStatus(riderId, newStatus ? "active" : "inactive");
+      setActiveStatus(newStatus);
+    } catch (err) {
+      console.error("Failed to update status:", err);
+    }
   };
 
   if (loading) return (

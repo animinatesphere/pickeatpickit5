@@ -9,7 +9,7 @@ import {
   ArrowLeft
 } from "lucide-react";
 import { Link } from "react-router-dom";
-import { authService, APIError } from "../../services/authService";
+import { authService } from "../../services/authService";
 import { motion } from "framer-motion";
 
 export default function RiderLogin() {
@@ -30,18 +30,16 @@ export default function RiderLogin() {
     try {
       const result = await authService.loginRider(email, password);
       if (result.success) {
-        localStorage.setItem("auth_token", result.token || "");
-        localStorage.setItem("user", JSON.stringify(result.user));
+        // result.token and result.user are already stored in localStorage by authService.loginRider
         setTimeout(() => {
           window.location.href = "/rider-dashboard";
         }, 1000);
       }
     } catch (err: any) {
-      if (err instanceof APIError) setError(err.message);
-      else setError("System authentication failed");
-    } finally {
-      setIsLoading(false);
+      console.error("Login component error:", err);
+      setError(err.message || "Login failed. Please check your credentials.");
     }
+    finally { setIsLoading(false); }
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {

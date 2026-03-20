@@ -1,6 +1,7 @@
 // src/services/authService.ts
 import { createClient } from "@supabase/supabase-js";
 import api from "./api";
+import { decodeJwtToken } from "./backendAuthService";
 import type {
   RegisterRequest,
   RegisterResponse,
@@ -75,77 +76,83 @@ class AuthService {
     userId: string,
     email: string,
   ): Promise<string> {
-    const { data, error } = await supabase
-      .from("riders")
-      .upsert([
-        {
-          user_id: userId,
-          email: email,
-          status: "pending",
-          firstname: "", // Provide empty string instead of NULL
-          lastname: "", // Provide empty string instead of NULL
-          phone: "", // Provide empty string instead of NULL
-        },
-      ], { onConflict: 'email' })
-      .select("id")
-      .single();
-
-    if (error)
-      throw new APIError(
-        humanizeError(error, "We couldn't create your profile."),
-        400,
-      );
-    return data.id;
+    return safeAsyncRequired(async () => {
+      try {
+        const response = await api.get('/riders/profile');
+        return response.data.id;
+      } catch (error: any) {
+        throw new APIError("Failed to retrieve rider profile", 400);
+      }
+    });
   }
   // Update the existing registerRider to handle UPDATES instead of a new SIGNUP
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async updateRiderProfile(riderId: string, data: any): Promise<void> {
     return safeAsyncRequired(async () => {
-      const { error } = await supabase
-        .from("riders")
-        .update({
+      try {
+        await api.patch('/riders/profile', {
           firstname: data.firstName,
           lastname: data.lastName,
           phone: data.phone,
           gender: data.gender,
+          vehicle_type: data.vehicleType,
+          vehicle_brand: data.vehicleBrand,
+          plate_number: data.plateNumber,
           previous_work: data.previousWork,
           work_duration: data.workDuration,
           referral_code: data.referralCode,
-        })
-        .eq("id", riderId);
-
-      if (error)
+        });
+      } catch (error: any) {
         throw new APIError(
-          humanizeError(error, "We couldn't save your profile updates."),
+          error.response?.data?.detail || "We couldn't save your profile updates.",
           400,
         );
+      }
     });
   }
   async sendEmailOTP(
     email: string,
     password?: string,
+    role: string = "customer"
   ): Promise<{ message: string }> {
     return safeAsyncRequired(async () => {
-      try {
-        const normalizedEmail = email.toLowerCase().trim();
-        // 1. Register with External API
-        if (password) {
-          try {
-            await api.post('/auth/register', { email: normalizedEmail, password });
-          } catch (regErr) {
-            console.error("External registration error:", regErr);
+      const normalizedEmail = email.toLowerCase().trim();
+      
+      // 1. If password is provided, this is a registration attempt
+      if (password) {
+        try {
+          await api.post('/auth/register', { 
+            email: normalizedEmail, 
+            password,
+            user_type: role, // Primary role indicator
+            role: role       // Fallback for schemas with defaults
+          });
+          
+          // If registration is successful, the backend already sent the OTP.
+          return { message: "Registration successful! Verification OTP sent to your email." };
+        } catch (error: any) {
+          console.error("External registration error:", error);
+          
+          // Check if email already exists
+          if (error.response?.status === 400 && error.response?.data?.detail?.includes("already exists")) {
+            throw new APIError("An account with this email already exists. Please log in instead.", 400);
           }
+          
+          throw new APIError(
+            error.response?.data?.detail || "Registration failed. Please try again.",
+            error.response?.status || 400
+          );
         }
+      }
 
-        // 2. Send OTP via External API
+      // 2. If no password, this is a resend request or just sending OTP for existing user
+      try {
         await api.post('/auth/send-otp', { email: normalizedEmail });
-
         return { message: "OTP sent successfully! Please check your email." };
-      } catch (error) {
-        if (error instanceof APIError) throw error;
+      } catch (error: any) {
         throw new APIError(
-          humanizeError(error, "Failed to send OTP. Please try again."),
-          400,
+          error.response?.data?.detail || "Failed to send OTP. Please try again.",
+          error.response?.status || 400
         );
       }
     });
@@ -156,59 +163,37 @@ class AuthService {
       const normalizedEmail = email.toLowerCase().trim();
       // 1. Verify OTP via External API
       try {
-        await api.post('/auth/verify-otp', { email: normalizedEmail, otp_code: otp });
-      } catch (e: any) {
-        throw new APIError(e.response?.data?.detail || "OTP verification failed", 400);
-      }
-
-      // 2. Integration with Supabase
-      // Now that OTP is verified, we sign the user up in Supabase (Confirm email should be disabled in Supabase)
-      // This creates the session and the user record if it doesn't exist.
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password: password || "TempPassword123!", // We should ideally have the password from the registration step
-      });
-
-      if (error) {
-        // If user already exists, try signing in
-        if (error.message.includes("already registered")) {
-          const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-            email,
-            password: password || "TempPassword123!",
-          });
-          if (signInError) throw new APIError(humanizeError(signInError, "Supabase session sync failed"), 400);
+        const response = await api.post('/auth/verify-otp', { email: normalizedEmail, otp_code: otp });
+        
+        if (response.data && response.data.access_token) {
+          // Store token for future requests
+          localStorage.setItem('authToken', response.data.access_token);
+          
+          const user = response.data.user;
+          const userData = {
+            id: user.id,
+            email: user.email,
+            fullname: `${user.firstname || ""} ${user.lastname || ""}`.trim() || "User",
+            role: user.role,
+            rider_id: user.rider_id,
+            vendor_id: user.vendor_id
+          };
+          
+          localStorage.setItem('userData', JSON.stringify(userData));
           
           return {
             success: true,
-            message: "Welcome back! Verification complete.",
-            user: {
-              id: signInData.user.id,
-              email: signInData.user.email || "",
-              fullname: `${signInData.user.user_metadata?.firstname || ""} ${signInData.user.user_metadata?.lastname || ""}`.trim() || "User",
-            },
-            token: signInData.session?.access_token,
+            message: response.data.message || "Email verified successfully!",
+            user: userData,
+            token: response.data.access_token,
           };
         }
-        throw new APIError(humanizeError(error, "Supabase profile sync failed"), 400);
+        
+        throw new APIError("Invalid response from server", 500);
+      } catch (e: any) {
+        if (e instanceof APIError) throw e;
+        throw new APIError(e.response?.data?.detail || "OTP verification failed", 400);
       }
-
-      if (!data.user) {
-        throw new APIError("Failed to synchronize user session.", 400);
-      }
-
-      return {
-        success: true,
-        message: "Welcome! Your email has been verified.",
-        user: {
-          id: data.user.id,
-          email: data.user.email || "",
-          fullname:
-            `${data.user.user_metadata?.firstname || ""} ${data.user.user_metadata?.lastname || ""}`.trim() ||
-            "User",
-          phone: data.user.user_metadata?.phone,
-        },
-        token: data.session?.access_token,
-      };
     });
   }
 
@@ -217,24 +202,17 @@ class AuthService {
     type: "signup" | "recovery" = "signup",
   ): Promise<GetOTPResponse> {
     return safeAsyncRequired(async () => {
-      // recovery is handled as recovery resend, signup as signup
-      const resendType: "signup" | "recovery" =
-        type === "recovery" ? "recovery" : "signup";
-
-      const { error } = await supabase.auth.resend({
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        type: resendType as any,
-        email,
-      });
-
-      if (error) {
-        throw new APIError(humanizeError(error, "Failed to resend OTP"), 400);
+      try {
+        // Use our backend instead of Supabase for OTP resend
+        await this.sendEmailOTP(email);
+        
+        return {
+          success: true,
+          message: "A new code has been sent to your email.",
+        };
+      } catch (error: any) {
+        throw new APIError(error.message || "Failed to resend OTP", 400);
       }
-
-      return {
-        success: true,
-        message: "A new code has been sent to your email.",
-      };
     });
   }
   async registerRider(data: {
@@ -449,47 +427,57 @@ class AuthService {
   }
   async loginRider(email: string, password: string): Promise<LoginResponse> {
     return safeAsyncRequired(async () => {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+      try {
+        const response = await api.post('/auth/login', { email, password });
+        
+        if (response.data && response.data.access_token) {
+          // Decode token to check role
+          const tokenPayload = decodeJwtToken(response.data.access_token);
+          
+          if (!tokenPayload) {
+            throw new APIError("Failed to authenticate session. Please try again.", 401);
+          }
 
-      if (error) throw new APIError(humanizeError(error, "Login failed."), 401);
+          if (tokenPayload.role !== 'rider') {
+            throw new APIError("This account is not registered as a rider.", 403);
+          }
 
-      const { data: riderData, error: dbError } = await supabase
-        .from("riders")
-        .select("*")
-        .eq("user_id", data.user.id)
-        .single();
-
-      if (dbError || !riderData) {
-        await supabase.auth.signOut();
+          // Store token and user data
+          localStorage.setItem('authToken', response.data.access_token);
+          
+          // Use data from token as source of truth for current session
+          const userData = {
+            id: tokenPayload.user_id || tokenPayload.sub,
+            email: tokenPayload.email,
+            fullname: `${tokenPayload.firstname || ""} ${tokenPayload.lastname || ""}`.trim() || "Rider",
+            role: 'rider',
+            rider_id: tokenPayload.rider_id
+          };
+          
+          localStorage.setItem('userData', JSON.stringify(userData));
+          
+          return {
+            success: true,
+            message: "Login successful!",
+            user: userData,
+            token: response.data.access_token,
+          };
+        }
+        
+        throw new APIError("Invalid response from server", 500);
+      } catch (error: any) {
+        if (error instanceof APIError) throw error;
+        
+        // Handle specific Axios error responses
+        if (error.response?.data?.detail) {
+          throw new APIError(error.response.data.detail, error.response.status);
+        }
+        
         throw new APIError(
-          humanizeError(dbError, "This account is not registered as a rider."),
-          403,
+          "Login failed. Please check your credentials.",
+          error.response?.status || 401
         );
       }
-
-      if (riderData.status === "pending") {
-        throw new APIError(
-          "Your account is still being reviewed. We'll notify you via email once you're approved!",
-          403,
-        );
-      }
-
-      return {
-        success: true,
-        message: "Login successful!",
-        user: {
-          id: data.user.id,
-          email: data.user.email || "",
-          fullname:
-            `${riderData.firstname || ""} ${riderData.lastname || ""}`.trim() ||
-            "Rider",
-          ...riderData,
-        },
-        token: data.session.access_token,
-      };
     });
   }
   async uploadRiderDocument(
@@ -499,65 +487,31 @@ class AuthService {
   ): Promise<{ success: boolean; url: string; message: string }> {
     return safeAsyncRequired(async () => {
       try {
-        // Generate unique filename
-        const fileExt = file.name.split(".").pop();
-        const fileName = `${riderId}/${documentType}_${Date.now()}.${fileExt}`;
+        const formData = new FormData();
+        formData.append("file", file);
+        
+        // Map document types to match backend expectations
+        const backendDocType = documentType === "drivers_license" ? "license_photo" : "profile_photo";
+        
+        const response = await api.post(`/riders/upload-document?document_type=${backendDocType}`, formData, {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        });
 
-        // Upload to Supabase storage
-        // AFTER (Fixed)
-        const { error: uploadError } = await supabase.storage
-          .from("rider-documents")
-          .upload(fileName, file, {
-            cacheControl: "3600",
-            upsert: false,
-          });
-
-        if (uploadError) {
-          throw new APIError(
-            humanizeError(uploadError, "Failed to upload document."),
-            400,
-          );
+        if (response.data && response.data.success) {
+          return {
+            success: true,
+            url: response.data.url,
+            message: "Document uploaded successfully",
+          };
         }
-
-        // Get public URL
-        const { data: urlData } = supabase.storage
-          .from("rider-documents")
-          .getPublicUrl(fileName);
-
-        const publicUrl = urlData.publicUrl;
-
-        // Save document info to database (optional - create table if needed)
-        const { error: dbError } = await supabase
-          .from("rider_documents")
-          .insert([
-            {
-              rider_id: riderId,
-              document_type: documentType,
-              document_url: publicUrl,
-              file_name: file.name,
-              file_size: file.size,
-              uploaded_at: new Date().toISOString(),
-            },
-          ]);
-
-        if (dbError) {
-          console.warn(
-            "Document record save warning:",
-            humanizeError(dbError, "Failed to save document record."),
-          );
-          // Don't fail if table doesn't exist, still return success
-        }
-
-        return {
-          success: true,
-          url: publicUrl,
-          message: "Document uploaded successfully!",
-        };
-      } catch (error) {
-        if (error instanceof APIError) throw error;
+        
+        throw new Error("Failed to upload document");
+      } catch (error: any) {
         throw new APIError(
-          humanizeError(error, "Failed to upload document. Please try again."),
-          400,
+          error.response?.data?.detail || "Failed to upload document via backend.",
+          error.response?.status || 400,
         );
       }
     });
@@ -825,12 +779,11 @@ class AuthService {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async saveRiderRegistration(data: any) {
     return safeAsyncRequired(async () => {
-      const { riderId, ...fields } = data;
+      try {
+        const { ...fields } = data;
 
-      // Update main rider record
-      const { error: riderError } = await supabase
-        .from("riders")
-        .update({
+        // 1. Update main rider record using the unified endpoint
+        await api.post('/riders/', {
           firstname: fields.firstName,
           lastname: fields.lastName,
           phone: fields.phone,
@@ -842,56 +795,41 @@ class AuthService {
           work_duration: fields.workDuration,
           referral_code: fields.referralCode,
           status: "pending",
-        })
-        .eq("id", riderId);
-
-      if (riderError) throw new APIError(riderError.message, 400);
-
-      // Save Bank Info
-      if (fields.bankName) {
-        await supabase.from("rider_bank_info").upsert({
-          rider_id: riderId,
-          bank_name: fields.bankName,
-          account_number: fields.accountNumber,
-          account_name: fields.accountName,
         });
-      }
 
-      // Save Availability
-      if (fields.fromDay) {
-        await supabase.from("rider_availability").upsert({
-          rider_id: riderId,
-          day_from: fields.fromDay,
-          day_to: fields.toDay,
-          holidays_available: fields.holidayAvailable === "Yes, I'm available",
-          time_start: fields.timeStart,
-          time_end: fields.timeEnd,
-        });
-      }
+        // 2. Save Bank Info
+        if (fields.bankName) {
+          await api.post('/riders/bank-info', {
+            bank_name: fields.bankName,
+            account_number: fields.accountNumber,
+            account_name: fields.accountName,
+          });
+        }
 
-      // Save Guarantors if provided in expanded data
-      if (fields.guarantor1Name) {
-        await supabase.from("rider_guarantors").upsert(
-          [
-            {
-              rider_id: riderId,
-              name: fields.guarantor1Name,
-              phone: fields.guarantor1Phone,
-              relationship: fields.guarantor1Relationship,
-              guarantor_number: 1,
-            },
-            {
-              rider_id: riderId,
-              name: fields.guarantor2Name,
-              phone: fields.guarantor2Phone,
-              relationship: fields.guarantor2Relationship,
-              guarantor_number: 2,
-            },
-          ].filter((g) => g.name),
+        // 3. Save Guarantors if provided
+        if (fields.guarantor1Name) {
+          await api.post('/riders/guarantors', {
+            name: fields.guarantor1Name,
+            phone: fields.guarantor1Phone,
+            relationship: fields.guarantor1Relationship,
+          });
+        }
+
+        if (fields.guarantor2Name) {
+          await api.post('/riders/guarantors', {
+            name: fields.guarantor2Name,
+            phone: fields.guarantor2Phone,
+            relationship: fields.guarantor2Relationship,
+          });
+        }
+
+        return { success: true };
+      } catch (error: any) {
+        throw new APIError(
+          error.response?.data?.detail || "Failed to finalize rider registration.",
+          400
         );
       }
-
-      return { success: true };
     });
   }
 
@@ -1339,51 +1277,39 @@ class AuthService {
 
   async uploadVendorPhoto(vendorId: string, file: File, photoType: string) {
     return safeAsyncRequired(async () => {
-      // Convert file to base64 data URL (bypasses Storage bucket RLS)
-      const base64Url = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result as string);
-        reader.onerror = () => reject(new Error("Failed to read file"));
-        reader.readAsDataURL(file);
-      });
-
-      // 1. PRIMARY STORAGE: Update vendor_profiles directly
-      const column = photoType === "store_logo" ? "logo_url" : "cover_url";
-      const { error: profileError } = await supabase
-        .from("vendor_profiles")
-        .update({ [column]: base64Url })
-        .eq("vendor_id", vendorId);
-
-      if (profileError) {
-        console.warn(
-          "vendor_profiles update failed (Optional):",
-          profileError.message,
-        );
-      }
-
-      // 2. SECONDARY STORAGE: Insert into vendor_photos
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      const { error: photoTableError } = await supabase
-        .from("vendor_photos")
-        .insert([
-          {
-            vendor_id: vendorId,
-            user_id: user?.id,
-            photo_type: photoType,
-            photo_url: base64Url,
+      try {
+        const formData = new FormData();
+        formData.append("file", file);
+        
+        // Use backend API for proper Supabase upload (replaces Base64 approach)
+        const response = await api.post(`/vendors/upload-asset?vendor_id=${vendorId}&asset_type=${photoType}`, formData, {
+          headers: {
+            'Content-Type': 'multipart/form-data',
           },
-        ]);
+        });
 
-      if (photoTableError) {
-        console.warn(
-          "vendor_photos insert error (Handled):",
-          photoTableError.message,
-        );
+        if (response.data && response.data.success) {
+          // Update vendor_profiles with the proper Supabase URL
+          const column = photoType === "store_logo" ? "logo_url" : "cover_url";
+          const { error: profileError } = await supabase
+            .from("vendor_profiles")
+            .update({ [column]: response.data.url })
+            .eq("vendor_id", vendorId);
+
+          if (profileError) {
+            console.warn(
+              "vendor_profiles update failed (Optional):",
+              profileError.message,
+            );
+          }
+
+          return { publicUrl: response.data.url };
+        } else {
+          throw new Error("Upload failed: " + (response.data?.detail || "Unknown error"));
+        }
+      } catch (error: any) {
+        throw new Error(error.response?.data?.detail || error.message || "Failed to upload vendor asset");
       }
-
-      return { publicUrl: base64Url };
     });
   }
 
@@ -1553,8 +1479,8 @@ export const authService = {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   registerRider: (data: any) => apiService.registerRider(data), // NEW
-  sendEmailOTP: (email: string, password?: string) =>
-    apiService.sendEmailOTP(email, password),
+  sendEmailOTP: (email: string, password?: string, role?: string) =>
+    apiService.sendEmailOTP(email, password, role),
   createInitialRiderProfile: (userId: string, email: string) =>
     apiService.createInitialRiderProfile(userId, email),
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

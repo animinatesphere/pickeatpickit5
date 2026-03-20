@@ -1,7 +1,10 @@
 import { useState, useEffect, useRef } from "react";
 import { ArrowLeft, Camera, X, Check, Loader2 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
-import { supabase } from "../../services/authService";
+import { backendAuthService } from "../../services/backendAuthService";
+import { getRiderProfile, updateRiderProfile, updateRiderStatus as apiUpdateRiderStatus, updateProfile } from "../../services/api";
+
+type EditField = "fullName" | "phone" | "address" | null;
 
 interface ProfileData {
   id: string;
@@ -18,9 +21,7 @@ interface ProfileData {
   isActive: boolean;
 }
 
-type EditField = "fullName" | "email" | "phone" | "address" | null;
-
-export default function RiderProfileSettings() {
+const RiderProfileSettings = () => {
   const [profileData, setProfileData] = useState<ProfileData>({
     id: "",
     fullName: "",
@@ -47,39 +48,28 @@ export default function RiderProfileSettings() {
   useEffect(() => {
     async function fetchRiderProfile() {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session) {
+        const user = await backendAuthService.getCurrentUser();
+        if (!user || user.role !== 'rider') {
           navigate("/rider-login");
           return;
         }
 
-        const { data: rider, error } = await supabase
-          .from("riders")
-          .select("*")
-          .eq("user_id", session.user.id)
-          .maybeSingle();
-
-        if (error) throw error;
+        const riderResponse = await getRiderProfile();
+        const rider = riderResponse.data;
         
         if (rider) {
-          // Also fetch address from users table
-          const { data: userData } = await supabase
-            .from("users")
-            .select("*")
-            .eq("user_id", session.user.id)
-            .maybeSingle();
-
           setProfileData({
             id: rider.id,
             fullName: `${rider.firstname || ""} ${rider.lastname || ""}`.trim() || "Unidentified Operative",
             firstName: rider.firstname || "",
             lastName: rider.lastname || "",
-            email: rider.email || session.user.email || "",
+            email: rider.email || user.email || "",
             phone: rider.phone || "",
-            zip: userData?.zip || "",
-            city: userData?.city || "",
-            state: userData?.state || "",
-            address: userData?.address || "",
+            // Temporarily use empty strings for these fields until we implement proper user profile fetching
+            zip: "",
+            city: "",
+            state: "",
+            address: "",
             profileImage: rider.profile_image || "",
             isActive: rider.is_active ?? true,
           });
@@ -123,56 +113,58 @@ export default function RiderProfileSettings() {
 
   const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (file) {
-      // In a real app, upload to storage
-      // For now, let's just use local preview or direct update if we have storage
-      const reader = new FileReader();
-      reader.onloadend = async () => {
-        const base64 = reader.result as string;
-        setProfileData(prev => ({ ...prev, profileImage: base64 }));
-      };
-      reader.readAsDataURL(file);
+    if (file && profileData.id) {
+      try {
+        setIsSaving(true);
+        // Upload via API directly using FormData
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('document_type', 'profile_photo');
+        
+        const response = await fetch(`http://localhost:8000/api/riders/upload-document?document_type=profile_photo`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+          },
+          body: formData
+        });
+        
+        const result = await response.json();
+        if (result.success) {
+          setProfileData(prev => ({ ...prev, profileImage: result.url }));
+        }
+      } catch (err) {
+        console.error("Image upload failed:", err);
+      } finally {
+        setIsSaving(false);
+      }
     }
   };
 
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
+      // 1. Update Rider record
+      await updateRiderProfile({
+        firstname: profileData.firstName,
+        lastname: profileData.lastName,
+        phone: profileData.phone,
+        profile_image: profileData.profileImage,
+        is_active: profileData.isActive
+      });
 
-      // Update riders table
-      const { error: riderError } = await supabase
-        .from("riders")
-        .update({
-          firstname: profileData.firstName,
-          lastname: profileData.lastName,
-          phone: profileData.phone,
-          profile_image: profileData.profileImage,
-          is_active: profileData.isActive
-        })
-        .eq("id", profileData.id);
+      // 2. Update User record for address info
+      await updateProfile({
+        address: profileData.address,
+        city: profileData.city,
+        state: profileData.state,
+        zip: profileData.zip,
+        phone: profileData.phone,
+        firstname: profileData.firstName,
+        lastname: profileData.lastName,
+      });
 
-      if (riderError) throw riderError;
-
-      // Update users table for address info
-      const { error: userError } = await supabase
-        .from("users")
-        .upsert({
-          user_id: session.user.id,
-          email: session.user.email,
-          address: profileData.address,
-          city: profileData.city,
-          state: profileData.state,
-          zip: profileData.zip,
-          phone: profileData.phone,
-          firstname: profileData.firstName,
-          lastname: profileData.lastName,
-        }, { onConflict: 'user_id' });
-
-      if (userError) throw userError;
-
-      // Success! Maybe show a toast
+      // Success!
     } catch (err) {
       console.error("Error saving profile:", err);
     } finally {
@@ -184,12 +176,8 @@ export default function RiderProfileSettings() {
     const newStatus = !profileData.isActive;
     setProfileData(prev => ({ ...prev, isActive: newStatus }));
     
-    // Immediate update in background
     try {
-      await supabase
-        .from("riders")
-        .update({ is_active: newStatus })
-        .eq("id", profileData.id);
+      await apiUpdateRiderStatus(newStatus ? "active" : "inactive");
     } catch (err) {
       console.error("Error toggling active status:", err);
     }
@@ -472,4 +460,6 @@ export default function RiderProfileSettings() {
       </div>
     </div>
   );
-}
+};
+
+export default RiderProfileSettings;

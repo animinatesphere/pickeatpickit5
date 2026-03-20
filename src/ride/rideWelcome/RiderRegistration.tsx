@@ -127,9 +127,13 @@ function Step0({ formData, onChange, onNext, isLoading, setIsLoading, error, set
     if (!formData.email || !formData.password) return setError("Missing fields");
     if (setIsLoading) setIsLoading(true);
     try {
-      await authService.sendEmailOTP(formData.email, formData.password);
+      // Register the rider with the backend - this also sends the OTP
+      await authService.sendEmailOTP(formData.email, formData.password, "rider");
       onNext();
-    } catch (e: any) { setError(e.message || "Failed to initiate signal"); }
+    } catch (e: any) { 
+      // Handle the "email exists" or any registration error from backend
+      setError(e.message || "Failed to initiate signal"); 
+    }
     finally { if (setIsLoading) setIsLoading(false); }
   };
 
@@ -163,10 +167,16 @@ function StepOTP({ formData, onChange, onNext, onBack, isLoading, setIsLoading, 
   const handleVerify = async () => {
     setIsLoading(true);
     try {
-      const { user } = await authService.verifyEmailOTP(formData.email, formData.emailOTP, formData.password);
-      if (user) {
-        const id = await authService.createInitialRiderProfile(user.id, formData.email);
-        setRiderId(id);
+      const response = await authService.verifyEmailOTP(formData.email, formData.emailOTP, formData.password);
+      if (response.user) {
+        // The backend verify-otp returns the user with rider_id if it exists
+        if ((response.user as any).rider_id) {
+          setRiderId((response.user as any).rider_id);
+        } else {
+          // Fallback: try to fetch profile if rider_id is missing for some reason
+          const id = await authService.createInitialRiderProfile(response.user.id, formData.email);
+          setRiderId(id);
+        }
         onNext();
       }
     } catch (e: any) { setError(e.message); }

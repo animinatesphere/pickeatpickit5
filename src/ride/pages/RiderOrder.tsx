@@ -15,8 +15,8 @@ import {
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { RiderNav } from "../component/RiderNav";
-import { supabase } from "../../services/authService";
-import { riderAcceptOrder, getAvailableDeliveries, riderRejectOrder } from "../../services/api";
+import { backendAuthService } from "../../services/backendAuthService";
+import { riderAcceptOrder, getAvailableDeliveries, riderRejectOrder, updateRiderOrderStatus, getRiderOrders } from "../../services/api";
 
 const RiderOrder = () => {
   const [activeTab, setActiveTab] = useState<"pending" | "ongoing">("pending");
@@ -37,21 +37,19 @@ const RiderOrder = () => {
 
   useEffect(() => {
     const init = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        const { data: rider } = await supabase
-          .from('riders')
-          .select('id')
-          .eq('user_id', session.user.id)
-          .maybeSingle();
-
-        if (rider) {
-          setRiderId(rider.id);
+      try {
+        const user = await backendAuthService.getCurrentUser();
+        if (user && user.role === 'rider') {
+          setRiderId(user.rider_id || user.id);
           setIsRider(true);
         } else {
           setIsRider(false);
           setLoading(false);
         }
+      } catch (err) {
+        console.error("Failed to initialize rider session:", err);
+        setIsRider(false);
+        setLoading(false);
       }
     };
     init();
@@ -67,24 +65,19 @@ const RiderOrder = () => {
     setLoading(true);
     try {
       if (activeTab === "pending") {
-        const { data: available } = await getAvailableDeliveries();
-        setPendingOrders(available || []);
+        const response = await getAvailableDeliveries();
+        setPendingOrders(response.data || []);
       } else {
-        const { data: ongoing } = await supabase
-          .from('orders')
-          .select(`
-            *,
-            vendor_profiles(business_name, business_address, business_phone),
-            order_items(
-              quantity, 
-              price_at_order, 
-              menu_items(name, image_url)
-            )
-          `)
-          .eq('rider_id', riderId)
-          .in('status', ['accepted', 'picked_up']);
-        setOngoingOrders(ongoing || []);
+        const response = await getRiderOrders(riderId!);
+        // Filter ongoing orders on frontend for now, or add filter to backend
+        const ongoing = (response.data || []).filter((o: any) => 
+          ['accepted', 'picked_up'].includes(o.status)
+        );
+        setOngoingOrders(ongoing);
       }
+    } catch (err) {
+      console.error("Failed to fetch orders:", err);
+      showToast("Failed to fetch orders from network", "error");
     } finally {
       setLoading(false);
     }
@@ -98,42 +91,46 @@ const RiderOrder = () => {
   const handleAcceptOrder = async () => {
     if (selectedOrder && riderId) {
       setLoading(true);
-      const { error } = await riderAcceptOrder(selectedOrder.id, riderId);
-      if (!error) {
+      try {
+        await riderAcceptOrder(selectedOrder.id);
         showToast("Order accepted! Proceed to pickup.");
         setActiveTab("ongoing");
         setView("list");
         fetchOrders();
-      } else {
+      } catch (err) {
         showToast("Failed to accept order", "error");
+      } finally {
+        setLoading(false);
+        setModal({ show: false, type: null });
       }
-      setLoading(false);
-      setModal({ show: false, type: null });
     }
   };
 
   const handleRejectOrder = async () => {
     if (!selectedOrder) return;
     setLoading(true);
-    const { error } = await riderRejectOrder(selectedOrder.id);
-    if (!error) {
+    try {
+      await riderRejectOrder(selectedOrder.id);
       showToast("Order rejected successfully", "error");
       fetchOrders();
       setView("list");
-    } else {
+    } catch (err) {
       showToast("Failed to reject order", "error");
+    } finally {
+      setLoading(false);
+      setModal({ show: false, type: null });
     }
-    setLoading(false);
-    setModal({ show: false, type: null });
   };
 
   const updateStatus = async (status: string) => {
     if (!selectedOrder) return;
-    const { error } = await supabase.from('orders').update({ status }).eq('id', selectedOrder.id);
-    if (!error) {
+    try {
+      await updateRiderOrderStatus(selectedOrder.id, status);
       showToast(status === 'picked_up' ? "Order Picked Up!" : "Order Delivered!");
       fetchOrders();
       setView("list");
+    } catch (err) {
+      showToast("Failed to update status", "error");
     }
   };
 
@@ -275,9 +272,9 @@ const RiderOrder = () => {
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-6">
                         <div className="w-20 h-20 bg-green-50 rounded-[1.5rem] flex items-center justify-center overflow-hidden shadow-inner group-hover:rotate-6 transition-transform">
-                          {order.order_items?.[0]?.menu_items?.image_url ? (
+                          {order.order_items?.[0]?.menu_item?.image_url ? (
                             <img 
-                              src={order.order_items[0].menu_items.image_url} 
+                              src={order.order_items[0].menu_item.image_url} 
                               className="w-full h-full object-cover" 
                               alt="Food" 
                             />
@@ -287,7 +284,7 @@ const RiderOrder = () => {
                         </div>
                         <div>
                           <h3 className="text-lg font-black  text-gray-800 uppercase tracking-tighter">
-                            {order.vendor_profiles?.business_name}
+                            {order.vendor?.business_name || order.restaurant_name}
                           </h3>
                           <div className="flex items-center gap-1.5 text-gray-400 text-xs mt-1 font-bold  uppercase">
                             <MapPin size={12} className="text-green-500" />
@@ -337,17 +334,17 @@ const RiderOrder = () => {
                   <div className="p-3 bg-green-50 rounded-2xl"><MapPin className="w-5 h-5 text-green-600" /></div>
                   <h3 className="font-black  uppercase tracking-widest text-green-600 text-xs">Vendor Details</h3>
                 </div>
-                <p className="font-black text-gray-800  uppercase tracking-tighter">{selectedOrder.vendor_profiles?.business_name}</p>
-                <p className="text-xs text-gray-400 font-bold mt-1 uppercase leading-relaxed">{selectedOrder.vendor_profiles?.business_address}</p>
+                <p className="font-black text-gray-800  uppercase tracking-tighter">{selectedOrder.vendor?.business_name || selectedOrder.restaurant_name}</p>
+                <p className="text-xs text-gray-400 font-bold mt-1 uppercase leading-relaxed">{selectedOrder.vendor?.business_address || selectedOrder.delivery_address}</p>
                 <div className="mt-4 flex items-center gap-3">
                   <button 
-                    onClick={() => handleMessage(selectedOrder.vendor_profiles?.user_id || "")}
+                    onClick={() => handleMessage(selectedOrder.vendor?.user_id || selectedOrder.user_id)}
                     className="p-2 bg-green-50 text-green-600 rounded-xl hover:scale-110 transition-all border border-green-100"
                   >
                     <MessageSquare size={16} />
                   </button>
-                  <a href={`tel:${selectedOrder.vendor_profiles?.business_phone}`} className="text-xs text-green-600 font-black  tracking-widest hover:underline">
-                    {selectedOrder.vendor_profiles?.business_phone || "UNREACHABLE"}
+                  <a href={`tel:${selectedOrder.vendor?.business_phone || selectedOrder.customer_phone}`} className="text-xs text-green-600 font-black  tracking-widest hover:underline">
+                    {selectedOrder.vendor?.business_phone || selectedOrder.customer_phone || "UNREACHABLE"}
                   </a>
                 </div>
               </div>

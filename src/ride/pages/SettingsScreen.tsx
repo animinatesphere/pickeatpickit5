@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { ChevronRight, LogOut, Trash2, Book, Lock } from "lucide-react";
 import { RiderNav } from "../component/RiderNav";
-import { supabase } from "../../services/authService";
+import { backendAuthService } from "../../services/backendAuthService";
 import { useNavigate } from "react-router-dom";
 
 export default function SettingsScreen() {
@@ -9,7 +9,7 @@ export default function SettingsScreen() {
   const navigate = useNavigate();
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
+    backendAuthService.logout();
     navigate("/rider-login");
   };
 

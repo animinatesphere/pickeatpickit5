@@ -14,6 +14,7 @@ interface CartItem {
   quantity: number;
   selected: boolean;
   image_url?: string;
+  vendor_id?: number | string;
 }
 const FoodCartApp: React.FC = () => {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
@@ -70,7 +71,10 @@ const FoodCartApp: React.FC = () => {
     }
     
     sessionStorage.setItem('checkoutItems', JSON.stringify(selectedItems));
-    navigate('/payment');
+    
+    // Get vendor_id from first selected item (assuming all items are from same vendor)
+    const vendorId = selectedItems.length > 0 ? selectedItems[0].vendor_id : null;
+    navigate(vendorId ? `/payment?vendor_id=${vendorId}` : '/payment');
   };
 
 const selectedCount = cartItems.filter((item) => item.selected).length;

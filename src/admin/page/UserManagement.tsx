@@ -108,12 +108,16 @@ const UserManagement = () => {
     setEditingField(null);
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleApproveRider = async (id: string) => {
-    const { error } = await updateRiderStatus(id, 'accepted');
-    if (!error) {
+    try {
+      await updateRiderStatus('accepted');
       toast.success("Rider approved successfully!", "Rider Approved");
       fetchUsers(); 
       closeModal();
+    } catch (error) {
+      console.error("Error approving rider:", error);
+      toast.error("Failed to approve rider");
     }
   };
 

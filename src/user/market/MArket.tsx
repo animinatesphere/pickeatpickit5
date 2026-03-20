@@ -29,12 +29,14 @@ interface MenuItem {
   image_url: string;
   description: string;
   quantity: number;
+  vendor_id?: string; // Vendor ID for payment processing
 }
 interface OrderItem {
   id: number;
   name: string;
   quantity: number;
   price: number;
+  vendor_id?: string; // Vendor ID for payment processing
 }
 
 export default function Market() {
@@ -63,8 +65,7 @@ const fetchVendorDetails = async (menuItemId: string | number) => {
     }
 
     // Get vendors and find the one matching the vendor_id
-    const vendors = await backendAuthService.getVendors(100);
-    const vendor = vendors.find((v: { id: string }) => v.id === menuItem.vendor_id);
+    const vendor = await backendAuthService.getVendorByID(menuItem.vendor_id || "");
 
     if (vendor) {
       setVendorInfo({
@@ -79,7 +80,15 @@ const fetchVendorDetails = async (menuItemId: string | number) => {
 useEffect(() => {
   const loadMenu = async () => {
     try {
+      // Get menu items with a reasonable limit
+      console.log("Fetching menu items from Market...");
       const data = await backendAuthService.getMenuItems(100);
+      console.log("Menu items received:", data);
+      
+      if (!data || data.length === 0) {
+        console.warn("No menu items returned from API.");
+      }
+      
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const formattedItems = data.map((item: any) => ({
         ...item,
@@ -160,11 +169,12 @@ useEffect(() => {
       name: item.name,
       quantity: item.quantity,
       price: item.price,
-      image_url: item.image_url
+      image_url: item.image_url,
+      vendor_id: item.vendor_id // Include vendor ID for payment processing
     }];
 
     sessionStorage.setItem("checkoutItems", JSON.stringify(checkoutItems));
-    navigate("/payment");
+    navigate(`/payment?vendor_id=${item.vendor_id}`);
   };
 
   const addToCart = (item: MenuItem) => {
@@ -219,7 +229,9 @@ useEffect(() => {
       specialInstructions: instructionsTextarea?.value || ''
     }));
 
-    navigate('/payment');
+    // Get vendor_id from first item (assuming all items are from same vendor)
+    const vendorId = cart.length > 0 ? cart[0].vendor_id : null;
+    navigate(vendorId ? `/payment?vendor_id=${vendorId}` : '/payment');
   };
 
   const getCart = (): OrderItem[] =>
@@ -230,6 +242,7 @@ useEffect(() => {
         name: item.name,
         quantity: item.quantity,
         price: item.price * (1 - item.discount / 100) * item.quantity,
+        vendor_id: item.vendor_id, // Include vendor ID for payment processing
       }));
 
   const updateQuantity = (id: number, delta: number) => {
@@ -244,7 +257,14 @@ useEffect(() => {
 
   const KitchenView = () => {
     const [selectedCategory, setSelectedCategory] = useState("All");
-    const categories = ["All", "Rice", "Meat", "Drinks", "Snacks", "Vegan"];
+    const [searchQuery, setSearchQuery] = useState("");
+    const categories = ["All", "Desert", "Breakfast", "Add ons", "Rice", "Meat", "Drinks", "Snacks", "Vegan"];
+
+    const filteredItems = items.filter((item) => {
+      const matchesCategory = selectedCategory === "All" || item.category === selectedCategory;
+      const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase());
+      return matchesCategory && matchesSearch;
+    });
 
     return (
       <div className="min-h-screen w-full bg-white transition-colors duration-300 pb-20">
@@ -257,6 +277,8 @@ useEffect(() => {
                 <input
                   type="text"
                   placeholder="Search for available items..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
                   className="w-full pl-14 pr-6 py-4 bg-gray-50 border border-gray-100 rounded-3xl text-sm focus:outline-none focus:ring-4 focus:ring-green-500/10 transition-all font-bold"
                 />
               </div>
@@ -287,7 +309,7 @@ useEffect(() => {
           >
             <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/40 to-transparent z-10" />
             <img 
-              src="https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=1600&q=80" 
+              src="https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=1600&q=80"
               className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" 
               alt="Hero"
             />
@@ -315,7 +337,7 @@ useEffect(() => {
             }}
             className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8"
           >
-            {items.map((item) => {
+            {filteredItems.map((item) => {
               const discountedPrice = (item.price * (1 - item.discount / 100)).toFixed(2);
               return (
                 <motion.div

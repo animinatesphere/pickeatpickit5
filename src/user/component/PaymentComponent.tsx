@@ -1,12 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { ChevronLeft, CreditCard, MapPin, Package } from "lucide-react";
-import { createOrder } from "../../services/api";
+import { createOrder, initializePayment } from "../../services/api";
 import { backendAuthService } from "../../services/backendAuthService";
 import { Navbar } from "../../component/Navbar";
 import { useToast } from "../../context/ToastContext";
-import { usePaystackPayment } from "react-paystack";
-import { PAYSTACK_PUBLIC_KEY } from "../../config/paystack";
 
 interface OrderItem {
   id: number;
@@ -36,6 +34,7 @@ const PaymentComponent: React.FC = () => {
     "online",
   );
   const [userEmail, setUserEmail] = useState("");
+  const [vendorInfo, setVendorInfo] = useState<any>(null);
   const [promoCode, setPromoCode] = useState("");
   const [discountInfo, setDiscountInfo] = useState<{
     code: string;
@@ -47,7 +46,7 @@ const PaymentComponent: React.FC = () => {
   useEffect(() => {
     const pendingOrder = sessionStorage.getItem("pendingOrder");
     const checkoutItems = sessionStorage.getItem("checkoutItems");
-
+    console.log({pendingOrder, checkoutItems})
     if (pendingOrder) {
       setOrderData(JSON.parse(pendingOrder));
     } else if (checkoutItems) {
@@ -65,15 +64,37 @@ const PaymentComponent: React.FC = () => {
       navigate("/market");
     }
 
-    const getUserEmail = async () => {
-      // Get user email from stored user data
-      const userData = localStorage.getItem('userData');
-      if (userData) {
-        const user = JSON.parse(userData);
+    const fetchInitialData = async () => {
+      // Get user email
+      const userDataStr = localStorage.getItem('userData');
+      if (userDataStr) {
+        const user = JSON.parse(userDataStr);
         setUserEmail(user.email);
       }
+
+      // Fetch vendor info to check COD
+      try {
+        const items = pendingOrder ? JSON.parse(pendingOrder).items : (checkoutItems ? JSON.parse(checkoutItems) : []);
+        if (items.length > 0) {
+          // Extract vendor_id directly from the first item (all items should be from same vendor)
+          const vendorId = items[0].vendor_id;
+          if (vendorId) {
+            const vendors = await backendAuthService.getVendors(100);
+            const vendor = vendors.find((v: any) => v.id === vendorId);
+            if (vendor) {
+              setVendorInfo(vendor);
+              // If vendor doesn't accept COD and currently selected method is COD, switch to online
+              if (!vendor.accept_cod && paymentMethod === "cod") {
+                setPaymentMethod("online");
+              }
+            }
+          }
+        }
+      } catch (err) {
+        console.error("Error fetching vendor data:", err);
+      }
     };
-    getUserEmail();
+    fetchInitialData();
   }, [navigate, toast]);
 
   const calculateTotal = (): {
@@ -137,15 +158,6 @@ const PaymentComponent: React.FC = () => {
   // Replace your current handlePayment function with this:
   const { subtotal, delivery, discount, total } = calculateTotal();
 
-  const config = {
-    reference: new Date().getTime().toString(),
-    email: userEmail,
-    amount: Math.round(total * 100), // Convert to kobo
-    publicKey: PAYSTACK_PUBLIC_KEY,
-  };
-
-  const initializePayment = usePaystackPayment(config);
-
   const handlePayment = async () => {
     if (!orderData) return;
     if (!deliveryAddress.trim()) {
@@ -157,12 +169,66 @@ const PaymentComponent: React.FC = () => {
 
     if (paymentMethod === "online") {
       try {
-        initializePayment({
-          onSuccess: handlePaystackSuccess,
-          onClose: handlePaystackClose,
-        });
+        const userDataStr = localStorage.getItem('userData');
+        const userData = userDataStr ? JSON.parse(userDataStr) : null;
+        const fullName = userData ? `${userData.firstname || ""} ${userData.lastname || ""}`.trim() : "Customer";
+console.log({vendorInfo})
+        // Ensure vendor_id is available
+        if (!vendorInfo?.id) {
+          toast.error("Vendor information is not available. Please try again.", "Payment Error");
+          setLoading(false);
+          return;
+        }
+
+        const paymentPayload = {
+          amount: total,
+          vendor_id: vendorInfo.id, // Remove optional chaining to ensure it's required
+          payment_method: "paystack",
+          customer_email: userEmail,
+          customer_phone: userData?.phone,
+          customer_name: fullName,
+          delivery_address: deliveryAddress,
+          callback_url: `${window.location.origin}/payment-verify`,
+          metadata: {
+            order_items: orderData.items,
+            spice_level: orderData.spiceLevel,
+            special_instructions: orderData.specialInstructions
+          }
+        };
+
+        const response = await initializePayment(paymentPayload);
+        if (response.data?.authorization_url) {
+          // Store order details temporarily to create order after verification
+          sessionStorage.setItem('pendingOrderDetails', JSON.stringify({
+            orderPayload: {
+              vendor_id: vendorInfo?.id,
+              restaurant_name: vendorInfo?.business_name,
+              user_id: userData?.id,
+              customer_name: fullName,
+              customer_phone: userData?.phone,
+              delivery_address: deliveryAddress,
+              total_price: total, 
+              status: "pending",
+              items_count: orderData.items.length,
+              scheduled_time: new Date().toISOString(),
+              payment_method: "online",
+              is_paid: true,
+            },
+            orderItems: orderData.items.map((item) => ({
+              menu_item_id: item.id,
+              quantity: item.quantity,
+              price: item.price,  // Backend expects 'price', not 'price_at_order'
+            }))
+          }));
+
+          // Redirect to Paystack
+          window.location.href = response.data.authorization_url;
+        } else {
+          toast.error("Failed to initialize payment", "Payment Error");
+          setLoading(false);
+        }
       } catch (error) {
-        // Paystack init error
+        console.error("Payment initialization error:", error);
         toast.error("Failed to initialize payment", "Payment Error");
         setLoading(false);
       }
@@ -172,10 +238,12 @@ const PaymentComponent: React.FC = () => {
     }
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handlePaystackSuccess = async (reference: { reference: string }) => {
     await processOrderCreation(reference.reference);
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handlePaystackClose = () => {
     toast.info("Transaction was not completed", "Payment Cancelled");
     setLoading(false);
@@ -221,7 +289,7 @@ const PaymentComponent: React.FC = () => {
         customer_name: fullName,
         customer_phone: phoneNum,
         delivery_address: deliveryAddress,
-        total_amount: total,
+        total_price: total,  // Required by backend schema
         status: "pending",
         items_count: orderData!.items.length,
         scheduled_time: new Date().toISOString(),
@@ -233,7 +301,7 @@ const PaymentComponent: React.FC = () => {
       const orderItems = orderData!.items.map((item) => ({
         menu_item_id: item.id,
         quantity: item.quantity,
-        price_at_order: item.price,
+        price: item.price,  // Backend expects 'price', not 'price_at_order'
       }));
 
       try {
@@ -243,11 +311,12 @@ const PaymentComponent: React.FC = () => {
         );
         const createdOrder = response.data;
 
-        if (createdOrder?.order?.id) {
+        // Backend returns order directly, not nested under 'order'
+        if (createdOrder?.id) {
           sessionStorage.removeItem("cart");
           sessionStorage.removeItem("pendingOrder");
           sessionStorage.removeItem("checkoutItems");
-          setTrackingCode(createdOrder.order.id);
+          setTrackingCode(createdOrder.id);
         } else {
           toast.error("Unable to place your order at this time. Please try again.", "Order Failed");
         }
@@ -630,12 +699,20 @@ const PaymentComponent: React.FC = () => {
             </label>
 
             <label
-              className={`flex items-center gap-4 p-4 rounded-xl border-2 cursor-pointer transition-all ${
-                paymentMethod === "cod"
-                  ? "border-green-500 bg-green-50"
-                  : "border-gray-100 hover:border-green-200"
+              className={`flex items-center gap-4 p-4 rounded-xl border-2 transition-all ${
+                vendorInfo && !vendorInfo.accept_cod
+                  ? "opacity-50 cursor-not-allowed border-gray-100 bg-gray-50"
+                  : paymentMethod === "cod"
+                    ? "border-green-500 bg-green-50"
+                    : "border-gray-100 hover:border-green-200 cursor-pointer"
               }`}
-              onClick={() => setPaymentMethod("cod")}
+              onClick={() => {
+                if (vendorInfo?.accept_cod) {
+                  setPaymentMethod("cod");
+                } else if (vendorInfo && !vendorInfo.accept_cod) {
+                  toast.info("This vendor does not accept Cash on Delivery", "COD Unavailable");
+                }
+              }}
             >
               <div
                 className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
@@ -649,14 +726,19 @@ const PaymentComponent: React.FC = () => {
                 )}
               </div>
               <div className="flex-1 font-inter">
-                <p className="font-bold text-gray-900 ">
-                  Cash on Delivery
-                </p>
+                <div className="flex items-center gap-2">
+                  <p className="font-bold text-gray-900 ">
+                    Cash on Delivery
+                  </p>
+                  {vendorInfo && !vendorInfo.accept_cod && (
+                    <span className="text-[10px] bg-red-100 text-red-600 px-2 py-0.5 rounded-full font-bold uppercase">Unavailable</span>
+                  )}
+                </div>
                 <p className="text-xs text-gray-600">
-                  Pay when you receive your food
+                  Pay with cash when your order arrives
                 </p>
               </div>
-              <span className="text-2xl">💵</span>
+              <MapPin className="w-6 h-6 text-green-600" />
             </label>
           </div>
         </div>

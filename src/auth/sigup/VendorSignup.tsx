@@ -82,7 +82,7 @@ const SignUpPage = ({ onNavigate, onUpdate }: PageProps) => {
       // Store temp data including user_id from backend
       localStorage.setItem("tempSignupData", JSON.stringify({
         ...formData,
-        user_id: response.data?.id
+        user_id: (response.data as any)?.user_id || response.data?.id
       }));
       
       if (onUpdate) {
@@ -91,7 +91,7 @@ const SignUpPage = ({ onNavigate, onUpdate }: PageProps) => {
           lastname: formData.lastname,
           email: formData.email,
           phone: formData.phone,
-          user_id: response.data?.id
+          user_id: (response.data as any)?.user_id || response.data?.id
         });
       }
       toast.success("Verification Signal Sent");
@@ -210,7 +210,7 @@ const EmailOTPScreen = ({ onNavigate, onUpdate }: PageProps) => {
         if (signupData) {
           if (onUpdate) onUpdate({ user_id: signupData.user_id });
           localStorage.removeItem("tempSignupData");
-          toast.success("Identity Verified");
+          toast.success("OTP Verified");
           onNavigate("profile1");
         }
     } catch (e) { toast.error((e as Error).message || "Verification failed"); }
@@ -523,15 +523,18 @@ const AvailabilityScreen = ({ onNavigate, onUpdate }: PageProps) => {
 
 // Step 6: Bank Info
 const PaymentOption = ({ onNavigate, registrationData }: PageProps) => {
-  const [data, setData] = useState({ bank_name: "", account_number: "", account_name: "" });
+  const [data, setData] = useState({ bank_name: "", account_number: "", account_name: "", accept_cod: true });
   const [isLoading, setIsLoading] = useState(false);
   const toast = useToast();
 
   const handleSave = async () => {
+    console.log("clicked")
+    console.log(data.account_number, data.bank_name)
     if (!data.account_number || !data.bank_name) return toast.error("Bank details required");
     
     // Check if we have a user_id from the authentication process
     if (!registrationData.user_id) {
+      console.log(registrationData)
       toast.error("User authentication missing. Please restart registration.");
       return;
     }
@@ -589,6 +592,20 @@ const PaymentOption = ({ onNavigate, registrationData }: PageProps) => {
            <div className="space-y-1">
               <label className="text-[10px] font-black uppercase text-gray-500 ml-4">Account Name</label>
               <input placeholder="Beneficiary Name" value={data.account_name} onChange={e => setData({...data, account_name: e.target.value})} className="w-full px-6 py-4 bg-white/5 border border-white/10 rounded-2xl text-white font-bold text-sm" />
+           </div>
+           
+           <div className="flex items-center gap-4 px-4 py-2 bg-white/5 rounded-2xl border border-white/10">
+              <input 
+                type="checkbox" 
+                id="accept_cod"
+                checked={data.accept_cod} 
+                onChange={e => setData({...data, accept_cod: e.target.checked})} 
+                className="w-5 h-5 accent-blue-500 cursor-pointer" 
+              />
+              <div className="flex flex-col">
+                <label htmlFor="accept_cod" className="text-xs font-black uppercase tracking-widest text-white cursor-pointer">Accept Cash on Delivery</label>
+                <span className="text-[10px] text-gray-500 font-bold">Allow customers to pay with cash upon delivery</span>
+              </div>
            </div>
         </div>
 
@@ -652,7 +669,7 @@ const VendorSignup = () => {
       <ToastContainer toasts={useToast().toasts} onClose={useToast().closeToast} />
       <AnimatePresence mode="wait">
         {page === "main" && <SignUpPage key="p1" onNavigate={setPage} onUpdate={(data) => updateData('root', data)} />}
-        {page === "confirm-otp" && <EmailOTPScreen key="p2" onNavigate={setPage} registrationData={registrationData} />}
+        {page === "confirm-otp" && <EmailOTPScreen key="p2" onNavigate={setPage} registrationData={registrationData} onUpdate={(data) => updateData('root', data)} />}
         {page === "profile1" && <CreateProfile1 key="p3" onNavigate={setPage} onUpdate={(data) => updateData('profile', data)} />}
         {page === "profile2" && <CreateProfile2 key="p4" onNavigate={setPage} onUpdate={(data) => updateData('profile', data)} />}
         {page === "availability" && <AvailabilityScreen key="p5" onNavigate={setPage} onUpdate={(data) => updateData('availability', data)} />}

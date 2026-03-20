@@ -4,7 +4,6 @@ import {
   updateMenuItem,
   deleteMenuItem,
   getMenuItems,
-  uploadMenuImage,
 } from "../../services/api";
 import {
   ArrowLeft,
@@ -51,6 +50,7 @@ const RestaurantMenu: React.FC = () => {
   const [priceDescription, setPriceDescription] = useState("");
   const [mealCategory, setMealCategory] = useState("Desert");
   const [mealDescription, setMealDescription] = useState("");
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>("");
   const [uploading, setUploading] = useState(false);
@@ -139,18 +139,17 @@ const RestaurantMenu: React.FC = () => {
     }
 
     setUploading(true);
-    let imageUrl = imagePreview || "🍚";
-
-    if (selectedImage) {
-      try {
-        const response = await uploadMenuImage(selectedImage, vendorId);
-        if (response.data) {
-          imageUrl = response.data;
-        }
-      } catch (error) {
-        console.error("Error uploading image:", error);
-      }
+    
+    // Check if an image is provided
+    if (!imagePreview) {
+      toast.error("Please provide an image for the meal.", "Image Required");
+      setUploading(false);
+      return;
     }
+
+    // Use the local image preview (Data URL/Base64) directly
+    // since Supabase upload is failing or not desired
+    const imageUrl = imagePreview;
 
     const mealData = {
       vendor_id: vendorId,

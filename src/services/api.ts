@@ -1,7 +1,8 @@
 import axios from 'axios';
 import { supabase } from "./authService";
 
-const API_BASE_URL = 'https://smoggy-alexandrina-justboj-92783a09.koyeb.app/api';
+const API_BASE_URL = 'http://localhost:8000/api';
+// const API_BASE_URL = 'https://smoggy-alexandrina-justboj-92783a09.koyeb.app/api';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -27,6 +28,73 @@ api.interceptors.request.use(
   }
 );
 
+// --- ADMIN ENDPOINTS ---
+
+export const getAdminStats = async () => {
+  const response = await api.get('/admin/dashboard-stats');
+  return response.data;
+};
+
+// --- RIDER SYSTEM (BACKEND) ---
+
+export const riderAcceptOrder = async (orderId: string | number) => {
+  return api.post(`/riders/accept-order/${orderId}`);
+};
+
+export const riderRejectOrder = async (orderId: string | number) => {
+  return api.post(`/riders/reject-order/${orderId}`);
+};
+
+export const getAvailableDeliveries = async () => {
+  return api.get('/riders/available-orders');
+};
+
+export const getRiderOrders = async () => {
+  return api.get('/riders/orders');
+};
+
+export const getRiderStats = async () => {
+  const response = await api.get('/riders/dashboard-stats');
+  return response.data;
+};
+
+export const getRiderTransactions = async () => {
+  return api.get('/riders/transactions');
+};
+
+export const getRiderBankInfo = async () => {
+  return api.get('/riders/bank-info');
+};
+
+export const saveRiderBankInfo = async (bankInfo: Record<string, unknown>) => {
+  return api.post('/riders/bank-info', bankInfo);
+};
+
+export const getRiderEarningsHistory = async () => {
+  return api.get('/riders/earnings-history');
+};
+
+export const updateRiderStatus = async (status: string) => {
+  return api.patch('/riders/status', null, { params: { is_active: status === 'active' } });
+};
+
+export const getAllSystemUsers = async () => {
+  const response = await api.get('/admin/users');
+  return response.data;
+};
+
+export const updateRiderOrderStatus = async (orderId: string | number, status: string) => {
+  return api.patch(`/riders/orders/${orderId}/status`, null, { params: { status } });
+};
+
+export const getRiderProfile = async () => {
+  return api.get('/riders/profile');
+};
+
+export const updateRiderProfile = async (updates: any) => {
+  return api.patch('/riders/profile', updates);
+};
+
 // Response interceptor to handle auth errors
 api.interceptors.response.use(
   (response) => response,
@@ -48,6 +116,12 @@ api.interceptors.response.use(
 export const registerUser = (userData: any) => api.post('/auth/register', userData);
 export const sendOTP = (email: string) => api.post('/auth/send-otp', { email });
 export const verifyOTP = (otpData: any) => api.post('/auth/verify-otp', otpData);
+export const updateProfile = (data: any) => api.patch('/auth/profile', data);
+
+// Payment Management
+export const initializePayment = (paymentData: any) => api.post('/payments/initialize', paymentData);
+export const verifyPayment = (reference: string) => api.post(`/payments/verify/${reference}`);
+export const getMyPayments = () => api.get('/payments/my-payments');
 
 // Vendor Management
 export const registerVendor = (vendorData: any) => api.post('/vendors/', vendorData);
@@ -64,7 +138,14 @@ export const updateMenuItem = (id: string | number, updates: any) => api.put(`/m
 export const deleteMenuItem = (id: string | number) => api.delete(`/menu/${id}`);
 
 // Order Management
-export const createOrder = (orderData: any, orderItems?: any[]) => api.post('/orders/', { ...orderData, items: orderItems });
+export const createOrder = (orderData: any, orderItems?: any[]) => {
+  const payload = { ...orderData, items: orderItems };
+  console.log('=== CREATE ORDER API CALL ===');
+  console.log('orderData:', orderData);
+  console.log('orderItems:', orderItems);
+  console.log('Final payload being sent:', JSON.stringify(payload, null, 2));
+  return api.post('/orders/', payload);
+};
 export const getOrders = (params: any) => api.get('/orders/', { params });
 export const getOrderById = (id: string | number) => api.get(`/orders/${id}`);
 export const updateOrderStatus = (id: string | number, updates: any) => api.patch(`/orders/${id}`, updates);
@@ -99,24 +180,27 @@ export const getVendorOrders = async (vendorId: string | number) => {
 };
 
 export const uploadMenuImage = async (file: File, vendorId: string | number) => {
-  const fileExt = file.name.split(".").pop();
-  const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
-  const filePath = `${vendorId}/${fileName}`;
-
-  const { error: uploadError } = await supabase.storage
-    .from("menu-images")
-    .upload(filePath, file, {
-      cacheControl: '3600',
-      upsert: false
+  try {
+    const formData = new FormData();
+    formData.append("file", file);
+    
+    const response = await api.post(`/menu/upload-image?vendor_id=${vendorId}`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
     });
 
-  if (uploadError) return { data: null, error: uploadError };
-
-  const { data: urlData } = supabase.storage
-    .from("menu-images")
-    .getPublicUrl(filePath);
-
-  return { data: urlData.publicUrl, error: null };
+    if (response.data && response.data.success) {
+      return { data: response.data.url, error: null };
+    } else {
+      return { data: null, error: new Error("Upload failed: " + (response.data?.detail || "Unknown error")) };
+    }
+  } catch (error: any) {
+    return { 
+      data: null, 
+      error: new Error(error.response?.data?.detail || error.message || "Failed to upload image") 
+    };
+  }
 };
 
 // Health Check
@@ -327,19 +411,21 @@ export const createConversation = async (participants: string[], type: string = 
 };
 
 export const subscribeToMessages = (conversationId: string, callback: (payload: any) => void) => {
+  const channelName = conversationId === 'all' ? 'messages-all' : `messages:${conversationId}`;
+  const filter = conversationId === 'all' ? '*' : `conversation_id=eq.${conversationId}`;
+  
   return supabase
-    .channel(`messages:${conversationId}`)
+    .channel(channelName)
     .on(
       'postgres_changes',
-      {
-        event: 'INSERT',
-        schema: 'public',
-        table: 'messages',
-        filter: `conversation_id=eq.${conversationId}`
-      },
+      { event: 'INSERT', schema: 'public', table: 'messages', filter },
       callback
     )
     .subscribe();
+};
+
+export const removeSupabaseChannel = (channel: any) => {
+  return supabase.removeChannel(channel);
 };
 
 export const startDirectConversation = async (userId: string, recipientId: string) => {
@@ -367,140 +453,65 @@ export const searchUserByPhone = async (phoneQuery: string) => {
   return { data, error };
 };
 
+// --- RIDER SYSTEM (BACKEND) ---
+
+// export const riderAcceptOrder = async (orderId: string | number) => {
+//   return api.post(`/riders/accept-order/${orderId}`);
+// };
+
+// export const riderRejectOrder = async (orderId: string | number) => {
+//   return api.post(`/riders/reject-order/${orderId}`);
+// };
+
+// export const getAvailableDeliveries = async () => {
+//   return api.get('/riders/available-orders');
+// };
+
+// export const getRiderOrders = async (riderId: string | number) => {
+//   return api.get('/riders/orders');
+// };
+
+// export const getRiderStats = async (riderId: string | number) => {
+//   const response = await api.get('/riders/dashboard-stats');
+//   return response.data;
+// };
+
+// export const getRiderTransactions = async (riderId: string | number) => {
+//   return api.get('/riders/transactions');
+// };
+
+// export const getRiderBankInfo = async (riderId: string | number) => {
+//   return api.get('/riders/bank-info');
+// };
+
+// export const saveRiderBankInfo = async (riderId: string | number, bankInfo: any) => {
+//   return api.post('/riders/bank-info', bankInfo);
+// };
+
+// export const getRiderEarningsHistory = async (riderId: string | number) => {
+//   return api.get('/riders/earnings-history');
+// };
+
+// export const updateRiderStatus = async (riderId: string | number, status: string) => {
+//   return api.patch('/riders/status', null, { params: { is_active: status === 'active' } });
+// };
+
+// export const updateRiderOrderStatus = async (orderId: string | number, status: string) => {
+//   return api.patch(`/riders/orders/${orderId}/status`, null, { params: { status } });
+// };
+
+// // Explicitly re-export to fix possible bundling issues
+// export { updateRiderOrderStatus as updateRiderOrderStatusFix };
+
+// export const getRiderProfile = async () => {
+//   return api.get('/riders/profile');
+// };
+
+// export const updateRiderProfile = async (updates: any) => {
+//   return api.patch('/riders/profile', updates);
+// };
+
 // --- MISC SUPABASE ENDPOINTS (PENDING MIGRATION) ---
-
-export const getAllSystemUsers = async () => {
-  const { data: clients } = await supabase.from('users').select('*');
-  const { data: vendors } = await supabase.from('vendors').select('*');
-  const { data: riders } = await supabase.from('riders').select('*');
-
-  const combined = [
-    ...(clients || []).map((u: any) => ({ ...u, type: 'Client', name: `${u.firstname} ${u.lastname}` })),
-    ...(vendors || []).map((v: any) => ({ ...v, type: 'Vendor', name: v.business_name || v.firstname })),
-    ...(riders || []).map((r: any) => ({ ...r, type: 'Rider', name: `${r.firstname} ${r.lastname}` }))
-  ];
-
-  return combined;
-};
-
-export const riderAcceptOrder = async (orderId: string | number, riderId: string) => {
-  const { data, error } = await supabase
-    .from("orders")
-    .update({ status: "accepted", rider_id: riderId })
-    .eq("id", orderId)
-    .select();
-  return { data, error };
-};
-
-export const riderRejectOrder = async (orderId: string | number) => {
-  const { data, error } = await supabase
-    .from("orders")
-    .update({ 
-      status: "canceled", 
-      rider_id: null 
-    })
-    .eq("id", orderId)
-    .select();
-    
-  return { data, error };
-};
-
-export const getAvailableDeliveries = async () => {
-  const { data, error } = await supabase
-    .from("orders")
-    .select(`*, vendor_profiles(business_address, business_name, business_phone), order_items(quantity, price_at_order, menu_items(name, image_url))`) 
-    .eq("status", "preparing")
-    .is("rider_id", null);
-  return { data, error };
-};
-
-export const getRiderOrders = async (riderId: string) => {
-  const { data, error } = await supabase
-    .from("orders")
-    .select(`*, vendors(business_name, business_address, business_phone), order_items(*, menu_items(*))`)
-    .eq("rider_id", riderId)
-    .order("created_at", { ascending: false });
-  return { data, error };
-};
-
-export const getRiderStats = async (riderId: string) => {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-
-  const { data: orders } = await supabase.from('orders').select('status, total_amount, created_at').eq('rider_id', riderId);
-  const todayOrders = (orders || [])?.filter(o => new Date(o.created_at) >= today) || [];
-
-  return {
-    todayEarnings: todayOrders.filter(o => o.status === 'completed').reduce((sum, o) => sum + (o.total_amount || 0), 0),
-    todayOrdersCount: todayOrders.length,
-    completedToday: todayOrders.filter(o => o.status === 'completed').length,
-    inProgressToday: todayOrders.filter(o => ['accepted', 'picked_up'].includes(o.status)).length
-  };
-};
-
-export const getRiderTransactions = async (riderId: string) => {
-  const { data, error } = await supabase.from("rider_transactions").select("*").eq("rider_id", riderId).order("created_at", { ascending: false });
-  return { data, error };
-};
-
-export const getRiderBankInfo = async (riderId: string) => {
-  const { data, error } = await supabase.from("rider_bank_info").select("*").eq("rider_id", riderId).maybeSingle();
-  return { data, error };
-};
-
-export const saveRiderBankInfo = async (riderId: string, bankInfo: any) => {
-  const { data, error } = await supabase.from("rider_bank_info").upsert({ rider_id: riderId, ...bankInfo }).select();
-  return { data, error };
-};
-
-export const getRiderEarningsHistory = async (riderId: string) => {
-  const { data, error } = await supabase.from("orders").select("*").eq("rider_id", riderId).eq("status", "completed").order("created_at", { ascending: false });
-  return { data, error };
-};
-
-// --- ADMIN SYSTEM (SUPABASE) ---
-
-export const getAdminStats = async () => {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-
-  const { data: orders } = await supabase.from('orders').select('status, total_amount, created_at');
-  
-  const stats = {
-    activeOrders: (orders || [])?.filter(o => ['preparing', 'accepted', 'picked_up'].includes(o.status)).length || 0,
-    completedOrders: (orders || [])?.filter(o => o.status === 'completed').length || 0,
-    canceledOrders: (orders || [])?.filter(o => o.status === 'cancelled').length || 0,
-    todayEarnings: (orders || [])?.filter(o => {
-      const orderDate = new Date(o.created_at);
-      return orderDate >= today && o.status === 'completed';
-    }).reduce((sum, o) => sum + (o.total_amount || 0), 0) || 0,
-    pendingApprovals: 0
-  };
-
-  const { count: pendingRiders } = await supabase.from('riders').select('*', { count: 'exact', head: true }).eq('status', 'pending');
-  stats.pendingApprovals = pendingRiders || 0;
-
-  const { count: clients } = await supabase.from('users').select('*', { count: 'exact', head: true });
-  const { count: vendors } = await supabase.from('vendors').select('*', { count: 'exact', head: true });
-  const { count: riders } = await supabase.from('riders').select('*', { count: 'exact', head: true });
-
-  return {
-    ...stats,
-    userCounts: {
-      clients: clients || 0, vendors: vendors || 0, riders: riders || 0,
-      total: (clients || 0) + (vendors || 0) + (riders || 0)
-    }
-  };
-};
-
-export const updateRiderStatus = async (riderId: string | number, status: string) => {
-  const { data, error } = await supabase
-    .from('riders')
-    .update({ status })
-    .eq('id', riderId)
-    .select();
-  return { data, error };
-};
 
 export const deleteUserFromSystem = async (id: string | number, type: string) => {
   const table = type === 'Client' ? 'users' : type === 'Vendor' ? 'vendors' : 'riders';

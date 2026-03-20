@@ -78,7 +78,7 @@ export interface JwtPayload {
 }
 
 // Helper function to decode JWT token
-function decodeJwtToken(token: string): JwtPayload | null {
+export function decodeJwtToken(token: string): JwtPayload | null {
   try {
     const base64Url = token.split('.')[1];
     const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
@@ -216,17 +216,20 @@ class BackendAuthService {
         data: response.data
       };
       
-    } catch (error) {
-      const err = error as { response?: { data?: { detail?: string }; status?: number }; message?: string };
+    } catch (error: any) {
       console.error('Backend registration error:', error);
       
-      if (err.response?.data?.detail) {
-        throw new APIError(err.response.data.detail, err.response.status || 500);
+      if (error.response?.data?.detail) {
+        const detail = error.response.data.detail;
+        if (detail.includes("already exists")) {
+          throw new APIError("An account with this email already exists. Please log in instead.", 400);
+        }
+        throw new APIError(detail, error.response.status);
       }
       
       throw new APIError(
-        err.message || 'Registration failed. Please try again.',
-        err.response?.status || 500
+        error.message || 'Registration failed. Please try again.',
+        error.response?.status || 500
       );
     }
   }
@@ -296,17 +299,20 @@ class BackendAuthService {
         data: response.data
       };
       
-    } catch (error) {
-      const err = error as { response?: { data?: { detail?: string }; status?: number }; message?: string };
+    } catch (error: any) {
       console.error('Customer registration error:', error);
       
-      if (err.response?.data?.detail) {
-        throw new APIError(err.response.data.detail, err.response.status || 500);
+      if (error.response?.data?.detail) {
+        const detail = error.response.data.detail;
+        if (detail.includes("already exists")) {
+          throw new APIError("An account with this email already exists. Please log in instead.", 400);
+        }
+        throw new APIError(detail, error.response.status);
       }
       
       throw new APIError(
-        err.message || 'Registration failed. Please try again.',
-        err.response?.status || 500
+        error.message || 'Registration failed. Please try again.',
+        error.response?.status || 500
       );
     }
   }
@@ -374,17 +380,47 @@ class BackendAuthService {
   }
 
   // Verify OTP code
-  async verifyOTP(email: string, otpCode: string): Promise<{ success: boolean; message: string }> {
+  async verifyOTP(email: string, otpCode: string): Promise<LoginResponse> {
     try {
-      await api.post('/auth/verify-otp', { email, otp_code: otpCode });
+      const response = await api.post('/auth/verify-otp', { email, otp_code: otpCode });
       
-      return {
-        success: true,
-        message: 'Email verified successfully!'
-      };
+      if (response.data && response.data.access_token) {
+        // Store token for future requests
+        localStorage.setItem('authToken', response.data.access_token);
+        
+        // Decode token to get user context
+        const tokenPayload = decodeJwtToken(response.data.access_token);
+        
+        // Store user data
+        const user = response.data.user;
+        const userData: UserData = {
+          id: user.id,
+          email: user.email,
+          firstname: user.firstname || tokenPayload?.firstname || null,
+          lastname: user.lastname || tokenPayload?.lastname || null,
+          phone: user.phone || null,
+          is_verified: true,
+          role: user.role || tokenPayload?.role || 'customer',
+          vendor_id: user.vendor_id || tokenPayload?.vendor_id,
+          rider_id: user.rider_id || tokenPayload?.rider_id,
+        };
+        
+        localStorage.setItem('userData', JSON.stringify(userData));
+        
+        return {
+          success: true,
+          message: response.data.message || 'Email verified successfully!',
+          token: response.data.access_token,
+          user: userData
+        };
+      }
+      
+      throw new APIError('Invalid response from server', 500);
       
     } catch (error: any) {
       console.error('Backend verify OTP error:', error);
+      
+      if (error instanceof APIError) throw error;
       
       if (error.response?.data?.detail) {
         throw new APIError(error.response.data.detail, error.response.status);
@@ -658,13 +694,34 @@ class BackendAuthService {
       );
     }
   }
+  async getVendorByID(vendorId: string): Promise<any[]> {
+    try {
+      const response = await api.get(`/customer/vendors/${vendorId}`);
+      return response.data;
+      
+    } catch (error) {
+      const err = error as { response?: { data?: { detail?: string }; status?: number }; message?: string };
+      console.error('Get vendor by ID error:', error);
+      
+      if (err.response?.data?.detail) {
+        throw new APIError(err.response.data.detail, err.response.status || 500);
+      }
+      
+      throw new APIError(
+        err.message || 'Failed to get vendor by ID.',
+        err.response?.status || 500
+      );
+    }
+  }
 
   // Get menu items
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async getMenuItems(limit: number = 10, vendorId?: string): Promise<any[]> {
     try {
-      let url = `/customer/menu-items?limit=${limit}`;
-      if (vendorId) {
+      // Use 10 as default if limit is somehow null or empty string
+      const finalLimit = limit || 10;
+      let url = `/customer/menu-items?limit=${finalLimit}`;
+      if (vendorId && vendorId.trim() && vendorId !== "undefined") {
         url += `&vendor_id=${vendorId}`;
       }
       const response = await api.get(url);

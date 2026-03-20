@@ -1,7 +1,8 @@
 import axios from 'axios';
 import { supabase } from "./authService";
 
-const API_BASE_URL = 'https://smoggy-alexandrina-justboj-92783a09.koyeb.app/api';
+const API_BASE_URL = 'http://localhost:8000/api';
+// const API_BASE_URL = 'https://smoggy-alexandrina-justboj-92783a09.koyeb.app/api';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -48,6 +49,12 @@ api.interceptors.response.use(
 export const registerUser = (userData) => api.post('/auth/register', userData);
 export const sendOTP = (email) => api.post('/auth/send-otp', { email });
 export const verifyOTP = (otpData) => api.post('/auth/verify-otp', otpData);
+export const updateProfile = (data) => api.patch('/auth/profile', data);
+
+// Payment Management
+export const initializePayment = (paymentData) => api.post('/payments/initialize', paymentData);
+export const verifyPayment = (reference) => api.post(`/payments/verify/${reference}`);
+export const getMyPayments = () => api.get('/payments/my-payments');
 
 // Vendor Management
 export const registerVendor = (vendorData) => api.post('/vendors/', vendorData);
@@ -99,24 +106,27 @@ export const getVendorOrders = async (vendorId) => {
 };
 
 export const uploadMenuImage = async (file, vendorId) => {
-  const fileExt = file.name.split(".").pop();
-  const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
-  const filePath = `${vendorId}/${fileName}`;
-
-  const { error: uploadError } = await supabase.storage
-    .from("menu-images")
-    .upload(filePath, file, {
-      cacheControl: '3600',
-      upsert: false
+  try {
+    const formData = new FormData();
+    formData.append("file", file);
+    
+    const response = await api.post(`/menu/upload-image?vendor_id=${vendorId}`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
     });
 
-  if (uploadError) return { data: null, error: uploadError };
-
-  const { data: urlData } = supabase.storage
-    .from("menu-images")
-    .getPublicUrl(filePath);
-
-  return { data: urlData.publicUrl, error: null };
+    if (response.data && response.data.success) {
+      return { data: response.data.url, error: null };
+    } else {
+      return { data: null, error: new Error("Upload failed: " + (response.data?.detail || "Unknown error")) };
+    }
+  } catch (error) {
+    return { 
+      data: null, 
+      error: new Error(error.response?.data?.detail || error.message || "Failed to upload image") 
+    };
+  }
 };
 
 // Health Check
@@ -327,19 +337,26 @@ export const createConversation = async (participants, type = 'direct', metadata
 };
 
 export const subscribeToMessages = (conversationId, callback) => {
+  const channelName = conversationId === 'all' ? 'messages-all' : `messages:${conversationId}`;
+  const filter = conversationId === 'all' ? '*' : `conversation_id=eq.${conversationId}`;
+  
   return supabase
-    .channel(`messages:${conversationId}`)
+    .channel(channelName)
     .on(
       'postgres_changes',
       {
         event: 'INSERT',
         schema: 'public',
         table: 'messages',
-        filter: `conversation_id=eq.${conversationId}`
+        filter
       },
       callback
     )
     .subscribe();
+};
+
+export const removeSupabaseChannel = (channel) => {
+  return supabase.removeChannel(channel);
 };
 
 export const startDirectConversation = async (userId, recipientId) => {
@@ -383,79 +400,57 @@ export const getAllSystemUsers = async () => {
   return combined;
 };
 
-export const riderAcceptOrder = async (orderId, riderId) => {
-  const { data, error } = await supabase
-    .from("orders")
-    .update({ status: "accepted", rider_id: riderId })
-    .eq("id", orderId)
-    .select();
-  return { data, error };
+export const riderAcceptOrder = async (orderId) => {
+  return api.post(`/riders/accept-order/${orderId}`);
 };
 
 export const riderRejectOrder = async (orderId) => {
-  const { data, error } = await supabase
-    .from("orders")
-    .update({ 
-      status: "canceled", 
-      rider_id: null 
-    })
-    .eq("id", orderId)
-    .select();
-    
-  return { data, error };
+  return api.post(`/riders/reject-order/${orderId}`);
 };
 
 export const getAvailableDeliveries = async () => {
-  const { data, error } = await supabase
-    .from("orders")
-    .select(`*, vendor_profiles(business_address, business_name, business_phone), order_items(quantity, price_at_order, menu_items(name, image_url))`) 
-    .eq("status", "preparing")
-    .is("rider_id", null);
-  return { data, error };
+  return api.get('/riders/available-orders');
 };
 
 export const getRiderOrders = async (riderId) => {
-  const { data, error } = await supabase
-    .from("orders")
-    .select(`*, vendors(business_name, business_address, business_phone), order_items(*, menu_items(*))`)
-    .eq("rider_id", riderId)
-    .order("created_at", { ascending: false });
-  return { data, error };
+  return api.get('/riders/orders');
 };
 
 export const getRiderStats = async (riderId) => {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-
-  const { data: orders } = await supabase.from('orders').select('status, total_amount, created_at').eq('rider_id', riderId);
-  const todayOrders = orders?.filter(o => new Date(o.created_at) >= today) || [];
-
-  return {
-    todayEarnings: todayOrders.filter(o => o.status === 'completed').reduce((sum, o) => sum + (o.total_amount || 0), 0),
-    todayOrdersCount: todayOrders.length,
-    completedToday: todayOrders.filter(o => o.status === 'completed').length,
-    inProgressToday: todayOrders.filter(o => ['accepted', 'picked_up'].includes(o.status)).length
-  };
+  const response = await api.get('/riders/dashboard-stats');
+  return response.data;
 };
 
 export const getRiderTransactions = async (riderId) => {
-  const { data, error } = await supabase.from("rider_transactions").select("*").eq("rider_id", riderId).order("created_at", { ascending: false });
-  return { data, error };
+  return api.get('/riders/transactions');
 };
 
 export const getRiderBankInfo = async (riderId) => {
-  const { data, error } = await supabase.from("rider_bank_info").select("*").eq("rider_id", riderId).maybeSingle();
-  return { data, error };
+  return api.get('/riders/bank-info');
 };
 
 export const saveRiderBankInfo = async (riderId, bankInfo) => {
-  const { data, error } = await supabase.from("rider_bank_info").upsert({ rider_id: riderId, ...bankInfo }).select();
-  return { data, error };
+  return api.post('/riders/bank-info', bankInfo);
 };
 
 export const getRiderEarningsHistory = async (riderId) => {
-  const { data, error } = await supabase.from("orders").select("*").eq("rider_id", riderId).eq("status", "completed").order("created_at", { ascending: false });
-  return { data, error };
+  return api.get('/riders/earnings-history');
+};
+
+export const updateRiderStatus = async (riderId, status) => {
+  return api.patch('/riders/status', null, { params: { is_active: status === 'active' } });
+};
+
+export const updateRiderOrderStatus = async (orderId, status) => {
+  return api.patch(`/riders/orders/${orderId}/status`, null, { params: { status } });
+};
+
+export const getRiderProfile = async () => {
+  return api.get('/riders/profile');
+};
+
+export const updateRiderProfile = async (updates) => {
+  return api.patch('/riders/profile', updates);
 };
 
 // --- ADMIN SYSTEM (SUPABASE) ---
@@ -491,15 +486,6 @@ export const getAdminStats = async () => {
       total: (clients || 0) + (vendors || 0) + (riders || 0)
     }
   };
-};
-
-export const updateRiderStatus = async (riderId, status) => {
-  const { data, error } = await supabase
-    .from('riders')
-    .update({ status })
-    .eq('id', riderId)
-    .select();
-  return { data, error };
 };
 
 export const deleteUserFromSystem = async (id, type) => {

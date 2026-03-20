@@ -12,7 +12,8 @@ import {
 } from "lucide-react";
 import { RiderNav } from "../component/RiderNav";
 import { Link, useNavigate } from "react-router-dom";
-import { supabase } from "../../services/authService";
+import { backendAuthService } from "../../services/backendAuthService";
+import { getRiderProfile } from "../../services/api";
 
 const ProfileScreen: React.FC = () => {
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
@@ -23,20 +24,14 @@ const ProfileScreen: React.FC = () => {
   useEffect(() => {
     async function fetchRiderProfile() {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session) {
+        const user = await backendAuthService.getCurrentUser();
+        if (!user || user.role !== 'rider') {
           navigate("/rider-login");
           return;
         }
 
-        const { data: rider, error } = await supabase
-          .from("riders")
-          .select("*")
-          .eq("user_id", session.user.id)
-          .maybeSingle();
-
-        if (error) throw error;
-        setRiderData(rider);
+        const response = await getRiderProfile();
+        setRiderData(response.data);
       } catch (err) {
         console.error("Error fetching rider profile:", err);
       } finally {
@@ -48,7 +43,7 @@ const ProfileScreen: React.FC = () => {
   }, [navigate]);
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
+    backendAuthService.logout();
     navigate("/rider-login");
   };
 

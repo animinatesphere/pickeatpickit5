@@ -14,14 +14,15 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { useLocation } from "react-router-dom";
 import { RiderNav } from "../component/RiderNav";
-import { supabase } from "../../services/authService";
+import { backendAuthService } from "../../services/backendAuthService";
 import {
   getConversationWithParticipantNames,
   getMessages,
   sendMessage,
   subscribeToMessages,
   startDirectConversation,
-  searchUserByPhone
+  searchUserByPhone,
+  removeSupabaseChannel
 } from "../../services/api";
 
 interface Conversation {
@@ -69,23 +70,28 @@ export default function RiderChat() {
 
   useEffect(() => {
     const init = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user) {
-        setUserId(session.user.id);
-        await loadConversations(session.user.id);
+      try {
+        const user = await backendAuthService.getCurrentUser();
+        if (user) {
+          setUserId(user.id);
+          await loadConversations(user.id);
 
-        const params = new URLSearchParams(location.search);
-        const recipientId = params.get("recipientId");
-        if (recipientId) {
-          const res = await startDirectConversation(session.user.id, recipientId);
-          if (res && !res.error && res.data) {
-            const conv = res.data;
-            setActiveChat({ id: conv.id, name: "New Chat", message: conv.last_message_text || "Starting secure link...", time: "Just now", unread: 0, online: true });
-            setActiveView("chat");
+          const params = new URLSearchParams(location.search);
+          const recipientId = params.get("recipientId");
+          if (recipientId) {
+            const res = await startDirectConversation(user.id, recipientId);
+            if (res && !res.error && res.data) {
+              const conv = res.data;
+              setActiveChat({ id: conv.id, name: "New Chat", message: conv.last_message_text || "Starting secure link...", time: "Just now", unread: 0, online: true });
+              setActiveView("chat");
+            }
           }
         }
+      } catch (err) {
+        console.error("Chat init error:", err);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
     init();
   }, [location.search]);
@@ -99,32 +105,25 @@ export default function RiderChat() {
         setChatMessages((prev) => [...prev, newMessage]);
         scrollToBottom();
       });
-      return () => { supabase.removeChannel(subscription); };
+      return () => { removeSupabaseChannel(subscription); };
     }
   }, [activeChat]);
 
   // Listen for new messages across ALL conversations for unread badges
   useEffect(() => {
     if (!userId) return;
-    const channel = supabase
-      .channel('rider-chat-unread-listener')
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'messages' },
-        (payload: any) => {
-          const msg = payload.new;
-          if (msg.sender_id === userId) return;
-          if (!activeChat || msg.conversation_id !== activeChat.id) {
-            setConversations(prev => prev.map(c =>
-              c.id === msg.conversation_id
-                ? { ...c, unread: c.unread + 1, message: msg.content, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }
-                : c
-            ));
-          }
-        }
-      )
-      .subscribe();
-    return () => { supabase.removeChannel(channel); };
+    const subscription = subscribeToMessages('all', (payload: any) => {
+      const msg = payload.new;
+      if (msg.sender_id === userId) return;
+      if (!activeChat || msg.conversation_id !== activeChat.id) {
+        setConversations(prev => prev.map(c =>
+          c.id === msg.conversation_id
+            ? { ...c, unread: c.unread + 1, message: msg.content, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }
+            : c
+        ));
+      }
+    });
+    return () => { removeSupabaseChannel(subscription); };
   }, [userId, activeChat]);
 
   // Debounced phone search

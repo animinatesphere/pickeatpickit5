@@ -141,12 +141,12 @@ const EmailOTPScreen = ({ email, onContinue, onBack, toast }: { email: string, o
     try {
       // Verify OTP with FastAPI backend
       await backendAuthService.verifyOTP(email, otpCode);
-      toast.success("Identity Verified");
+      toast.success("OTP Verified");
       onContinue();
     } catch (e) { toast.error((e as Error).message || "Verification failed"); }
     finally { setIsLoading(false); }
   };
-
+ 
   return (
     <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="w-full max-w-lg">
       <button onClick={onBack} className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 hover:text-white transition-colors mb-10">

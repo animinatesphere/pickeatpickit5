@@ -23,6 +23,7 @@ import ChatApp from "./user/component/ChatApp";
 import Notification from "./user/component/Notification";
 import FoodCartApp from "./user/component/FoodCartApp";
 import PaymentComponent from "./user/component/PaymentComponent";
+import PaymentVerify from "./user/PaymentVerify";
 import Profile from "./user/Profile";
 import ProfileEditForm from "./user/ProfileEditForm";
 import Support from "./user/Support";
@@ -80,6 +81,7 @@ const AppRoutes = () => {
       <Route path="/notification" element={<Notification />} />
       <Route path="/cart" element={<FoodCartApp />} />
       <Route path="/payment" element={<PaymentComponent />} />
+      <Route path="/payment-verify" element={<PaymentVerify />} />
       <Route path="/profile" element={<Profile />} />
       <Route path="/device" element={<Device />} />
       <Route path="/profile-edit" element={<ProfileEditForm />} />

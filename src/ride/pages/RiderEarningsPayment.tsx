@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 
 import { RiderNav } from "../component/RiderNav";
-import { supabase } from "../../services/authService";
+import { backendAuthService } from "../../services/backendAuthService";
 import { 
   getRiderTransactions, 
   getRiderBankInfo, 
@@ -56,18 +56,13 @@ const RiderEarningsPayment = () => {
     const init = async () => {
       setLoading(true);
       try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session) return;
-
-        const { data: rider } = await supabase
-          .from('riders')
-          .select('id')
-          .eq('user_id', session.user.id)
-          .maybeSingle();
-
-        if (rider) {
-          setRiderId(rider.id);
-          await loadRiderData(rider.id);
+        const user = await backendAuthService.getCurrentUser();
+        if (user && user.role === 'rider') {
+          const rId = user.rider_id || user.id;
+          setRiderId(rId);
+          await loadRiderData(rId);
+        } else {
+          setError("Session expired or user is not a rider.");
         }
       } catch (err) {
         console.error("Initialization error:", err);
@@ -80,27 +75,31 @@ const RiderEarningsPayment = () => {
   }, []);
 
   const loadRiderData = async (id: string) => {
-    const [txData, bankData, orderData, statsData] = await Promise.all([
-      getRiderTransactions(id),
-      getRiderBankInfo(id),
-      getRiderEarningsHistory(id),
-      getRiderStats(id)
-    ]);
+    try {
+      const [txData, bankData, orderData, statsData] = await Promise.all([
+        getRiderTransactions(id),
+        getRiderBankInfo(id),
+        getRiderEarningsHistory(id),
+        getRiderStats(id)
+      ]);
 
-    if (txData.data) setTransactions(txData.data);
-    if (bankData.data) {
-      setBankDetails({
-        bank_name: bankData.data.bank_name || "",
-        account_number: bankData.data.account_number || "",
-        account_name: bankData.data.account_name || ""
-      });
-    }
-    if (orderData.data) setOrders(orderData.data);
-    if (statsData) {
-      setStats({
-        todayEarnings: statsData.todayEarnings || 0,
-        pendingPayout: statsData.todayEarnings // Simplified for now
-      });
+      if (txData.data) setTransactions(txData.data);
+      if (bankData.data) {
+        setBankDetails({
+          bank_name: bankData.data.bank_name || "",
+          account_number: bankData.data.account_number || "",
+          account_name: bankData.data.account_name || ""
+        });
+      }
+      if (orderData.data) setOrders(orderData.data);
+      if (statsData) {
+        setStats({
+          todayEarnings: statsData.todayEarnings || 0,
+          pendingPayout: statsData.todayEarnings // Simplified for now
+        });
+      }
+    } catch (err) {
+      console.error("Failed to load rider data:", err);
     }
   };
 
@@ -109,9 +108,9 @@ const RiderEarningsPayment = () => {
     setSaving(true);
     setError(null);
     try {
-      const { error: saveError } = await saveRiderBankInfo(riderId, bankDetails);
-      if (saveError) throw saveError;
+      await saveRiderBankInfo(riderId, bankDetails);
       setCurrentPage("main");
+      loadRiderData(riderId); // Refresh data
     } catch (err: any) {
       setError(err.message || "Failed to save bank information");
     } finally {
