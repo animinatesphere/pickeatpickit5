@@ -1,7 +1,7 @@
-/* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useState, useEffect } from "react";
+// ADD useCallback to the import at the top
+import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Bell,
@@ -71,7 +71,9 @@ const RiderOrder = () => {
     init();
   }, []);
 
-  const fetchOrders = async () => {
+  // BEFORE
+  // AFTER
+  const fetchOrders = useCallback(async () => {
     setLoading(true);
     try {
       if (activeTab === "pending") {
@@ -79,19 +81,29 @@ const RiderOrder = () => {
         setPendingOrders(response.data || []);
       } else {
         const response = await getRiderOrders();
-        // Filter ongoing orders on frontend for now, or add filter to backend
         const ongoing = (response.data || []).filter((o: any) =>
           ["accepted", "picked_up"].includes(o.status),
         );
         setOngoingOrders(ongoing);
       }
-    } catch (err) {
-      console.error("Failed to fetch orders:", err);
+    } catch (_err) {
       showToast("Failed to fetch orders from network", "error");
     } finally {
       setLoading(false);
     }
-  };
+  }, [activeTab]); // ← only activeTab as dependency
+
+  useEffect(() => {
+    if (riderId) {
+      fetchOrders();
+    }
+  }, [riderId, activeTab, fetchOrders]); // ← now safe because fetchOrders is stable
+
+  useEffect(() => {
+    if (riderId) {
+      fetchOrders();
+    }
+  }, [riderId, activeTab, fetchOrders]); // ← fetchOrders here causes infinite loop
   useEffect(() => {
     if (riderId) {
       fetchOrders();
