@@ -2,7 +2,12 @@ import { useState, useEffect, useRef } from "react";
 import { ArrowLeft, Camera, X, Check, Loader2 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { backendAuthService } from "../../services/backendAuthService";
-import { getRiderProfile, updateRiderProfile, updateRiderStatus as apiUpdateRiderStatus, updateProfile } from "../../services/api";
+import {
+  getRiderProfile,
+  updateRiderProfile,
+  updateRiderStatus as apiUpdateRiderStatus,
+  updateProfile,
+} from "../../services/api";
 
 type EditField = "fullName" | "phone" | "address" | null;
 
@@ -49,18 +54,20 @@ const RiderProfileSettings = () => {
     async function fetchRiderProfile() {
       try {
         const user = await backendAuthService.getCurrentUser();
-        if (!user || user.role !== 'rider') {
+        if (!user || user.role !== "rider") {
           navigate("/rider-login");
           return;
         }
 
         const riderResponse = await getRiderProfile();
         const rider = riderResponse.data;
-        
+
         if (rider) {
           setProfileData({
             id: rider.id,
-            fullName: `${rider.firstname || ""} ${rider.lastname || ""}`.trim() || "Unidentified Operative",
+            fullName:
+              `${rider.firstname || ""} ${rider.lastname || ""}`.trim() ||
+              "Unidentified Operative",
             firstName: rider.firstname || "",
             lastName: rider.lastname || "",
             email: rider.email || user.email || "",
@@ -98,7 +105,12 @@ const RiderProfileSettings = () => {
         const parts = tempValue.split(" ");
         const firstName = parts[0] || "";
         const lastName = parts.slice(1).join(" ") || "";
-        setProfileData({ ...profileData, fullName: tempValue, firstName, lastName });
+        setProfileData({
+          ...profileData,
+          fullName: tempValue,
+          firstName,
+          lastName,
+        });
       } else {
         setProfileData({ ...profileData, [field]: tempValue });
       }
@@ -111,27 +123,32 @@ const RiderProfileSettings = () => {
     setTempValue("");
   };
 
-  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
     const file = event.target.files?.[0];
     if (file && profileData.id) {
       try {
         setIsSaving(true);
         // Upload via API directly using FormData
         const formData = new FormData();
-        formData.append('file', file);
-        formData.append('document_type', 'profile_photo');
-        
-        const response = await fetch(`http://localhost:8000/api/riders/upload-document?document_type=profile_photo`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+        formData.append("file", file);
+        formData.append("document_type", "profile_photo");
+
+        const response = await fetch(
+          `http://localhost:8000/api/riders/upload-document?document_type=profile_photo`,
+          {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+            },
+            body: formData,
           },
-          body: formData
-        });
-        
+        );
+
         const result = await response.json();
         if (result.success) {
-          setProfileData(prev => ({ ...prev, profileImage: result.url }));
+          setProfileData((prev) => ({ ...prev, profileImage: result.url }));
         }
       } catch (err) {
         console.error("Image upload failed:", err);
@@ -150,7 +167,7 @@ const RiderProfileSettings = () => {
         lastname: profileData.lastName,
         phone: profileData.phone,
         profile_image: profileData.profileImage,
-        is_active: profileData.isActive
+        is_active: profileData.isActive,
       });
 
       // 2. Update User record for address info
@@ -174,10 +191,10 @@ const RiderProfileSettings = () => {
 
   const toggleActiveStatus = async () => {
     const newStatus = !profileData.isActive;
-    setProfileData(prev => ({ ...prev, isActive: newStatus }));
-    
+    setProfileData((prev) => ({ ...prev, isActive: newStatus }));
+
     try {
-      await apiUpdateRiderStatus(newStatus ? "active" : "inactive");
+      await apiUpdateRiderStatus("me", newStatus ? "active" : "inactive");
     } catch (err) {
       console.error("Error toggling active status:", err);
     }
@@ -187,7 +204,7 @@ const RiderProfileSettings = () => {
     label: string,
     field: EditField,
     value: string,
-    type: string = "text"
+    type: string = "text",
   ) => {
     const isEditing = editingField === field;
 
@@ -195,7 +212,9 @@ const RiderProfileSettings = () => {
       <div className="bg-white rounded-2xl p-4 shadow-sm hover:shadow-md transition-all duration-300 border border-gray-50">
         <div className="flex items-center justify-between gap-3">
           <div className="flex-1">
-            <label className="text-[10px] font-black  uppercase tracking-[0.2em] text-gray-400 mb-1 block">{label}</label>
+            <label className="text-[10px] font-black  uppercase tracking-[0.2em] text-gray-400 mb-1 block">
+              {label}
+            </label>
             {isEditing ? (
               <input
                 type={type}
@@ -205,7 +224,9 @@ const RiderProfileSettings = () => {
                 autoFocus
               />
             ) : (
-              <p className="text-sm font-black  uppercase tracking-tighter text-gray-800">{value || "NOT SET"}</p>
+              <p className="text-sm font-black  uppercase tracking-tighter text-gray-800">
+                {value || "NOT SET"}
+              </p>
             )}
           </div>
           <div className="flex items-center gap-2">
@@ -264,7 +285,9 @@ const RiderProfileSettings = () => {
               <ArrowLeft className="w-6 h-6 text-gray-700" />
             </button>
           </Link>
-          <h1 className="text-lg font-black  uppercase tracking-tighter text-gray-800">Operational profile</h1>
+          <h1 className="text-lg font-black  uppercase tracking-tighter text-gray-800">
+            Operational profile
+          </h1>
           <div className="w-12" />
         </div>
       </div>
@@ -276,8 +299,12 @@ const RiderProfileSettings = () => {
         >
           <div className="flex items-center justify-between p-6 bg-white rounded-[2rem] shadow-xl border border-gray-50">
             <div>
-              <span className="text-xs font-black  uppercase tracking-[0.3em] text-gray-400">Network Status</span>
-              <p className={`text-xl font-black  uppercase tracking-tighter mt-1 ${profileData.isActive ? "text-green-600" : "text-gray-400"}`}>
+              <span className="text-xs font-black  uppercase tracking-[0.3em] text-gray-400">
+                Network Status
+              </span>
+              <p
+                className={`text-xl font-black  uppercase tracking-tighter mt-1 ${profileData.isActive ? "text-green-600" : "text-gray-400"}`}
+              >
                 {profileData.isActive ? "Online & Ready" : "Signal Offline"}
               </p>
             </div>
@@ -289,7 +316,9 @@ const RiderProfileSettings = () => {
             >
               <span
                 className={`absolute top-1 left-1 w-7 h-7 bg-white rounded-full shadow-xl transition-all duration-500 transform ${
-                  profileData.isActive ? "translate-x-7 rotate-180" : "translate-x-0"
+                  profileData.isActive
+                    ? "translate-x-7 rotate-180"
+                    : "translate-x-0"
                 }`}
               />
             </button>
@@ -304,7 +333,7 @@ const RiderProfileSettings = () => {
             <div className="absolute top-0 right-0 p-8 opacity-5">
               <Camera size={120} className="text-gray-900" />
             </div>
-            
+
             <div className="flex flex-col sm:flex-row items-center gap-8 relative z-10">
               {/* Profile Photo */}
               <div className="relative group">
@@ -333,13 +362,20 @@ const RiderProfileSettings = () => {
 
               {/* Profile Info */}
               <div className="flex-1 text-center sm:text-left">
-                <p className="text-[10px] font-black  uppercase tracking-[0.4em] text-gray-400 mb-2">Agent ID: {profileData.id.slice(0, 8)}</p>
+                <p className="text-[10px] font-black  uppercase tracking-[0.4em] text-gray-400 mb-2">
+                  Agent ID: {profileData.id.slice(0, 8)}
+                </p>
                 <h2 className="text-3xl font-black  tracking-tighter text-gray-800 uppercase leading-none mb-3">
-                  {profileData.firstName || "New"} <br/> {profileData.lastName || "Operative"}
+                  {profileData.firstName || "New"} <br />{" "}
+                  {profileData.lastName || "Operative"}
                 </h2>
                 <div className="flex flex-col gap-2">
-                   <p className="text-sm font-bold text-gray-400 uppercase tracking-tight">{profileData.email}</p>
-                   <p className="text-lg font-black  text-green-600 tracking-tighter underline decoration-2 underline-offset-4">{profileData.phone || "--- --- ----"}</p>
+                  <p className="text-sm font-bold text-gray-400 uppercase tracking-tight">
+                    {profileData.email}
+                  </p>
+                  <p className="text-lg font-black  text-green-600 tracking-tighter underline decoration-2 underline-offset-4">
+                    {profileData.phone || "--- --- ----"}
+                  </p>
                 </div>
               </div>
             </div>
@@ -352,12 +388,23 @@ const RiderProfileSettings = () => {
         >
           <div className="flex items-center gap-3 mb-2 px-2">
             <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-            <h3 className="text-xs font-black  uppercase tracking-[0.4em] text-gray-800">Personal Intel</h3>
+            <h3 className="text-xs font-black  uppercase tracking-[0.4em] text-gray-800">
+              Personal Intel
+            </h3>
           </div>
 
           <div className="grid grid-cols-1 gap-4">
-            {renderEditableField("Display Name", "fullName", profileData.fullName)}
-            {renderEditableField("Active Signal (Phone)", "phone", profileData.phone, "tel")}
+            {renderEditableField(
+              "Display Name",
+              "fullName",
+              profileData.fullName,
+            )}
+            {renderEditableField(
+              "Active Signal (Phone)",
+              "phone",
+              profileData.phone,
+              "tel",
+            )}
           </div>
         </div>
 
@@ -366,11 +413,15 @@ const RiderProfileSettings = () => {
         >
           <div className="flex items-center gap-3 mb-2 px-2 mt-4">
             <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
-            <h3 className="text-xs font-black  uppercase tracking-[0.4em] text-gray-800">Logistics Data</h3>
+            <h3 className="text-xs font-black  uppercase tracking-[0.4em] text-gray-800">
+              Logistics Data
+            </h3>
           </div>
 
           <div className="bg-white rounded-[2rem] p-6 shadow-xl border border-gray-50">
-            <label className="text-[10px] font-black  uppercase tracking-[0.2em] text-gray-400 mb-4 block">Base of Operations</label>
+            <label className="text-[10px] font-black  uppercase tracking-[0.2em] text-gray-400 mb-4 block">
+              Base of Operations
+            </label>
             {editingField === "address" ? (
               <div className="space-y-4">
                 <textarea
@@ -415,9 +466,12 @@ const RiderProfileSettings = () => {
             {[
               { label: "Sector (Zip)", key: "zip" },
               { label: "Node (City)", key: "city" },
-              { label: "District (State)", key: "state" }
+              { label: "District (State)", key: "state" },
             ].map((field) => (
-              <div key={field.key} className="bg-white rounded-[1.5rem] p-4 shadow-lg border border-gray-50">
+              <div
+                key={field.key}
+                className="bg-white rounded-[1.5rem] p-4 shadow-lg border border-gray-50"
+              >
                 <label className="text-[8px] font-black  uppercase tracking-[0.2em] text-gray-400 mb-2 block">
                   {field.label}
                 </label>
@@ -425,7 +479,10 @@ const RiderProfileSettings = () => {
                   type="text"
                   value={profileData[field.key as keyof ProfileData] as string}
                   onChange={(e) =>
-                    setProfileData({ ...profileData, [field.key]: e.target.value })
+                    setProfileData({
+                      ...profileData,
+                      [field.key]: e.target.value,
+                    })
                   }
                   className="text-xs font-black text-gray-800 w-full focus:outline-none border-b border-transparent focus:border-green-500 bg-transparent py-1 tracking-tighter uppercase  transition-all"
                 />

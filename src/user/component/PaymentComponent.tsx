@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { ChevronLeft, CreditCard, MapPin, Package } from "lucide-react";
@@ -46,7 +47,7 @@ const PaymentComponent: React.FC = () => {
   useEffect(() => {
     const pendingOrder = sessionStorage.getItem("pendingOrder");
     const checkoutItems = sessionStorage.getItem("checkoutItems");
-    console.log({pendingOrder, checkoutItems})
+    console.log({ pendingOrder, checkoutItems });
     if (pendingOrder) {
       setOrderData(JSON.parse(pendingOrder));
     } else if (checkoutItems) {
@@ -66,7 +67,7 @@ const PaymentComponent: React.FC = () => {
 
     const fetchInitialData = async () => {
       // Get user email
-      const userDataStr = localStorage.getItem('userData');
+      const userDataStr = localStorage.getItem("userData");
       if (userDataStr) {
         const user = JSON.parse(userDataStr);
         setUserEmail(user.email);
@@ -74,7 +75,11 @@ const PaymentComponent: React.FC = () => {
 
       // Fetch vendor info to check COD
       try {
-        const items = pendingOrder ? JSON.parse(pendingOrder).items : (checkoutItems ? JSON.parse(checkoutItems) : []);
+        const items = pendingOrder
+          ? JSON.parse(pendingOrder).items
+          : checkoutItems
+            ? JSON.parse(checkoutItems)
+            : [];
         if (items.length > 0) {
           // Extract vendor_id directly from the first item (all items should be from same vendor)
           const vendorId = items[0].vendor_id;
@@ -95,6 +100,7 @@ const PaymentComponent: React.FC = () => {
       }
     };
     fetchInitialData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [navigate, toast]);
 
   const calculateTotal = (): {
@@ -130,7 +136,9 @@ const PaymentComponent: React.FC = () => {
 
     setIsValidatingPromo(true);
     try {
-      const data = await backendAuthService.validatePromoCode(promoCode.toUpperCase());
+      const data = await backendAuthService.validatePromoCode(
+        promoCode.toUpperCase(),
+      );
 
       if (!data.valid) {
         toast.error("Invalid or inactive promo code", "Invalid Code");
@@ -169,13 +177,18 @@ const PaymentComponent: React.FC = () => {
 
     if (paymentMethod === "online") {
       try {
-        const userDataStr = localStorage.getItem('userData');
+        const userDataStr = localStorage.getItem("userData");
         const userData = userDataStr ? JSON.parse(userDataStr) : null;
-        const fullName = userData ? `${userData.firstname || ""} ${userData.lastname || ""}`.trim() : "Customer";
-console.log({vendorInfo})
+        const fullName = userData
+          ? `${userData.firstname || ""} ${userData.lastname || ""}`.trim()
+          : "Customer";
+        console.log({ vendorInfo });
         // Ensure vendor_id is available
         if (!vendorInfo?.id) {
-          toast.error("Vendor information is not available. Please try again.", "Payment Error");
+          toast.error(
+            "Vendor information is not available. Please try again.",
+            "Payment Error",
+          );
           setLoading(false);
           return;
         }
@@ -192,34 +205,37 @@ console.log({vendorInfo})
           metadata: {
             order_items: orderData.items,
             spice_level: orderData.spiceLevel,
-            special_instructions: orderData.specialInstructions
-          }
+            special_instructions: orderData.specialInstructions,
+          },
         };
 
         const response = await initializePayment(paymentPayload);
         if (response.data?.authorization_url) {
           // Store order details temporarily to create order after verification
-          sessionStorage.setItem('pendingOrderDetails', JSON.stringify({
-            orderPayload: {
-              vendor_id: vendorInfo?.id,
-              restaurant_name: vendorInfo?.business_name,
-              user_id: userData?.id,
-              customer_name: fullName,
-              customer_phone: userData?.phone,
-              delivery_address: deliveryAddress,
-              total_price: total, 
-              status: "pending",
-              items_count: orderData.items.length,
-              scheduled_time: new Date().toISOString(),
-              payment_method: "online",
-              is_paid: true,
-            },
-            orderItems: orderData.items.map((item) => ({
-              menu_item_id: item.id,
-              quantity: item.quantity,
-              price: item.price,  // Backend expects 'price', not 'price_at_order'
-            }))
-          }));
+          sessionStorage.setItem(
+            "pendingOrderDetails",
+            JSON.stringify({
+              orderPayload: {
+                vendor_id: vendorInfo?.id,
+                restaurant_name: vendorInfo?.business_name,
+                user_id: userData?.id,
+                customer_name: fullName,
+                customer_phone: userData?.phone,
+                delivery_address: deliveryAddress,
+                total_price: total,
+                status: "pending",
+                items_count: orderData.items.length,
+                scheduled_time: new Date().toISOString(),
+                payment_method: "online",
+                is_paid: true,
+              },
+              orderItems: orderData.items.map((item) => ({
+                menu_item_id: item.id,
+                quantity: item.quantity,
+                price: item.price, // Backend expects 'price', not 'price_at_order'
+              })),
+            }),
+          );
 
           // Redirect to Paystack
           window.location.href = response.data.authorization_url;
@@ -238,29 +254,34 @@ console.log({vendorInfo})
     }
   };
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const handlePaystackSuccess = async (reference: { reference: string }) => {
-    await processOrderCreation(reference.reference);
-  };
+  // // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  // const handlePaystackSuccess = async (reference: { reference: string }) => {
+  //   await processOrderCreation(reference.reference);
+  // };
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const handlePaystackClose = () => {
-    toast.info("Transaction was not completed", "Payment Cancelled");
-    setLoading(false);
-  };
+  // // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  // const handlePaystackClose = () => {
+  //   toast.info("Transaction was not completed", "Payment Cancelled");
+  //   setLoading(false);
+  // };
 
   const processOrderCreation = async (paymentRef: string | null = null) => {
     try {
       // Get user data from localStorage (set during login)
-      const userDataStr = localStorage.getItem('userData');
+      const userDataStr = localStorage.getItem("userData");
       if (!userDataStr) {
-        toast.error("Please log in to place an order", "Authentication Required");
+        toast.error(
+          "Please log in to place an order",
+          "Authentication Required",
+        );
         return;
       }
       const userData = JSON.parse(userDataStr);
-      
+
       // Build fullName from user data
-      const fullName = `${userData.firstname || ""} ${userData.lastname || ""}`.trim() || "Customer";
+      const fullName =
+        `${userData.firstname || ""} ${userData.lastname || ""}`.trim() ||
+        "Customer";
       const phoneNum = userData.phone || "No phone";
 
       // 2. Fetch vendor business name correctly
@@ -268,8 +289,11 @@ console.log({vendorInfo})
 
       // Get menu items to find vendor_id
       const menuItems = await backendAuthService.getMenuItems(100);
-      const menuItem = menuItems.find((item: { id: string | number }) => String(item.id) === String(firstItemId));
-      
+      const menuItem = menuItems.find(
+        (item: { id: string | number }) =>
+          String(item.id) === String(firstItemId),
+      );
+
       if (!menuItem) {
         toast.error("Unable to find menu item information.", "Menu Error");
         setLoading(false);
@@ -278,7 +302,9 @@ console.log({vendorInfo})
 
       // Get vendor info
       const vendors = await backendAuthService.getVendors(100);
-      const vendor = vendors.find((v: { id: string }) => v.id === menuItem.vendor_id);
+      const vendor = vendors.find(
+        (v: { id: string }) => v.id === menuItem.vendor_id,
+      );
       const restaurantName = vendor?.business_name || "Restaurant";
 
       // 3. Prepare Payload
@@ -289,7 +315,7 @@ console.log({vendorInfo})
         customer_name: fullName,
         customer_phone: phoneNum,
         delivery_address: deliveryAddress,
-        total_price: total,  // Required by backend schema
+        total_price: total, // Required by backend schema
         status: "pending",
         items_count: orderData!.items.length,
         scheduled_time: new Date().toISOString(),
@@ -301,14 +327,11 @@ console.log({vendorInfo})
       const orderItems = orderData!.items.map((item) => ({
         menu_item_id: item.id,
         quantity: item.quantity,
-        price: item.price,  // Backend expects 'price', not 'price_at_order'
+        price: item.price, // Backend expects 'price', not 'price_at_order'
       }));
 
       try {
-        const response = await createOrder(
-          orderPayload,
-          orderItems,
-        );
+        const response = await createOrder(orderPayload, orderItems);
         const createdOrder = response.data;
 
         // Backend returns order directly, not nested under 'order'
@@ -318,7 +341,10 @@ console.log({vendorInfo})
           sessionStorage.removeItem("checkoutItems");
           setTrackingCode(createdOrder.id);
         } else {
-          toast.error("Unable to place your order at this time. Please try again.", "Order Failed");
+          toast.error(
+            "Unable to place your order at this time. Please try again.",
+            "Order Failed",
+          );
         }
       } catch (orderError: any) {
         // Humanize error messages instead of showing technical database errors
@@ -351,6 +377,7 @@ console.log({vendorInfo})
 
         toast.error(errorMessage, "Order Failed");
       }
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (error) {
       // Payment processing error
       toast.error("An error occurred. Please try again.", "Payment Error");
@@ -436,9 +463,7 @@ console.log({vendorInfo})
           <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 mb-6">
             <div className="space-y-4 font-inter">
               <div className="flex justify-between">
-                <span className="text-gray-600">
-                  Restaurant
-                </span>
+                <span className="text-gray-600">Restaurant</span>
                 <span className="font-semibold text-gray-900">
                   {orderData.items[0]?.name || "Order"}
                 </span>
@@ -450,9 +475,7 @@ console.log({vendorInfo})
                 </span>
               </div>
               <div className="flex justify-between border-t pt-4">
-                <span className="text-gray-600">
-                  Delivery Address
-                </span>
+                <span className="text-gray-600">Delivery Address</span>
                 <span className="font-semibold text-gray-900 text-right max-w-xs text-sm truncate">
                   {deliveryAddress}
                 </span>
@@ -652,12 +675,8 @@ console.log({vendorInfo})
               </div>
             )}
             <div className="border-t-2 border-green-200 pt-4 mt-4 flex justify-between font-bold text-xl uppercase  tracking-tighter">
-              <span className="text-gray-900">
-                Total Amount
-              </span>
-              <span className="text-green-600">
-                ₦{total.toLocaleString()}
-              </span>
+              <span className="text-gray-900">Total Amount</span>
+              <span className="text-green-600">₦{total.toLocaleString()}</span>
             </div>
           </div>
         </div>
@@ -710,7 +729,10 @@ console.log({vendorInfo})
                 if (vendorInfo?.accept_cod) {
                   setPaymentMethod("cod");
                 } else if (vendorInfo && !vendorInfo.accept_cod) {
-                  toast.info("This vendor does not accept Cash on Delivery", "COD Unavailable");
+                  toast.info(
+                    "This vendor does not accept Cash on Delivery",
+                    "COD Unavailable",
+                  );
                 }
               }}
             >
@@ -727,11 +749,11 @@ console.log({vendorInfo})
               </div>
               <div className="flex-1 font-inter">
                 <div className="flex items-center gap-2">
-                  <p className="font-bold text-gray-900 ">
-                    Cash on Delivery
-                  </p>
+                  <p className="font-bold text-gray-900 ">Cash on Delivery</p>
                   {vendorInfo && !vendorInfo.accept_cod && (
-                    <span className="text-[10px] bg-red-100 text-red-600 px-2 py-0.5 rounded-full font-bold uppercase">Unavailable</span>
+                    <span className="text-[10px] bg-red-100 text-red-600 px-2 py-0.5 rounded-full font-bold uppercase">
+                      Unavailable
+                    </span>
                   )}
                 </div>
                 <p className="text-xs text-gray-600">

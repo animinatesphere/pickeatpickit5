@@ -51,7 +51,7 @@ const RestaurantMenu: React.FC = () => {
   const [mealCategory, setMealCategory] = useState("Desert");
   const [mealDescription, setMealDescription] = useState("");
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [_selectedImage, setSelectedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>("");
   const [uploading, setUploading] = useState(false);
   const categories: Category[] = ["All", "Desert", "Breakfast", "Add ons"];
@@ -81,7 +81,7 @@ const RestaurantMenu: React.FC = () => {
         // or we need to fetch it from the vendors endpoint
         // This is a temporary implementation - we need to check the backend user response structure
         const vendorId = currentUser.vendor_id || currentUser.id;
-        
+
         if (!vendorId) {
           console.error("No vendor ID found for user");
           setLoading(false);
@@ -104,7 +104,7 @@ const RestaurantMenu: React.FC = () => {
       } catch (error) {
         console.error("Error in loadVendorData:", error);
         // If getCurrentUser fails, try to get vendor ID from local storage or other means
-        const token = localStorage.getItem('authToken');
+        const token = localStorage.getItem("authToken");
         if (!token) {
           console.error("No authentication token found");
         }
@@ -139,7 +139,7 @@ const RestaurantMenu: React.FC = () => {
     }
 
     setUploading(true);
-    
+
     // Check if an image is provided
     if (!imagePreview) {
       toast.error("Please provide an image for the meal.", "Image Required");
@@ -164,16 +164,14 @@ const RestaurantMenu: React.FC = () => {
 
     if (editingItem) {
       try {
-        await updateMenuItem(
-          editingItem.id.toString(),
-          mealData,
-        );
+        await updateMenuItem(editingItem.id.toString(), mealData);
         setMenuItems(
           menuItems.map((item) =>
             item.id === editingItem.id ? { ...item, ...mealData } : item,
           ),
         );
         toast.success("Meal updated successfully!", "Menu Updated");
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } catch (error: any) {
         // Humanize error message
         let errorMessage = "Unable to update the menu item. Please try again.";
@@ -203,6 +201,7 @@ const RestaurantMenu: React.FC = () => {
           setMenuItems([...menuItems, Array.isArray(data) ? data[0] : data]);
           toast.success("Meal added to your menu!", "Menu Updated");
         }
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } catch (error: any) {
         // Humanize error message
         let errorMessage = "Unable to add the menu item. Please try again.";
@@ -290,9 +289,7 @@ const RestaurantMenu: React.FC = () => {
           <p className="text-red-600 font-bold text-lg mb-4 font-inter uppercase  tracking-tighter">
             Vendor not found
           </p>
-          <p className="text-gray-600 font-medium">
-            Please log in again
-          </p>
+          <p className="text-gray-600 font-medium">Please log in again</p>
         </div>
       </div>
     );

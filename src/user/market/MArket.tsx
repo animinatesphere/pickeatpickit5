@@ -1,35 +1,37 @@
-import { useState, useEffect } from "react"; 
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { 
-  ChevronLeft, 
-  Search, 
-  Minus, 
-  Plus, 
-  Clock, 
-  ShoppingBag, 
-  ArrowRight, 
+import {
+  ChevronLeft,
+  Search,
+  Minus,
+  Plus,
+  Clock,
+  ShoppingBag,
+  ArrowRight,
   Star,
   Flame,
   UtensilsCrossed,
-  Sparkles
+  Sparkles,
 } from "lucide-react";
 import { Navbar } from "../../component/Navbar";
 import { useNavigate } from "react-router-dom";
-import { backendAuthService } from '../../services/backendAuthService'
+import { backendAuthService } from "../../services/backendAuthService";
 import { useToast } from "../../context/ToastContext";
 
 type Screen = "kitchen" | "confirm";
 
 interface MenuItem {
   id: number;
-  name: string; // menu item name
-  businessName: string; // vendor business name
+  name: string;
+  businessName: string;
   price: number;
   discount: number;
   image_url: string;
   description: string;
   quantity: number;
-  vendor_id?: string; // Vendor ID for payment processing
+  vendor_id?: string;
+  category?: string; // ← add this
 }
 interface OrderItem {
   id: number;
@@ -44,80 +46,89 @@ export default function Market() {
   const [items, setItems] = useState<MenuItem[]>([]);
   const [spiceLevel, setSpiceLevel] = useState(30);
   const [scheduleOrder, setScheduleOrder] = useState(true);
-    // Add these new states
-     const firstItem = items.find(item => item.quantity > 0);
+  // Add these new states
+  const firstItem = items.find((item) => item.quantity > 0);
   const [vendorInfo, setVendorInfo] = useState<{
     businessName: string;
     image_url: string;
   } | null>(null);
-  
+
   const navigate = useNavigate();
   const toast = useToast();
-const fetchVendorDetails = async (menuItemId: string | number) => {
-  try {
-    // Get menu items and find the vendor
-    const menuItems = await backendAuthService.getMenuItems(100);
-    const menuItem = menuItems.find((item: { id: string | number }) => String(item.id) === String(menuItemId));
-    
-    if (!menuItem) {
-      console.error("Menu item not found");
-      return;
-    }
-
-    // Get vendors and find the one matching the vendor_id
-    const vendor = await backendAuthService.getVendorByID(menuItem.vendor_id || "");
-
-    if (vendor) {
-      setVendorInfo({
-        businessName: vendor.business_name || "Unknown Vendor",
-        image_url: vendor.logo_url || "https://images.unsplash.com/photo-1555939594-58d7cb561404?w=400"
-      });
-    }
-  } catch (error) {
-    console.error("Error fetching vendor details:", error);
-  }
-};
-useEffect(() => {
-  const loadMenu = async () => {
+  const fetchVendorDetails = async (menuItemId: string | number) => {
     try {
-      // Get menu items with a reasonable limit
-      console.log("Fetching menu items from Market...");
-      const data = await backendAuthService.getMenuItems(100);
-      console.log("Menu items received:", data);
-      
-      if (!data || data.length === 0) {
-        console.warn("No menu items returned from API.");
+      // Get menu items and find the vendor
+      const menuItems = await backendAuthService.getMenuItems(100);
+      const menuItem = menuItems.find(
+        (item: { id: string | number }) =>
+          String(item.id) === String(menuItemId),
+      );
+
+      if (!menuItem) {
+        console.error("Menu item not found");
+        return;
       }
-      
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const formattedItems = data.map((item: any) => ({
-        ...item,
-        quantity: 0,
-        businessName: item.vendor_name || "Unknown Vendor",
-        image_url: item.image_url || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500",
-        discount: item.discount || 15
-      }));
-      setItems(formattedItems);
+
+      // Get vendors and find the one matching the vendor_id
+      const vendorArr = await backendAuthService.getVendorByID(
+        menuItem.vendor_id || "",
+      );
+      const vendor = Array.isArray(vendorArr) ? vendorArr[0] : vendorArr;
+
+      if (vendor) {
+        setVendorInfo({
+          businessName: (vendor as any).business_name || "Unknown Vendor",
+          image_url:
+            (vendor as any).logo_url ||
+            "https://images.unsplash.com/photo-1555939594-58d7cb561404?w=400",
+        });
+      }
     } catch (error) {
-      console.error('Failed to load menu items:', error);
+      console.error("Error fetching vendor details:", error);
     }
   };
-  loadMenu();
-}, []);
-// const formattedItems = data.map((item: any) => ({
-//   ...item,
-//   quantity: 0,
-//   businessName: item.vendor_profiles?.business_name || "Unknown Vendor",
-//   // keep original name for menu item
-//   image_url: item.image_url || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500",
-//   discount: item.discount || 15
-// }))
+  useEffect(() => {
+    const loadMenu = async () => {
+      try {
+        // Get menu items with a reasonable limit
+        console.log("Fetching menu items from Market...");
+        const data = await backendAuthService.getMenuItems(100);
+        console.log("Menu items received:", data);
+
+        if (!data || data.length === 0) {
+          console.warn("No menu items returned from API.");
+        }
+
+        const formattedItems = data.map((item: any) => ({
+          ...item,
+          quantity: 0,
+          businessName: item.vendor_name || "Unknown Vendor",
+          image_url:
+            item.image_url ||
+            "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500",
+          discount: item.discount || 15,
+        }));
+        setItems(formattedItems);
+      } catch (error) {
+        console.error("Failed to load menu items:", error);
+      }
+    };
+    loadMenu();
+  }, []);
+  // const formattedItems = data.map((item: any) => ({
+  //   ...item,
+  //   quantity: 0,
+  //   businessName: item.vendor_profiles?.business_name || "Unknown Vendor",
+  //   // keep original name for menu item
+  //   image_url: item.image_url || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500",
+  //   discount: item.discount || 15
+  // }))
   //  useEffect(() => {
   //   const fetchData = async () => {
   //     try {
   //       setLoading(true);
   //       const { data: { session } } = await supabase.auth.getSession();
-        
+
   //       if (session?.user) {
   //         const firstName = session.user.user_metadata?.email || "User";
   //         setUserProfile({
@@ -160,18 +171,19 @@ useEffect(() => {
   //   fetchData();
   // }, []);
 
-
   const handleOrderNow = (item: MenuItem) => {
     if (item.quantity === 0) return;
 
-    const checkoutItems = [{
-      id: item.id,
-      name: item.name,
-      quantity: item.quantity,
-      price: item.price,
-      image_url: item.image_url,
-      vendor_id: item.vendor_id // Include vendor ID for payment processing
-    }];
+    const checkoutItems = [
+      {
+        id: item.id,
+        name: item.name,
+        quantity: item.quantity,
+        price: item.price,
+        image_url: item.image_url,
+        vendor_id: item.vendor_id, // Include vendor ID for payment processing
+      },
+    ];
 
     sessionStorage.setItem("checkoutItems", JSON.stringify(checkoutItems));
     navigate(`/payment?vendor_id=${item.vendor_id}`);
@@ -179,12 +191,12 @@ useEffect(() => {
 
   const addToCart = (item: MenuItem) => {
     if (item.quantity === 0) {
-      toast.warning('Please select quantity first', 'Quantity Required');
+      toast.warning("Please select quantity first", "Quantity Required");
       return;
     }
 
-    const existingCart = sessionStorage.getItem('cart');
-    let cart = existingCart ? JSON.parse(existingCart) : [];
+    const existingCart = sessionStorage.getItem("cart");
+    const cart = existingCart ? JSON.parse(existingCart) : [];
 
     const cartItem = {
       id: item.id,
@@ -195,7 +207,7 @@ useEffect(() => {
       price: item.price * (1 - item.discount / 100),
       quantity: item.quantity,
       selected: true,
-      image_url: item.image_url
+      image_url: item.image_url,
     };
 
     const existingItemIndex = cart.findIndex((i: any) => i.id === item.id);
@@ -205,33 +217,42 @@ useEffect(() => {
       cart.push(cartItem);
     }
 
-    sessionStorage.setItem('cart', JSON.stringify(cart));
-    toast.success('Item added to cart!', 'Cart Updated');
+    sessionStorage.setItem("cart", JSON.stringify(cart));
+    toast.success("Item added to cart!", "Cart Updated");
   };
 
   const handleConfirmOrder = async () => {
     const cart = getCart();
     if (cart.length === 0) {
-      toast.warning('Please add items to cart first', 'Cart Empty');
+      toast.warning("Please add items to cart first", "Cart Empty");
       return;
     }
 
-    const dateInput = document.querySelector('input[type="date"]') as HTMLInputElement;
-    const timeInput = document.querySelector('input[type="time"]') as HTMLInputElement;
-    const instructionsTextarea = document.querySelector('textarea') as HTMLTextAreaElement;
+    const dateInput = document.querySelector(
+      'input[type="date"]',
+    ) as HTMLInputElement;
+    const timeInput = document.querySelector(
+      'input[type="time"]',
+    ) as HTMLInputElement;
+    const instructionsTextarea = document.querySelector(
+      "textarea",
+    ) as HTMLTextAreaElement;
 
-    sessionStorage.setItem('pendingOrder', JSON.stringify({
-      items: cart,
-      spiceLevel,
-      scheduleOrder,
-      scheduledDate: scheduleOrder ? dateInput?.value : null,
-      scheduledTime: scheduleOrder ? timeInput?.value : null,
-      specialInstructions: instructionsTextarea?.value || ''
-    }));
+    sessionStorage.setItem(
+      "pendingOrder",
+      JSON.stringify({
+        items: cart,
+        spiceLevel,
+        scheduleOrder,
+        scheduledDate: scheduleOrder ? dateInput?.value : null,
+        scheduledTime: scheduleOrder ? timeInput?.value : null,
+        specialInstructions: instructionsTextarea?.value || "",
+      }),
+    );
 
     // Get vendor_id from first item (assuming all items are from same vendor)
     const vendorId = cart.length > 0 ? cart[0].vendor_id : null;
-    navigate(vendorId ? `/payment?vendor_id=${vendorId}` : '/payment');
+    navigate(vendorId ? `/payment?vendor_id=${vendorId}` : "/payment");
   };
 
   const getCart = (): OrderItem[] =>
@@ -246,23 +267,36 @@ useEffect(() => {
       }));
 
   const updateQuantity = (id: number, delta: number) => {
-    setItems(prev =>
+    setItems((prev) =>
       prev.map((item) =>
         item.id === id
           ? { ...item, quantity: Math.max(0, item.quantity + delta) }
-          : item
-      )
+          : item,
+      ),
     );
   };
 
   const KitchenView = () => {
     const [selectedCategory, setSelectedCategory] = useState("All");
     const [searchQuery, setSearchQuery] = useState("");
-    const categories = ["All", "Desert", "Breakfast", "Add ons", "Rice", "Meat", "Drinks", "Snacks", "Vegan"];
+    const categories = [
+      "All",
+      "Desert",
+      "Breakfast",
+      "Add ons",
+      "Rice",
+      "Meat",
+      "Drinks",
+      "Snacks",
+      "Vegan",
+    ];
 
     const filteredItems = items.filter((item) => {
-      const matchesCategory = selectedCategory === "All" || item.category === selectedCategory;
-      const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesCategory =
+        selectedCategory === "All" || item.category === selectedCategory;
+      const matchesSearch = item.name
+        .toLowerCase()
+        .includes(searchQuery.toLowerCase());
       return matchesCategory && matchesSearch;
     });
 
@@ -302,15 +336,15 @@ useEffect(() => {
         </div>
 
         <div className="max-w-7xl mx-auto px-6 py-10">
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             className="relative h-[300px] rounded-[3rem] overflow-hidden mb-16 group shadow-2xl"
           >
             <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/40 to-transparent z-10" />
-            <img 
+            <img
               src="https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=1600&q=80"
-              className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" 
+              className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
               alt="Hero"
             />
             <div className="absolute inset-0 z-20 flex flex-col justify-center px-12">
@@ -320,31 +354,36 @@ useEffect(() => {
               </div>
               <h2 className="text-5xl md:text-6xl font-black text-white font-inter  tracking-tighter uppercase leading-none mb-6">
                 {/* Mardiya <span className="text-green-500">Kitchen</span> */}
-                  {items[0]?.businessName || "Mardiya"} <span className="text-green-500">Kitchen</span>
+                {items[0]?.businessName || "Mardiya"}{" "}
+                <span className="text-green-500">Kitchen</span>
               </h2>
               <p className="text-white/70 max-w-md font-medium text-lg  mb-8">
-                Experience the finest culinary treasures delivered with cinematic speed.
+                Experience the finest culinary treasures delivered with
+                cinematic speed.
               </p>
             </div>
           </motion.div>
 
-          <motion.div 
+          <motion.div
             initial="hidden"
             animate="show"
             variants={{
               hidden: { opacity: 0 },
-              show: { opacity: 1, transition: { staggerChildren: 0.1 } }
+              show: { opacity: 1, transition: { staggerChildren: 0.1 } },
             }}
             className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8"
           >
             {filteredItems.map((item) => {
-              const discountedPrice = (item.price * (1 - item.discount / 100)).toFixed(2);
+              const discountedPrice = (
+                item.price *
+                (1 - item.discount / 100)
+              ).toFixed(2);
               return (
                 <motion.div
                   key={item.id}
                   variants={{
                     hidden: { opacity: 0, y: 20 },
-                    show: { opacity: 1, y: 0 }
+                    show: { opacity: 1, y: 0 },
                   }}
                   whileHover={{ y: -10 }}
                   className="bg-white rounded-[2.5rem] overflow-hidden shadow-xl border border-transparent hover:border-green-500/30 transition-all group relative"
@@ -356,34 +395,56 @@ useEffect(() => {
                     <div className="absolute top-4 right-4 z-20 bg-black/40 backdrop-blur-md text-white p-2 rounded-xl border border-white/20">
                       <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
                     </div>
-                    <img src={item.image_url} alt={item.name} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
+                    <img
+                      src={item.image_url}
+                      alt={item.name}
+                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                    />
                   </div>
-                  
+
                   <div className="p-8">
                     <h4 className="font-black text-xl text-gray-800 font-inter tracking-tight mb-2  uppercase">
                       {item.name}
                     </h4>
                     <div className="flex items-center gap-3 mb-6">
-                      <span className="text-green-600 font-black text-2xl  tracking-tighter">₦{discountedPrice}</span>
-                      <span className="text-gray-400 text-sm line-through font-bold">₦{item.price.toLocaleString()}</span>
+                      <span className="text-green-600 font-black text-2xl  tracking-tighter">
+                        ₦{discountedPrice}
+                      </span>
+                      <span className="text-gray-400 text-sm line-through font-bold">
+                        ₦{item.price.toLocaleString()}
+                      </span>
                     </div>
 
                     <div className="flex flex-col gap-4">
                       <div className="flex items-center justify-between bg-gray-50 rounded-2xl p-2 border border-gray-100">
-                        <button onClick={() => updateQuantity(item.id, -1)} className="w-10 h-10 flex items-center justify-center bg-white rounded-xl shadow-sm active:scale-95 transition-all">
+                        <button
+                          onClick={() => updateQuantity(item.id, -1)}
+                          className="w-10 h-10 flex items-center justify-center bg-white rounded-xl shadow-sm active:scale-95 transition-all"
+                        >
                           <Minus className="w-4 h-4" />
                         </button>
-                        <span className="text-lg font-black text-gray-800 font-inter ">{item.quantity}</span>
-                        <button onClick={() => updateQuantity(item.id, 1)} className="w-10 h-10 flex items-center justify-center bg-white rounded-xl shadow-sm active:scale-95 transition-all">
+                        <span className="text-lg font-black text-gray-800 font-inter ">
+                          {item.quantity}
+                        </span>
+                        <button
+                          onClick={() => updateQuantity(item.id, 1)}
+                          className="w-10 h-10 flex items-center justify-center bg-white rounded-xl shadow-sm active:scale-95 transition-all"
+                        >
                           <Plus className="w-4 h-4" />
                         </button>
                       </div>
 
                       <div className="grid grid-cols-2 gap-3">
-                        <button onClick={() => addToCart(item)} className="flex items-center justify-center gap-2 py-4 bg-gray-50 text-gray-800 rounded-2xl font-black text-[10px] uppercase  tracking-widest hover:bg-gray-100 transition-all border border-gray-100">
+                        <button
+                          onClick={() => addToCart(item)}
+                          className="flex items-center justify-center gap-2 py-4 bg-gray-50 text-gray-800 rounded-2xl font-black text-[10px] uppercase  tracking-widest hover:bg-gray-100 transition-all border border-gray-100"
+                        >
                           <ShoppingBag className="w-3.5 h-3.5" /> Cart
                         </button>
-                        <button onClick={() => handleOrderNow(item)} className="flex items-center justify-center gap-2 py-4 bg-green-600 text-white rounded-2xl font-black text-[10px] uppercase  tracking-widest hover:bg-green-700 transition-all shadow-lg active:scale-95">
+                        <button
+                          onClick={() => handleOrderNow(item)}
+                          className="flex items-center justify-center gap-2 py-4 bg-green-600 text-white rounded-2xl font-black text-[10px] uppercase  tracking-widest hover:bg-green-700 transition-all shadow-lg active:scale-95"
+                        >
                           Order
                         </button>
                       </div>
@@ -397,27 +458,41 @@ useEffect(() => {
 
         <AnimatePresence>
           {getCart().length > 0 && (
-            <motion.div initial={{ y: 100, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 100, opacity: 0 }} className="fixed bottom-10 left-1/2 -translate-x-1/2 z-50 w-[90%] max-w-2xl px-10 py-6 bg-black/90 backdrop-blur-2xl rounded-[2.5rem] border border-white/10 shadow-3xl flex items-center justify-between">
+            <motion.div
+              initial={{ y: 100, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 100, opacity: 0 }}
+              className="fixed bottom-10 left-1/2 -translate-x-1/2 z-50 w-[90%] max-w-2xl px-10 py-6 bg-black/90 backdrop-blur-2xl rounded-[2.5rem] border border-white/10 shadow-3xl flex items-center justify-between"
+            >
               <div className="flex items-center gap-6">
-                <div className="w-14 h-14 bg-green-600 rounded-2xl flex items-center justify-center"><ShoppingBag className="w-7 h-7 text-white" /></div>
+                <div className="w-14 h-14 bg-green-600 rounded-2xl flex items-center justify-center">
+                  <ShoppingBag className="w-7 h-7 text-white" />
+                </div>
                 <div>
-                  <p className="text-white text-lg font-black font-inter  uppercase tracking-tighter">{getCart().reduce((sum, i) => sum + i.quantity, 0)} Items</p>
-                  <p className="text-green-400 font-bold text-xs uppercase  animate-pulse">Total: ₦{getCart().reduce((sum, i) => sum + i.price, 0).toLocaleString()}</p>
+                  <p className="text-white text-lg font-black font-inter  uppercase tracking-tighter">
+                    {getCart().reduce((sum, i) => sum + i.quantity, 0)} Items
+                  </p>
+                  <p className="text-green-400 font-bold text-xs uppercase  animate-pulse">
+                    Total: ₦
+                    {getCart()
+                      .reduce((sum, i) => sum + i.price, 0)
+                      .toLocaleString()}
+                  </p>
                 </div>
               </div>
-           <button 
-  onClick={async () => {
-    const cart = getCart();
-    if (cart.length > 0) {
-      // Fetch vendor details for the first item in cart
-      await fetchVendorDetails(cart[0].id);
-      setScreen("confirm");
-    }
-  }} 
-  className="px-10 py-4 bg-white text-black font-black  uppercase tracking-tighter rounded-2xl flex items-center gap-3"
->
-  Checkout <ArrowRight className="w-5 h-5" />
-</button>
+              <button
+                onClick={async () => {
+                  const cart = getCart();
+                  if (cart.length > 0) {
+                    // Fetch vendor details for the first item in cart
+                    await fetchVendorDetails(cart[0].id);
+                    setScreen("confirm");
+                  }
+                }}
+                className="px-10 py-4 bg-white text-black font-black  uppercase tracking-tighter rounded-2xl flex items-center gap-3"
+              >
+                Checkout <ArrowRight className="w-5 h-5" />
+              </button>
             </motion.div>
           )}
         </AnimatePresence>
@@ -426,90 +501,152 @@ useEffect(() => {
   };
 
   const ConfirmView = () => (
-    
     <div className="min-h-screen w-full bg-white transition-colors duration-300 pb-20 font-inter">
       <div className="sticky top-0 bg-white/80 backdrop-blur-xl z-50 border-b border-gray-100 px-6 py-6 flex items-center justify-between">
-        <button onClick={() => setScreen("kitchen")} className="w-12 h-12 flex items-center justify-center bg-gray-50 rounded-2xl active:scale-95 transition-all"><ChevronLeft className="w-6 h-6" /></button>
-        <h1 className="text-xl font-black  tracking-tighter uppercase">Confirm Order</h1>
+        <button
+          onClick={() => setScreen("kitchen")}
+          className="w-12 h-12 flex items-center justify-center bg-gray-50 rounded-2xl active:scale-95 transition-all"
+        >
+          <ChevronLeft className="w-6 h-6" />
+        </button>
+        <h1 className="text-xl font-black  tracking-tighter uppercase">
+          Confirm Order
+        </h1>
         <div className="w-12" />
       </div>
 
-      <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} className="max-w-3xl mx-auto px-6 py-12">
-       <div className="bg-white border border-transparent rounded-[2.5rem] shadow-2xl p-10 mb-10 relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-40 h-40 bg-green-500/5 rounded-bl-full pointer-events-none" />
-        <div className="flex gap-10">
-          <div className="w-32 h-32 bg-gray-50 rounded-3xl overflow-hidden ring-4 ring-green-600/10 shadow-xl">
-            <img 
-              src={vendorInfo?.image_url || items[0]?.image_url || "https://images.unsplash.com/photo-1555939594-58d7cb561404?w=400"} 
-              className="w-full h-full object-cover" 
-              alt="Kitchen" 
-            />
-          </div>
-          <div className="flex-1">
-            <div className="flex items-center gap-3 mb-2">
-              <UtensilsCrossed className="w-4 h-4 text-green-600" />
-              <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">Premium Kitchen</span>
+      <motion.div
+        initial={{ opacity: 0, y: 30 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="max-w-3xl mx-auto px-6 py-12"
+      >
+        <div className="bg-white border border-transparent rounded-[2.5rem] shadow-2xl p-10 mb-10 relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-40 h-40 bg-green-500/5 rounded-bl-full pointer-events-none" />
+          <div className="flex gap-10">
+            <div className="w-32 h-32 bg-gray-50 rounded-3xl overflow-hidden ring-4 ring-green-600/10 shadow-xl">
+              <img
+                src={
+                  vendorInfo?.image_url ||
+                  items[0]?.image_url ||
+                  "https://images.unsplash.com/photo-1555939594-58d7cb561404?w=400"
+                }
+                className="w-full h-full object-cover"
+                alt="Kitchen"
+              />
             </div>
-            <h2 className="text-4xl font-black  tracking-tighter uppercase mb-4">
+            <div className="flex-1">
+              <div className="flex items-center gap-3 mb-2">
+                <UtensilsCrossed className="w-4 h-4 text-green-600" />
+                <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">
+                  Premium Kitchen
+                </span>
+              </div>
+              <h2 className="text-4xl font-black  tracking-tighter uppercase mb-4">
                 {firstItem?.businessName || "Mardiya Kitchen"}
-            </h2>
-            <div className="flex items-center gap-6">
-              <div className="flex items-center gap-2 text-green-600 font-black text-sm uppercase ">
-                <Clock className="w-4 h-4" /> 15 Mins
+              </h2>
+              <div className="flex items-center gap-6">
+                <div className="flex items-center gap-2 text-green-600 font-black text-sm uppercase ">
+                  <Clock className="w-4 h-4" /> 15 Mins
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
-
 
         <div className="space-y-8">
           <div className="bg-white rounded-[2rem] p-8 shadow-xl border border-transparent">
             <div className="flex justify-between mb-8">
-              <h3 className="font-black  uppercase tracking-tighter">Spice Level</h3>
-              <Flame className={spiceLevel > 66 ? 'text-red-500 animate-bounce' : 'text-amber-500'} />
+              <h3 className="font-black  uppercase tracking-tighter">
+                Spice Level
+              </h3>
+              <Flame
+                className={
+                  spiceLevel > 66
+                    ? "text-red-500 animate-bounce"
+                    : "text-amber-500"
+                }
+              />
             </div>
-            <input type="range" min="0" max="100" value={spiceLevel} onChange={(e) => setSpiceLevel(Number(e.target.value))} className="w-full h-3 bg-gray-100 rounded-full appearance-none accent-green-600" />
+            <input
+              type="range"
+              min="0"
+              max="100"
+              value={spiceLevel}
+              onChange={(e) => setSpiceLevel(Number(e.target.value))}
+              className="w-full h-3 bg-gray-100 rounded-full appearance-none accent-green-600"
+            />
           </div>
 
           <div className="space-y-4">
             {getCart().map((item, i) => (
-              <div key={i} className="bg-white rounded-[1.5rem] p-6 flex justify-between items-center shadow-lg border border-transparent">
+              <div
+                key={i}
+                className="bg-white rounded-[1.5rem] p-6 flex justify-between items-center shadow-lg border border-transparent"
+              >
                 <div className="flex items-center gap-4">
-                  <span className="w-10 h-10 bg-green-50 rounded-xl flex items-center justify-center font-black text-green-600 ">{item.quantity}x</span>
-                  <span className="font-black  uppercase tracking-tighter text-lg">{item.name}</span>
+                  <span className="w-10 h-10 bg-green-50 rounded-xl flex items-center justify-center font-black text-green-600 ">
+                    {item.quantity}x
+                  </span>
+                  <span className="font-black  uppercase tracking-tighter text-lg">
+                    {item.name}
+                  </span>
                 </div>
-                <span className="font-black text-green-600  text-xl">₦{item.price.toLocaleString()}</span>
+                <span className="font-black text-green-600  text-xl">
+                  ₦{item.price.toLocaleString()}
+                </span>
               </div>
             ))}
           </div>
 
           <div className="bg-white rounded-[2.5rem] p-10 shadow-xl border border-transparent">
             <div className="flex items-center justify-between mb-8">
-              <h3 className="text-2xl font-black  uppercase tracking-tighter">Scheduling</h3>
-              <button onClick={() => setScheduleOrder(!scheduleOrder)} className={`w-16 h-8 rounded-full transition-all relative ${scheduleOrder ? 'bg-green-600' : 'bg-gray-300'}`}>
-                <div className={`absolute top-1 left-1 w-6 h-6 bg-white rounded-full transition-all ${scheduleOrder ? 'translate-x-8' : ''}`} />
+              <h3 className="text-2xl font-black  uppercase tracking-tighter">
+                Scheduling
+              </h3>
+              <button
+                onClick={() => setScheduleOrder(!scheduleOrder)}
+                className={`w-16 h-8 rounded-full transition-all relative ${scheduleOrder ? "bg-green-600" : "bg-gray-300"}`}
+              >
+                <div
+                  className={`absolute top-1 left-1 w-6 h-6 bg-white rounded-full transition-all ${scheduleOrder ? "translate-x-8" : ""}`}
+                />
               </button>
             </div>
-            
+
             {scheduleOrder && (
               <div className="grid md:grid-cols-2 gap-6">
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase text-gray-400">Date</label>
-                  <input type="date" className="w-full bg-gray-50 p-4 rounded-2xl outline-none font-bold  border border-transparent focus:border-green-500" />
+                  <label className="text-[10px] font-black uppercase text-gray-400">
+                    Date
+                  </label>
+                  <input
+                    type="date"
+                    className="w-full bg-gray-50 p-4 rounded-2xl outline-none font-bold  border border-transparent focus:border-green-500"
+                  />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase text-gray-400">Time</label>
-                  <input type="time" className="w-full bg-gray-50 p-4 rounded-2xl outline-none font-bold  border border-transparent focus:border-green-500" />
+                  <label className="text-[10px] font-black uppercase text-gray-400">
+                    Time
+                  </label>
+                  <input
+                    type="time"
+                    className="w-full bg-gray-50 p-4 rounded-2xl outline-none font-bold  border border-transparent focus:border-green-500"
+                  />
                 </div>
               </div>
             )}
           </div>
 
-          <textarea placeholder="Special instructions (allergies, door codes...)" className="w-full bg-white rounded-[2rem] p-8 text-sm h-40 resize-none outline-none focus:ring-4 focus:ring-green-500/10 focus:border-green-500 border border-transparent shadow-xl" />
+          <textarea
+            placeholder="Special instructions (allergies, door codes...)"
+            className="w-full bg-white rounded-[2rem] p-8 text-sm h-40 resize-none outline-none focus:ring-4 focus:ring-green-500/10 focus:border-green-500 border border-transparent shadow-xl"
+          />
         </div>
 
-        <button onClick={handleConfirmOrder} className="w-full mt-10 bg-green-600 hover:bg-green-700 text-white font-black py-6 rounded-[2rem] shadow-3xl flex items-center justify-center gap-4 text-xl  uppercase tracking-tighter active:scale-95 transition-all">
+        <button
+          onClick={handleConfirmOrder}
+          className="w-full mt-10 bg-green-600 hover:bg-green-700 text-white font-black py-6 rounded-[2rem] shadow-3xl flex items-center justify-center gap-4 text-xl  uppercase tracking-tighter active:scale-95 transition-all"
+        >
           Secure Checkout <ArrowRight className="w-6 h-6" />
         </button>
       </motion.div>
@@ -520,11 +657,23 @@ useEffect(() => {
     <div className="min-h-screen bg-white transition-colors duration-300">
       <AnimatePresence mode="wait">
         {screen === "kitchen" ? (
-          <motion.div key="kitchen" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }}>
+          <motion.div
+            key="kitchen"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.3 }}
+          >
             <KitchenView />
           </motion.div>
         ) : (
-          <motion.div key="confirm" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }}>
+          <motion.div
+            key="confirm"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.3 }}
+          >
             <ConfirmView />
           </motion.div>
         )}
