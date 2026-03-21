@@ -49,7 +49,7 @@ const ROLES = [
     path: "/onboarding",
     bg: "bg-[#E0F0FF]",
     accent: "#0A3D8F",
-    img: "https://images.unsplash.com/photo-1614518921492-be70c6e9b843?w=800&q=80&auto=format&fit=crop",
+    img: "https://images.unsplash.com/photo-1617194191528-9a50cf609304?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTF8fHJpZGVyJTIwZm9vZCUyMGRlbGl2ZXJ5fGVufDB8fDB8fHww",
   },
 ];
 
