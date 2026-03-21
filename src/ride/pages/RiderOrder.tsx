@@ -1,3 +1,6 @@
+/* eslint-disable react-hooks/exhaustive-deps */
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -11,12 +14,18 @@ import {
   Package,
   AlertTriangle,
   X,
-  MessageSquare
+  MessageSquare,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { RiderNav } from "../component/RiderNav";
 import { backendAuthService } from "../../services/backendAuthService";
-import { riderAcceptOrder, getAvailableDeliveries, riderRejectOrder, updateRiderOrderStatus, getRiderOrders } from "../../services/api";
+import {
+  riderAcceptOrder,
+  getAvailableDeliveries,
+  riderRejectOrder,
+  updateRiderOrderStatus,
+  getRiderOrders,
+} from "../../services/api";
 
 const RiderOrder = () => {
   const [activeTab, setActiveTab] = useState<"pending" | "ongoing">("pending");
@@ -27,8 +36,15 @@ const RiderOrder = () => {
   const [riderId, setRiderId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [isRider, setIsRider] = useState(true);
-  const [notification, setNotification] = useState<{ show: boolean, message: string, type: 'success' | 'error' }>({ show: false, message: '', type: 'success' });
-  const [modal, setModal] = useState<{ show: boolean, type: 'accept' | 'reject' | null }>({ show: false, type: null });
+  const [notification, setNotification] = useState<{
+    show: boolean;
+    message: string;
+    type: "success" | "error";
+  }>({ show: false, message: "", type: "success" });
+  const [modal, setModal] = useState<{
+    show: boolean;
+    type: "accept" | "reject" | null;
+  }>({ show: false, type: null });
   const navigate = useNavigate();
 
   const handleMessage = (recipientId: string) => {
@@ -39,7 +55,7 @@ const RiderOrder = () => {
     const init = async () => {
       try {
         const user = await backendAuthService.getCurrentUser();
-        if (user && user.role === 'rider') {
+        if (user && user.role === "rider") {
           setRiderId(user.rider_id || user.id);
           setIsRider(true);
         } else {
@@ -55,12 +71,6 @@ const RiderOrder = () => {
     init();
   }, []);
 
-  useEffect(() => {
-    if (riderId) {
-      fetchOrders();
-    }
-  }, [riderId, activeTab]);
-
   const fetchOrders = async () => {
     setLoading(true);
     try {
@@ -68,10 +78,10 @@ const RiderOrder = () => {
         const response = await getAvailableDeliveries();
         setPendingOrders(response.data || []);
       } else {
-        const response = await getRiderOrders(riderId!);
+        const response = await getRiderOrders();
         // Filter ongoing orders on frontend for now, or add filter to backend
-        const ongoing = (response.data || []).filter((o: any) => 
-          ['accepted', 'picked_up'].includes(o.status)
+        const ongoing = (response.data || []).filter((o: any) =>
+          ["accepted", "picked_up"].includes(o.status),
         );
         setOngoingOrders(ongoing);
       }
@@ -82,10 +92,20 @@ const RiderOrder = () => {
       setLoading(false);
     }
   };
-
-  const showToast = (message: string, type: 'success' | 'error' = 'success') => {
+  useEffect(() => {
+    if (riderId) {
+      fetchOrders();
+    }
+  }, [riderId, activeTab, fetchOrders]);
+  const showToast = (
+    message: string,
+    type: "success" | "error" = "success",
+  ) => {
     setNotification({ show: true, message, type });
-    setTimeout(() => setNotification({ show: false, message: '', type: 'success' }), 3000);
+    setTimeout(
+      () => setNotification({ show: false, message: "", type: "success" }),
+      3000,
+    );
   };
 
   const handleAcceptOrder = async () => {
@@ -97,7 +117,7 @@ const RiderOrder = () => {
         setActiveTab("ongoing");
         setView("list");
         fetchOrders();
-      } catch (err) {
+      } catch (err: any) {
         showToast("Failed to accept order", "error");
       } finally {
         setLoading(false);
@@ -126,7 +146,9 @@ const RiderOrder = () => {
     if (!selectedOrder) return;
     try {
       await updateRiderOrderStatus(selectedOrder.id, status);
-      showToast(status === 'picked_up' ? "Order Picked Up!" : "Order Delivered!");
+      showToast(
+        status === "picked_up" ? "Order Picked Up!" : "Order Delivered!",
+      );
       fetchOrders();
       setView("list");
     } catch (err) {
@@ -138,8 +160,13 @@ const RiderOrder = () => {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center p-6 text-center bg-white">
         <h2 className="text-2xl font-bold text-red-600 mb-2">Access Denied</h2>
-        <p className="text-gray-600 mb-6">This account is not registered as a Rider.</p>
-        <button onClick={() => window.location.href = '/rider-registration'} className="bg-green-600 text-white px-6 py-2 rounded-lg font-bold">
+        <p className="text-gray-600 mb-6">
+          This account is not registered as a Rider.
+        </p>
+        <button
+          onClick={() => (window.location.href = "/rider-registration")}
+          className="bg-green-600 text-white px-6 py-2 rounded-lg font-bold"
+        >
           Register as Rider
         </button>
       </div>
@@ -149,21 +176,30 @@ const RiderOrder = () => {
   return (
     <div className="min-h-screen bg-gray-50 font-inter">
       <RiderNav />
-      
+
       {/* Toast Notification */}
       <AnimatePresence>
         {notification.show && (
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: -50 }}
             animate={{ opacity: 1, y: 20 }}
             exit={{ opacity: 0, y: -50 }}
             className={`fixed top-4 left-4 right-4 z-[100] p-4 rounded-2xl shadow-2xl flex items-center gap-3 border ${
-              notification.type === 'success' ? "bg-green-600 border-green-500" : "bg-red-600 border-red-500"
+              notification.type === "success"
+                ? "bg-green-600 border-green-500"
+                : "bg-red-600 border-red-500"
             } text-white`}
           >
-            {notification.type === 'success' ? <CheckCircle className="w-6 h-6" /> : <AlertTriangle className="w-6 h-6" />}
+            {notification.type === "success" ? (
+              <CheckCircle className="w-6 h-6" />
+            ) : (
+              <AlertTriangle className="w-6 h-6" />
+            )}
             <span className="font-bold">{notification.message}</span>
-            <button onClick={() => setNotification({ ...notification, show: false })} className="ml-auto">
+            <button
+              onClick={() => setNotification({ ...notification, show: false })}
+              className="ml-auto"
+            >
               <X className="w-5 h-5 opacity-70" />
             </button>
           </motion.div>
@@ -174,43 +210,57 @@ const RiderOrder = () => {
       <AnimatePresence>
         {modal.show && (
           <div className="fixed inset-0 z-[110] flex items-center justify-center p-6">
-            <motion.div 
-              initial={{ opacity: 0 }} 
-              animate={{ opacity: 1 }} 
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setModal({ show: false, type: null })}
               className="absolute inset-0 bg-black/60 backdrop-blur-sm"
             />
-            <motion.div 
+            <motion.div
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
               className="relative bg-white rounded-[2.5rem] p-8 w-full max-w-sm shadow-2xl overflow-hidden"
             >
-              <div className={`w-20 h-20 rounded-3xl mb-6 flex items-center justify-center ${
-                modal.type === 'accept' ? "bg-green-50 text-green-600" : "bg-red-50 text-red-600"
-              }`}>
-                {modal.type === 'accept' ? <CheckCircle className="w-10 h-10" /> : <XCircle className="w-10 h-10" />}
+              <div
+                className={`w-20 h-20 rounded-3xl mb-6 flex items-center justify-center ${
+                  modal.type === "accept"
+                    ? "bg-green-50 text-green-600"
+                    : "bg-red-50 text-red-600"
+                }`}
+              >
+                {modal.type === "accept" ? (
+                  <CheckCircle className="w-10 h-10" />
+                ) : (
+                  <XCircle className="w-10 h-10" />
+                )}
               </div>
               <h2 className="text-2xl font-black  uppercase tracking-tighter mb-2 text-gray-800">
-                {modal.type === 'accept' ? "Accept Mission?" : "Reject Order?"}
+                {modal.type === "accept" ? "Accept Mission?" : "Reject Order?"}
               </h2>
               <p className="text-gray-500 text-sm mb-8">
-                {modal.type === 'accept' 
+                {modal.type === "accept"
                   ? "Are you sure you want to take this delivery? Once accepted, you're responsible for the shipment."
                   : "Are you sure you want to decline this order? This action cannot be undone."}
               </p>
               <div className="flex gap-4">
-                <button 
+                <button
                   onClick={() => setModal({ show: false, type: null })}
                   className="flex-1 py-4 bg-gray-100 text-gray-500 font-bold rounded-2xl active:scale-95 transition-transform"
                 >
                   Cancel
                 </button>
-                <button 
-                  onClick={modal.type === 'accept' ? handleAcceptOrder : handleRejectOrder}
+                <button
+                  onClick={
+                    modal.type === "accept"
+                      ? handleAcceptOrder
+                      : handleRejectOrder
+                  }
                   className={`flex-1 py-4 text-white font-bold rounded-2xl active:scale-95 transition-transform shadow-lg ${
-                    modal.type === 'accept' ? "bg-green-600 shadow-green-500/20" : "bg-red-600 shadow-red-500/20"
+                    modal.type === "accept"
+                      ? "bg-green-600 shadow-green-500/20"
+                      : "bg-red-600 shadow-red-500/20"
                   }`}
                 >
                   Confirm
@@ -225,7 +275,9 @@ const RiderOrder = () => {
         <>
           <div className="bg-white shadow-sm sticky top-0 z-10 transition-all">
             <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
-              <h1 className="text-xl font-bold text-gray-800  uppercase tracking-tighter">My Orders</h1>
+              <h1 className="text-xl font-bold text-gray-800  uppercase tracking-tighter">
+                My Orders
+              </h1>
               <Bell className="w-6 h-6 text-gray-700 hover:text-green-600 cursor-pointer transition-colors" />
             </div>
           </div>
@@ -235,76 +287,97 @@ const RiderOrder = () => {
               <button
                 onClick={() => setActiveTab("pending")}
                 className={`flex-1 py-4 rounded-2xl font-black  uppercase tracking-widest transition-all ${
-                  activeTab === "pending" 
-                  ? "bg-green-600 text-white shadow-xl shadow-green-600/20 scale-105" 
-                  : "bg-white text-gray-400 border border-gray-100 shadow-sm"
+                  activeTab === "pending"
+                    ? "bg-green-600 text-white shadow-xl shadow-green-600/20 scale-105"
+                    : "bg-white text-gray-400 border border-gray-100 shadow-sm"
                 }`}
               >
-                Available <span className="ml-1 opacity-70">({pendingOrders.length})</span>
+                Available{" "}
+                <span className="ml-1 opacity-70">
+                  ({pendingOrders.length})
+                </span>
               </button>
               <button
                 onClick={() => setActiveTab("ongoing")}
                 className={`flex-1 py-4 rounded-2xl font-black  uppercase tracking-widest transition-all ${
-                  activeTab === "ongoing" 
-                  ? "bg-green-600 text-white shadow-xl shadow-green-600/20 scale-105" 
-                  : "bg-white text-gray-400 border border-gray-100 shadow-sm"
+                  activeTab === "ongoing"
+                    ? "bg-green-600 text-white shadow-xl shadow-green-600/20 scale-105"
+                    : "bg-white text-gray-400 border border-gray-100 shadow-sm"
                 }`}
               >
-                Ongoing <span className="ml-1 opacity-70">({ongoingOrders.length})</span>
+                Ongoing{" "}
+                <span className="ml-1 opacity-70">
+                  ({ongoingOrders.length})
+                </span>
               </button>
             </div>
 
-            {loading && (pendingOrders.length === 0 && ongoingOrders.length === 0) ? (
+            {loading &&
+            pendingOrders.length === 0 &&
+            ongoingOrders.length === 0 ? (
               <div className="flex flex-col items-center py-32 text-gray-300">
                 <Loader2 className="w-12 h-12 animate-spin mb-4" />
-                <p className="font-bold  uppercase tracking-widest">Scanning network...</p>
+                <p className="font-bold  uppercase tracking-widest">
+                  Scanning network...
+                </p>
               </div>
             ) : (
               <div className="space-y-4">
-                {(activeTab === "pending" ? pendingOrders : ongoingOrders).map((order) => (
-                  <motion.div 
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    key={order.id} 
-                    onClick={() => { setSelectedOrder(order); setView("details"); }} 
-                    className="bg-white rounded-[2rem] p-6 shadow-xl border border-gray-50 hover:border-green-300 hover:shadow-2xl cursor-pointer transition-all group active:scale-[0.98]"
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-6">
-                        <div className="w-20 h-20 bg-green-50 rounded-[1.5rem] flex items-center justify-center overflow-hidden shadow-inner group-hover:rotate-6 transition-transform">
-                          {order.order_items?.[0]?.menu_item?.image_url ? (
-                            <img 
-                              src={order.order_items[0].menu_item.image_url} 
-                              className="w-full h-full object-cover" 
-                              alt="Food" 
-                            />
-                          ) : (
-                            <span className="text-4xl">🥘</span>
-                          )}
-                        </div>
-                        <div>
-                          <h3 className="text-lg font-black  text-gray-800 uppercase tracking-tighter">
-                            {order.vendor?.business_name || order.restaurant_name}
-                          </h3>
-                          <div className="flex items-center gap-1.5 text-gray-400 text-xs mt-1 font-bold  uppercase">
-                            <MapPin size={12} className="text-green-500" />
-                            <span className="truncate max-w-[150px]">{order.delivery_address}</span>
+                {(activeTab === "pending" ? pendingOrders : ongoingOrders).map(
+                  (order) => (
+                    <motion.div
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      key={order.id}
+                      onClick={() => {
+                        setSelectedOrder(order);
+                        setView("details");
+                      }}
+                      className="bg-white rounded-[2rem] p-6 shadow-xl border border-gray-50 hover:border-green-300 hover:shadow-2xl cursor-pointer transition-all group active:scale-[0.98]"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-6">
+                          <div className="w-20 h-20 bg-green-50 rounded-[1.5rem] flex items-center justify-center overflow-hidden shadow-inner group-hover:rotate-6 transition-transform">
+                            {order.order_items?.[0]?.menu_item?.image_url ? (
+                              <img
+                                src={order.order_items[0].menu_item.image_url}
+                                className="w-full h-full object-cover"
+                                alt="Food"
+                              />
+                            ) : (
+                              <span className="text-4xl">🥘</span>
+                            )}
                           </div>
-                          <p className="text-xl font-black text-green-600  mt-2 tracking-tighter">
-                            ₦{(order.total_amount || 0).toLocaleString()}
-                          </p>
+                          <div>
+                            <h3 className="text-lg font-black  text-gray-800 uppercase tracking-tighter">
+                              {order.vendor?.business_name ||
+                                order.restaurant_name}
+                            </h3>
+                            <div className="flex items-center gap-1.5 text-gray-400 text-xs mt-1 font-bold  uppercase">
+                              <MapPin size={12} className="text-green-500" />
+                              <span className="truncate max-w-[150px]">
+                                {order.delivery_address}
+                              </span>
+                            </div>
+                            <p className="text-xl font-black text-green-600  mt-2 tracking-tighter">
+                              ₦{(order.total_amount || 0).toLocaleString()}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="w-12 h-12 bg-gray-50 rounded-2xl flex items-center justify-center group-hover:translate-x-2 transition-transform">
+                          <ChevronRight className="text-gray-300 w-6 h-6" />
                         </div>
                       </div>
-                      <div className="w-12 h-12 bg-gray-50 rounded-2xl flex items-center justify-center group-hover:translate-x-2 transition-transform">
-                        <ChevronRight className="text-gray-300 w-6 h-6" />
-                      </div>
-                    </div>
-                  </motion.div>
-                ))}
-                {(activeTab === "pending" ? pendingOrders : ongoingOrders).length === 0 && (
+                    </motion.div>
+                  ),
+                )}
+                {(activeTab === "pending" ? pendingOrders : ongoingOrders)
+                  .length === 0 && (
                   <div className="text-center py-32 bg-white rounded-[3rem] border-2 border-dashed border-gray-100">
                     <Package size={64} className="mx-auto text-gray-100 mb-4" />
-                    <p className="text-gray-300 font-bold  uppercase tracking-widest">No active deployments</p>
+                    <p className="text-gray-300 font-bold  uppercase tracking-widest">
+                      No active deployments
+                    </p>
                   </div>
                 )}
               </div>
@@ -315,13 +388,15 @@ const RiderOrder = () => {
         <div className="min-h-screen bg-gray-50 animate-fadeIn h-full flex flex-col">
           <div className="bg-white shadow-sm sticky top-0 z-10 transition-all">
             <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
-              <button 
+              <button
                 onClick={() => setView("list")}
                 className="p-3 bg-gray-50 rounded-2xl text-gray-700 active:scale-90 transition-transform"
               >
                 <ArrowLeft className="w-6 h-6" />
               </button>
-              <h1 className="text-lg font-black  uppercase tracking-tighter text-gray-800">Deployment Intel</h1>
+              <h1 className="text-lg font-black  uppercase tracking-tighter text-gray-800">
+                Deployment Intel
+              </h1>
               <div className="w-12"></div>
             </div>
           </div>
@@ -331,30 +406,55 @@ const RiderOrder = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="bg-white rounded-[2rem] p-6 shadow-xl border-l-[6px] border-green-500">
                 <div className="flex items-center gap-3 mb-4">
-                  <div className="p-3 bg-green-50 rounded-2xl"><MapPin className="w-5 h-5 text-green-600" /></div>
-                  <h3 className="font-black  uppercase tracking-widest text-green-600 text-xs">Vendor Details</h3>
+                  <div className="p-3 bg-green-50 rounded-2xl">
+                    <MapPin className="w-5 h-5 text-green-600" />
+                  </div>
+                  <h3 className="font-black  uppercase tracking-widest text-green-600 text-xs">
+                    Vendor Details
+                  </h3>
                 </div>
-                <p className="font-black text-gray-800  uppercase tracking-tighter">{selectedOrder.vendor?.business_name || selectedOrder.restaurant_name}</p>
-                <p className="text-xs text-gray-400 font-bold mt-1 uppercase leading-relaxed">{selectedOrder.vendor?.business_address || selectedOrder.delivery_address}</p>
+                <p className="font-black text-gray-800  uppercase tracking-tighter">
+                  {selectedOrder.vendor?.business_name ||
+                    selectedOrder.restaurant_name}
+                </p>
+                <p className="text-xs text-gray-400 font-bold mt-1 uppercase leading-relaxed">
+                  {selectedOrder.vendor?.business_address ||
+                    selectedOrder.delivery_address}
+                </p>
                 <div className="mt-4 flex items-center gap-3">
-                  <button 
-                    onClick={() => handleMessage(selectedOrder.vendor?.user_id || selectedOrder.user_id)}
+                  <button
+                    onClick={() =>
+                      handleMessage(
+                        selectedOrder.vendor?.user_id || selectedOrder.user_id,
+                      )
+                    }
                     className="p-2 bg-green-50 text-green-600 rounded-xl hover:scale-110 transition-all border border-green-100"
                   >
                     <MessageSquare size={16} />
                   </button>
-                  <a href={`tel:${selectedOrder.vendor?.business_phone || selectedOrder.customer_phone}`} className="text-xs text-green-600 font-black  tracking-widest hover:underline">
-                    {selectedOrder.vendor?.business_phone || selectedOrder.customer_phone || "UNREACHABLE"}
+                  <a
+                    href={`tel:${selectedOrder.vendor?.business_phone || selectedOrder.customer_phone}`}
+                    className="text-xs text-green-600 font-black  tracking-widest hover:underline"
+                  >
+                    {selectedOrder.vendor?.business_phone ||
+                      selectedOrder.customer_phone ||
+                      "UNREACHABLE"}
                   </a>
                 </div>
               </div>
 
               <div className="bg-white rounded-[2rem] p-6 shadow-xl border-l-[6px] border-blue-500">
                 <div className="flex items-center gap-3 mb-4">
-                  <div className="p-3 bg-blue-50 rounded-2xl"><MapPin className="w-5 h-5 text-blue-600" /></div>
-                  <h3 className="font-black  uppercase tracking-widest text-blue-600 text-xs">Customer Address</h3>
+                  <div className="p-3 bg-blue-50 rounded-2xl">
+                    <MapPin className="w-5 h-5 text-blue-600" />
+                  </div>
+                  <h3 className="font-black  uppercase tracking-widest text-blue-600 text-xs">
+                    Customer Address
+                  </h3>
                 </div>
-                <p className="text-sm text-gray-700 font-bold uppercase leading-relaxed">{selectedOrder.delivery_address}</p>
+                <p className="text-sm text-gray-700 font-bold uppercase leading-relaxed">
+                  {selectedOrder.delivery_address}
+                </p>
               </div>
             </div>
 
@@ -364,16 +464,25 @@ const RiderOrder = () => {
                 {selectedOrder.customer_name?.charAt(0) || "U"}
               </div>
               <div className="flex-1">
-                <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-1 ">Customer Contact</p>
-                <h3 className="font-black text-gray-800 text-2xl  tracking-tighter uppercase">{selectedOrder.customer_name || "Unknown User"}</h3>
+                <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-1 ">
+                  Customer Contact
+                </p>
+                <h3 className="font-black text-gray-800 text-2xl  tracking-tighter uppercase">
+                  {selectedOrder.customer_name || "Unknown User"}
+                </h3>
                 <div className="mt-2 text-green-600 flex items-center gap-3">
-                  <button 
+                  <button
                     onClick={() => handleMessage(selectedOrder.user_id || "")}
                     className="p-2 bg-green-50 text-green-600 rounded-xl hover:scale-110 transition-all border border-green-100"
                   >
                     <MessageSquare size={16} />
                   </button>
-                  <a href={`tel:${selectedOrder.customer_phone}`} className="text-sm font-black  tracking-widest hover:underline">{selectedOrder.customer_phone || "NO SIGNAL"}</a>
+                  <a
+                    href={`tel:${selectedOrder.customer_phone}`}
+                    className="text-sm font-black  tracking-widest hover:underline"
+                  >
+                    {selectedOrder.customer_phone || "NO SIGNAL"}
+                  </a>
                 </div>
               </div>
             </div>
@@ -383,23 +492,38 @@ const RiderOrder = () => {
               <div className="absolute top-0 right-0 p-8 opacity-5">
                 <Package size={120} className="text-gray-900" />
               </div>
-              
+
               <div className="flex items-center justify-between mb-10">
                 <div>
-                  <h3 className="text-2xl font-black  tracking-tighter uppercase text-gray-800">Delivery Manifest</h3>
-                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em] ">REF ID: {selectedOrder.id.slice(0, 12)}</p>
+                  <h3 className="text-2xl font-black  tracking-tighter uppercase text-gray-800">
+                    Delivery Manifest
+                  </h3>
+                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em] ">
+                    REF ID: {selectedOrder.id.slice(0, 12)}
+                  </p>
                 </div>
-                <span className="text-[10px] font-black bg-gray-100 px-4 py-2 rounded-full uppercase tracking-widest  text-gray-500">Verified Protocol</span>
+                <span className="text-[10px] font-black bg-gray-100 px-4 py-2 rounded-full uppercase tracking-widest  text-gray-500">
+                  Verified Protocol
+                </span>
               </div>
 
               <div className="space-y-6 mb-10 border-b border-dashed border-gray-100 pb-10">
                 {selectedOrder.order_items?.map((item: any, idx: number) => (
-                  <div key={idx} className="flex justify-between items-center group">
+                  <div
+                    key={idx}
+                    className="flex justify-between items-center group"
+                  >
                     <div className="flex items-center gap-4">
-                      <span className="w-10 h-10 bg-gray-50 rounded-xl flex items-center justify-center font-black  text-green-600 border border-gray-100">x{item.quantity}</span>
-                      <span className="text-gray-800 font-bold  uppercase tracking-tight">{item.menu_items?.name}</span>
+                      <span className="w-10 h-10 bg-gray-50 rounded-xl flex items-center justify-center font-black  text-green-600 border border-gray-100">
+                        x{item.quantity}
+                      </span>
+                      <span className="text-gray-800 font-bold  uppercase tracking-tight">
+                        {item.menu_items?.name}
+                      </span>
                     </div>
-                    <span className="font-black text-gray-800  tracking-tighter">₦{(item.price_at_order || 0).toLocaleString()}</span>
+                    <span className="font-black text-gray-800  tracking-tighter">
+                      ₦{(item.price_at_order || 0).toLocaleString()}
+                    </span>
                   </div>
                 ))}
               </div>
@@ -407,11 +531,17 @@ const RiderOrder = () => {
               <div className="space-y-4">
                 <div className="flex justify-between text-xs text-gray-400 font-black uppercase tracking-widest ">
                   <span>Subtotal</span>
-                  <span>₦{(selectedOrder.total_amount || 0).toLocaleString()}</span>
+                  <span>
+                    ₦{(selectedOrder.total_amount || 0).toLocaleString()}
+                  </span>
                 </div>
                 <div className="flex justify-between items-baseline pt-4 border-t-2 border-gray-50">
-                  <span className="text-xs font-black uppercase tracking-[0.3em] text-gray-400 ">Total Value</span>
-                  <span className="text-5xl font-black  tracking-tighter text-green-600">₦{(selectedOrder.total_amount || 0).toLocaleString()}</span>
+                  <span className="text-xs font-black uppercase tracking-[0.3em] text-gray-400 ">
+                    Total Value
+                  </span>
+                  <span className="text-5xl font-black  tracking-tighter text-green-600">
+                    ₦{(selectedOrder.total_amount || 0).toLocaleString()}
+                  </span>
                 </div>
               </div>
             </div>
@@ -419,10 +549,16 @@ const RiderOrder = () => {
             {/* Operations Log */}
             {selectedOrder.special_instructions && (
               <div className="bg-amber-50/50 rounded-[2rem] p-8 border border-amber-100 flex gap-4">
-                <div className="p-3 bg-amber-100 rounded-2xl h-fit"><AlertTriangle className="w-5 h-5 text-amber-600" /></div>
+                <div className="p-3 bg-amber-100 rounded-2xl h-fit">
+                  <AlertTriangle className="w-5 h-5 text-amber-600" />
+                </div>
                 <div>
-                  <h4 className="font-black  uppercase tracking-widest text-amber-700 text-xs mb-2">Operation Briefing</h4>
-                  <p className="text-sm text-amber-800  font-medium leading-relaxed">"{selectedOrder.special_instructions}"</p>
+                  <h4 className="font-black  uppercase tracking-widest text-amber-700 text-xs mb-2">
+                    Operation Briefing
+                  </h4>
+                  <p className="text-sm text-amber-800  font-medium leading-relaxed">
+                    "{selectedOrder.special_instructions}"
+                  </p>
                 </div>
               </div>
             )}
@@ -433,14 +569,14 @@ const RiderOrder = () => {
             <div className="max-w-md mx-auto flex gap-4">
               {activeTab === "pending" ? (
                 <>
-                  <button 
-                    onClick={() => setModal({ show: true, type: 'reject' })} 
+                  <button
+                    onClick={() => setModal({ show: true, type: "reject" })}
                     className="flex-1 py-5 border-2 border-red-500 text-red-500 font-black  uppercase tracking-widest rounded-2xl active:scale-95 transition-all hover:bg-red-50"
                   >
                     Reject
                   </button>
-                  <button 
-                    onClick={() => setModal({ show: true, type: 'accept' })} 
+                  <button
+                    onClick={() => setModal({ show: true, type: "accept" })}
                     className="flex-[2] py-5 bg-green-600 text-white font-black  uppercase tracking-widest rounded-2xl shadow-2xl shadow-green-600/30 active:scale-95 transition-all hover:bg-green-700"
                   >
                     Accept Mission
@@ -448,22 +584,22 @@ const RiderOrder = () => {
                 </>
               ) : (
                 <>
-                  <button 
-                    onClick={() => setModal({ show: true, type: 'reject' })} 
+                  <button
+                    onClick={() => setModal({ show: true, type: "reject" })}
                     className="flex-1 py-5 border-2 border-red-500 text-red-500 font-black  uppercase tracking-widest rounded-2xl active:scale-95 transition-all"
                   >
                     Reject
                   </button>
-                  {selectedOrder.status === 'accepted' ? (
-                    <button 
-                      onClick={() => updateStatus('picked_up')} 
+                  {selectedOrder.status === "accepted" ? (
+                    <button
+                      onClick={() => updateStatus("picked_up")}
                       className="flex-[2] py-5 bg-orange-500 text-white font-black  uppercase tracking-widest rounded-2xl shadow-2xl shadow-orange-500/30 active:scale-95 transition-all"
                     >
                       Secure Package
                     </button>
                   ) : (
-                    <button 
-                      onClick={() => updateStatus('completed')} 
+                    <button
+                      onClick={() => updateStatus("completed")}
                       className="flex-[2] py-5 bg-blue-600 text-white font-black  uppercase tracking-widest rounded-2xl shadow-2xl shadow-blue-600/30 active:scale-95 transition-all"
                     >
                       Complete Deployment

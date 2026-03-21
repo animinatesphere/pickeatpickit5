@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useEffect } from "react";
 import {
   ArrowLeft,
@@ -11,36 +12,36 @@ import {
 
 import { RiderNav } from "../component/RiderNav";
 import { backendAuthService } from "../../services/backendAuthService";
-import { 
-  getRiderTransactions, 
-  getRiderBankInfo, 
-  saveRiderBankInfo, 
+import {
+  getRiderTransactions,
+  getRiderBankInfo,
+  saveRiderBankInfo,
   getRiderEarningsHistory,
-  getRiderStats 
+  getRiderStats,
 } from "../../services/api";
 
 const RiderEarningsPayment = () => {
   const [activeTab, setActiveTab] = useState<"transactions" | "orders">(
-    "transactions"
+    "transactions",
   );
   const [showEarnings, setShowEarnings] = useState(true);
   const [currentPage, setCurrentPage] = useState<"main" | "payment">("main");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
+
   // Rider specific state
   const [riderId, setRiderId] = useState<string | null>(null);
   const [bankDetails, setBankDetails] = useState({
     bank_name: "",
     account_number: "",
-    account_name: ""
+    account_name: "",
   });
   const [transactions, setTransactions] = useState<any[]>([]);
   const [orders, setOrders] = useState<any[]>([]);
   const [stats, setStats] = useState({
     todayEarnings: 0,
-    pendingPayout: 0
+    pendingPayout: 0,
   });
 
   const banks = [
@@ -57,7 +58,7 @@ const RiderEarningsPayment = () => {
       setLoading(true);
       try {
         const user = await backendAuthService.getCurrentUser();
-        if (user && user.role === 'rider') {
+        if (user && user.role === "rider") {
           const rId = user.rider_id || user.id;
           setRiderId(rId);
           await loadRiderData(rId);
@@ -74,28 +75,28 @@ const RiderEarningsPayment = () => {
     init();
   }, []);
 
-  const loadRiderData = async (id: string) => {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const loadRiderData = async (_id: string) => {
     try {
       const [txData, bankData, orderData, statsData] = await Promise.all([
-        getRiderTransactions(id),
-        getRiderBankInfo(id),
-        getRiderEarningsHistory(id),
-        getRiderStats(id)
+        getRiderTransactions(),
+        getRiderBankInfo().catch(() => ({ data: null })),
+        getRiderEarningsHistory(),
+        getRiderStats(),
       ]);
-
       if (txData.data) setTransactions(txData.data);
       if (bankData.data) {
         setBankDetails({
           bank_name: bankData.data.bank_name || "",
           account_number: bankData.data.account_number || "",
-          account_name: bankData.data.account_name || ""
+          account_name: bankData.data.account_name || "",
         });
       }
       if (orderData.data) setOrders(orderData.data);
       if (statsData) {
         setStats({
           todayEarnings: statsData.todayEarnings || 0,
-          pendingPayout: statsData.todayEarnings // Simplified for now
+          pendingPayout: statsData.todayEarnings, // Simplified for now
         });
       }
     } catch (err) {
@@ -108,7 +109,7 @@ const RiderEarningsPayment = () => {
     setSaving(true);
     setError(null);
     try {
-      await saveRiderBankInfo(riderId, bankDetails);
+      await saveRiderBankInfo(bankDetails);
       setCurrentPage("main");
       loadRiderData(riderId); // Refresh data
     } catch (err: any) {
@@ -122,7 +123,9 @@ const RiderEarningsPayment = () => {
     return (
       <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-6">
         <Loader2 className="w-12 h-12 text-green-600 animate-spin mb-4" />
-        <p className="text-gray-500 font-bold  uppercase tracking-widest">Scanning network...</p>
+        <p className="text-gray-500 font-bold  uppercase tracking-widest">
+          Scanning network...
+        </p>
       </div>
     );
   }
@@ -148,8 +151,12 @@ const RiderEarningsPayment = () => {
 
         <div className="max-w-xl mx-auto px-4 py-8 space-y-6">
           <div className="text-center mb-8">
-            <h2 className="text-2xl font-black  uppercase tracking-tighter text-gray-800">Update Intel</h2>
-            <p className="text-gray-500 text-xs font-bold uppercase tracking-widest mt-1">Payment Routing Protocol</p>
+            <h2 className="text-2xl font-black  uppercase tracking-tighter text-gray-800">
+              Update Intel
+            </h2>
+            <p className="text-gray-500 text-xs font-bold uppercase tracking-widest mt-1">
+              Payment Routing Protocol
+            </p>
           </div>
 
           {error && (
@@ -160,36 +167,56 @@ const RiderEarningsPayment = () => {
 
           <div className="space-y-4">
             <div className="space-y-2">
-              <label className="text-[10px] font-black uppercase text-gray-500 ml-4 tracking-widest flex items-center gap-2">Unit Identifier</label>
+              <label className="text-[10px] font-black uppercase text-gray-500 ml-4 tracking-widest flex items-center gap-2">
+                Unit Identifier
+              </label>
               <select
                 value={bankDetails.bank_name}
-                onChange={(e) => setBankDetails({...bankDetails, bank_name: e.target.value})}
+                onChange={(e) =>
+                  setBankDetails({ ...bankDetails, bank_name: e.target.value })
+                }
                 className="w-full bg-white border border-gray-100 rounded-2xl px-6 py-5 text-gray-800 font-bold shadow-sm focus:border-green-500 focus:ring-4 focus:ring-green-500/10 transition-all outline-none appearance-none"
               >
                 <option value="">Select Target Bank</option>
                 {banks.map((bank) => (
-                  <option key={bank} value={bank}>{bank}</option>
+                  <option key={bank} value={bank}>
+                    {bank}
+                  </option>
                 ))}
               </select>
             </div>
 
             <div className="space-y-2">
-              <label className="text-[10px] font-black uppercase text-gray-500 ml-4 tracking-widest">Target Account Number</label>
+              <label className="text-[10px] font-black uppercase text-gray-500 ml-4 tracking-widest">
+                Target Account Number
+              </label>
               <input
                 type="text"
                 value={bankDetails.account_number}
-                onChange={(e) => setBankDetails({...bankDetails, account_number: e.target.value})}
+                onChange={(e) =>
+                  setBankDetails({
+                    ...bankDetails,
+                    account_number: e.target.value,
+                  })
+                }
                 placeholder="10 Digits Only"
                 className="w-full bg-white border border-gray-100 rounded-2xl px-6 py-5 text-gray-800 font-bold shadow-sm focus:border-green-500 focus:ring-4 focus:ring-green-500/10 transition-all outline-none"
               />
             </div>
 
             <div className="space-y-2">
-              <label className="text-[10px] font-black uppercase text-gray-500 ml-4 tracking-widest">Payee Alias</label>
+              <label className="text-[10px] font-black uppercase text-gray-500 ml-4 tracking-widest">
+                Payee Alias
+              </label>
               <input
                 type="text"
                 value={bankDetails.account_name}
-                onChange={(e) => setBankDetails({...bankDetails, account_name: e.target.value})}
+                onChange={(e) =>
+                  setBankDetails({
+                    ...bankDetails,
+                    account_name: e.target.value,
+                  })
+                }
                 placeholder="Full Name as per records"
                 className="w-full bg-white border border-gray-100 rounded-2xl px-6 py-5 text-gray-800 font-bold shadow-sm focus:border-green-500 focus:ring-4 focus:ring-green-500/10 transition-all outline-none"
               />
@@ -201,7 +228,11 @@ const RiderEarningsPayment = () => {
             disabled={saving}
             className="w-full bg-green-600 text-white py-5 rounded-2xl font-black  uppercase tracking-widest shadow-xl shadow-green-600/20 hover:bg-green-700 active:scale-95 transition-all flex items-center justify-center gap-3 disabled:opacity-50"
           >
-            {saving ? <Loader2 className="animate-spin" /> : "Verify and Save Intel"}
+            {saving ? (
+              <Loader2 className="animate-spin" />
+            ) : (
+              "Verify and Save Intel"
+            )}
           </button>
         </div>
       </div>
@@ -215,15 +246,19 @@ const RiderEarningsPayment = () => {
       <div className="bg-white shadow-sm sticky top-0 z-10">
         <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <button 
+            <button
               onClick={() => window.history.back()}
               className="p-3 bg-gray-50 rounded-2xl text-gray-700 active:scale-90 transition-transform"
             >
               <ArrowLeft size={20} />
             </button>
-            <h1 className="text-xl font-black  text-gray-800 uppercase tracking-tighter">Earnings Intel</h1>
+            <h1 className="text-xl font-black  text-gray-800 uppercase tracking-tighter">
+              Earnings Intel
+            </h1>
           </div>
-          <div className="p-3 bg-green-50 text-green-600 rounded-2xl"><TrendingUp size={20} /></div>
+          <div className="p-3 bg-green-50 text-green-600 rounded-2xl">
+            <TrendingUp size={20} />
+          </div>
         </div>
       </div>
 
@@ -233,21 +268,30 @@ const RiderEarningsPayment = () => {
           <div className="absolute top-0 right-0 p-8 opacity-10">
             <TrendingUp size={120} />
           </div>
-          
+
           <div className="relative z-10">
             <div className="flex items-center gap-2 mb-2">
-              <span className="text-[10px] font-black uppercase tracking-[0.3em] text-green-500 ">Total Operational Revenue</span>
-              <ChevronDown size={14} className="text-green-500 animate-bounce" />
+              <span className="text-[10px] font-black uppercase tracking-[0.3em] text-green-500 ">
+                Total Operational Revenue
+              </span>
+              <ChevronDown
+                size={14}
+                className="text-green-500 animate-bounce"
+              />
             </div>
 
             <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6">
               <div>
                 <h2 className="text-6xl font-black  tracking-tighter mb-2">
-                  {showEarnings ? `₦${stats.todayEarnings.toLocaleString()}` : "₦ ••••••"}
+                  {showEarnings
+                    ? `₦${stats.todayEarnings.toLocaleString()}`
+                    : "₦ ••••••"}
                 </h2>
                 <div className="flex items-center gap-2 text-gray-400 font-bold  uppercase text-[10px] tracking-widest">
                   <span>Authorized Pending:</span>
-                  <span className="text-green-500 font-black">₦{stats.pendingPayout.toLocaleString()}</span>
+                  <span className="text-green-500 font-black">
+                    ₦{stats.pendingPayout.toLocaleString()}
+                  </span>
                 </div>
               </div>
 
@@ -256,13 +300,20 @@ const RiderEarningsPayment = () => {
                   onClick={() => setShowEarnings(!showEarnings)}
                   className="w-14 h-14 bg-white/10 hover:bg-white/20 rounded-2xl flex items-center justify-center transition-all active:scale-90"
                 >
-                  <Eye size={24} className={showEarnings ? "text-green-500" : "text-gray-500"} />
+                  <Eye
+                    size={24}
+                    className={
+                      showEarnings ? "text-green-500" : "text-gray-500"
+                    }
+                  />
                 </button>
-                <div 
+                <div
                   onClick={() => setCurrentPage("payment")}
                   className="px-6 h-14 bg-green-600 hover:bg-green-700 rounded-2xl flex items-center justify-center gap-3 transition-all active:scale-90 shadow-xl shadow-green-600/20 cursor-pointer"
                 >
-                  <span className="font-black  uppercase text-xs tracking-widest">Setup Wallet</span>
+                  <span className="font-black  uppercase text-xs tracking-widest">
+                    Setup Wallet
+                  </span>
                 </div>
               </div>
             </div>
@@ -274,8 +325,8 @@ const RiderEarningsPayment = () => {
           <button
             onClick={() => setActiveTab("transactions")}
             className={`flex-1 py-4 rounded-2xl font-black  uppercase tracking-widest transition-all ${
-              activeTab === "transactions" 
-                ? "bg-green-600 text-white shadow-xl shadow-green-600/20 scale-105" 
+              activeTab === "transactions"
+                ? "bg-green-600 text-white shadow-xl shadow-green-600/20 scale-105"
                 : "text-gray-400 hover:bg-gray-50"
             }`}
           >
@@ -284,8 +335,8 @@ const RiderEarningsPayment = () => {
           <button
             onClick={() => setActiveTab("orders")}
             className={`flex-1 py-4 rounded-2xl font-black  uppercase tracking-widest transition-all ${
-              activeTab === "orders" 
-                ? "bg-green-600 text-white shadow-xl shadow-green-600/20 scale-105" 
+              activeTab === "orders"
+                ? "bg-green-600 text-white shadow-xl shadow-green-600/20 scale-105"
                 : "text-gray-400 hover:bg-gray-50"
             }`}
           >
@@ -298,69 +349,91 @@ const RiderEarningsPayment = () => {
           {activeTab === "transactions" ? (
             transactions.length === 0 ? (
               <div className="text-center py-20 bg-white rounded-[3rem] border-2 border-dashed border-gray-100">
-                <p className="text-gray-300 font-bold  uppercase tracking-widest">No transactions logged</p>
+                <p className="text-gray-300 font-bold  uppercase tracking-widest">
+                  No transactions logged
+                </p>
               </div>
             ) : (
               transactions.map((tx) => (
-                <div key={tx.id} className="bg-white rounded-[2rem] p-6 shadow-xl border border-gray-50 flex items-center justify-between group">
+                <div
+                  key={tx.id}
+                  className="bg-white rounded-[2rem] p-6 shadow-xl border border-gray-50 flex items-center justify-between group"
+                >
                   <div className="flex items-center gap-6">
                     <div className="w-16 h-16 bg-green-50 rounded-2xl flex items-center justify-center group-hover:rotate-12 transition-transform">
                       <ArrowUpCircle className="text-green-600 w-8 h-8" />
                     </div>
                     <div>
-                      <h4 className="font-black  uppercase tracking-tighter text-gray-800">{tx.title || "Withdrawal"}</h4>
+                      <h4 className="font-black  uppercase tracking-tighter text-gray-800">
+                        {tx.title || "Withdrawal"}
+                      </h4>
                       <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-1">
-                        {new Date(tx.created_at).toLocaleString()} | <span className="text-green-600 uppercase ">SUCCESS</span>
+                        {new Date(tx.created_at).toLocaleString()} |{" "}
+                        <span className="text-green-600 uppercase ">
+                          SUCCESS
+                        </span>
                       </p>
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="text-2xl font-black  text-gray-800 tracking-tighter">-₦{tx.amount.toLocaleString()}</p>
-                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest ">Service Charge: ₦{tx.commission || 0}</p>
+                    <p className="text-2xl font-black  text-gray-800 tracking-tighter">
+                      -₦{tx.amount.toLocaleString()}
+                    </p>
+                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest ">
+                      Service Charge: ₦{tx.commission || 0}
+                    </p>
                   </div>
                 </div>
               ))
             )
+          ) : orders.length === 0 ? (
+            <div className="text-center py-20 bg-white rounded-[3rem] border-2 border-dashed border-gray-100">
+              <p className="text-gray-300 font-bold  uppercase tracking-widest">
+                No completed missions
+              </p>
+            </div>
           ) : (
-            orders.length === 0 ? (
-              <div className="text-center py-20 bg-white rounded-[3rem] border-2 border-dashed border-gray-100">
-                <p className="text-gray-300 font-bold  uppercase tracking-widest">No completed missions</p>
-              </div>
-            ) : (
-              orders.map((order) => (
-                <div key={order.id} className="bg-white rounded-[2rem] p-6 shadow-xl border border-gray-50 flex items-center justify-between group">
-                   <div className="flex items-center gap-6">
-                    <div className="w-16 h-16 bg-blue-50 rounded-2xl flex items-center justify-center">
-                      <TrendingUp className="text-blue-600 w-8 h-8" />
-                    </div>
-                    <div>
-                      <h4 className="font-black  uppercase tracking-tighter text-gray-800">Deployment ID: #{order.id.slice(0, 8)}</h4>
-                      <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-1">
-                        Completed {new Date(order.created_at).toLocaleDateString()}
-                      </p>
-                    </div>
+            orders.map((order) => (
+              <div
+                key={order.id}
+                className="bg-white rounded-[2rem] p-6 shadow-xl border border-gray-50 flex items-center justify-between group"
+              >
+                <div className="flex items-center gap-6">
+                  <div className="w-16 h-16 bg-blue-50 rounded-2xl flex items-center justify-center">
+                    <TrendingUp className="text-blue-600 w-8 h-8" />
                   </div>
-                  <div className="text-right">
-                    <p className="text-2xl font-black  text-green-600 tracking-tighter">₦{order.total_amount.toLocaleString()}</p>
-                    <span className="text-[10px] font-black bg-blue-50 text-blue-600 px-3 py-1 rounded-full uppercase  tracking-widest">Verified</span>
+                  <div>
+                    <h4 className="font-black  uppercase tracking-tighter text-gray-800">
+                      Deployment ID: #{order.id.slice(0, 8)}
+                    </h4>
+                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-1">
+                      Completed{" "}
+                      {new Date(order.created_at).toLocaleDateString()}
+                    </p>
                   </div>
                 </div>
-              ))
-            )
+                <div className="text-right">
+                  <p className="text-2xl font-black  text-green-600 tracking-tighter">
+                    ₦{order.total_amount.toLocaleString()}
+                  </p>
+                  <span className="text-[10px] font-black bg-blue-50 text-blue-600 px-3 py-1 rounded-full uppercase  tracking-widest">
+                    Verified
+                  </span>
+                </div>
+              </div>
+            ))
           )}
         </div>
 
         {/* Action Footbar */}
         <div className="flex flex-col gap-4">
-          <button 
+          <button
             disabled={stats.todayEarnings === 0}
             className="w-full py-6 bg-green-600 text-white rounded-3xl font-black  uppercase tracking-widest shadow-xl shadow-green-600/20 active:scale-95 transition-all text-sm disabled:opacity-50"
           >
             Authorize Withdrawal
           </button>
-          <button 
-            className="w-full py-6 bg-white border border-gray-100 text-gray-500 rounded-3xl font-black  uppercase tracking-widest shadow-lg active:scale-95 transition-all text-sm"
-          >
+          <button className="w-full py-6 bg-white border border-gray-100 text-gray-500 rounded-3xl font-black  uppercase tracking-widest shadow-lg active:scale-95 transition-all text-sm">
             Generate Intel Report
           </button>
         </div>

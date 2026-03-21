@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useEffect } from "react";
 import {
   Settings,
@@ -25,7 +26,7 @@ const ProfileScreen: React.FC = () => {
     async function fetchRiderProfile() {
       try {
         const user = await backendAuthService.getCurrentUser();
-        if (!user || user.role !== 'rider') {
+        if (!user || user.role !== "rider") {
           navigate("/rider-login");
           return;
         }
@@ -118,11 +119,15 @@ const ProfileScreen: React.FC = () => {
                 {riderData?.firstname?.charAt(0)?.toUpperCase() || "R"}
               </div>
             )}
-            <div className={`absolute -bottom-1 -right-1 w-8 h-8 ${riderData?.is_active ? "bg-green-500" : "bg-gray-400"} rounded-full border-4 border-white z-20 animate-bounce`} />
+            <div
+              className={`absolute -bottom-1 -right-1 w-8 h-8 ${riderData?.is_active ? "bg-green-500" : "bg-gray-400"} rounded-full border-4 border-white z-20 animate-bounce`}
+            />
           </div>
 
           <h2 className="text-2xl font-bold text-gray-800 mt-4 animate-slide-up uppercase  tracking-tighter">
-            {riderData ? `${riderData.firstname} ${riderData.lastname}` : "Unidentified Operative"}
+            {riderData
+              ? `${riderData.firstname} ${riderData.lastname}`
+              : "Unidentified Operative"}
           </h2>
           <p
             className="text-gray-500 text-sm mt-1 animate-slide-up font-medium"
@@ -215,7 +220,7 @@ const ProfileScreen: React.FC = () => {
           className="px-6 mt-6 pb-24 animate-slide-up"
           style={{ animationDelay: "0.9s" }}
         >
-          <button 
+          <button
             onClick={handleLogout}
             className="w-full bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white font-black  uppercase tracking-widest py-4 rounded-2xl flex items-center justify-center gap-3 transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105 group"
           >

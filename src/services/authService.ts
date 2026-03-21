@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // src/services/authService.ts
 import { createClient } from "@supabase/supabase-js";
 import api from "./api";
@@ -38,7 +39,6 @@ const safeAsyncRequired = async <T>(
 ): Promise<T> => {
   try {
     return await operation();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
     if (error.name === "AbortError") {
       throw new APIError("Request cancelled", 499);
@@ -53,7 +53,7 @@ class AuthService {
 
     return safeAsyncRequired(async () => {
       try {
-        const response = await api.post('/vendors/', vendorData);
+        const response = await api.post("/vendors/", vendorData);
         console.log("Vendor registration successful:", response.data);
         return response.data;
       } catch (error: any) {
@@ -61,9 +61,10 @@ class AuthService {
         console.error("Error details:", error.response?.data);
         console.error("Error status:", error.response?.status);
         console.error("Error message:", error.message);
-        
+
         throw new APIError(
-          error.response?.data?.detail || "Failed to register vendor. Please check if the backend server is running.",
+          error.response?.data?.detail ||
+            "Failed to register vendor. Please check if the backend server is running.",
           error.response?.status || 400,
         );
       }
@@ -72,25 +73,22 @@ class AuthService {
 
   // src/services/authService.ts
 
-  async createInitialRiderProfile(
-    userId: string,
-    email: string,
-  ): Promise<string> {
+  async createInitialRiderProfile(): Promise<string> {
     return safeAsyncRequired(async () => {
       try {
-        const response = await api.get('/riders/profile');
+        const response = await api.get("/riders/profile");
         return response.data.id;
-      } catch (error: any) {
+      } catch {
         throw new APIError("Failed to retrieve rider profile", 400);
       }
     });
   }
   // Update the existing registerRider to handle UPDATES instead of a new SIGNUP
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  async updateRiderProfile(riderId: string, data: any): Promise<void> {
+
+  async updateRiderProfile(_riderId: string, data: any): Promise<void> {
     return safeAsyncRequired(async () => {
       try {
-        await api.patch('/riders/profile', {
+        await api.patch("/riders/profile", {
           firstname: data.firstName,
           lastname: data.lastName,
           phone: data.phone,
@@ -104,7 +102,8 @@ class AuthService {
         });
       } catch (error: any) {
         throw new APIError(
-          error.response?.data?.detail || "We couldn't save your profile updates.",
+          error.response?.data?.detail ||
+            "We couldn't save your profile updates.",
           400,
         );
       }
@@ -113,74 +112,89 @@ class AuthService {
   async sendEmailOTP(
     email: string,
     password?: string,
-    role: string = "customer"
+    role: string = "customer",
   ): Promise<{ message: string }> {
     return safeAsyncRequired(async () => {
       const normalizedEmail = email.toLowerCase().trim();
-      
+
       // 1. If password is provided, this is a registration attempt
       if (password) {
         try {
-          await api.post('/auth/register', { 
-            email: normalizedEmail, 
+          await api.post("/auth/register", {
+            email: normalizedEmail,
             password,
             user_type: role, // Primary role indicator
-            role: role       // Fallback for schemas with defaults
+            role: role, // Fallback for schemas with defaults
           });
-          
+
           // If registration is successful, the backend already sent the OTP.
-          return { message: "Registration successful! Verification OTP sent to your email." };
+          return {
+            message:
+              "Registration successful! Verification OTP sent to your email.",
+          };
         } catch (error: any) {
           console.error("External registration error:", error);
-          
+
           // Check if email already exists
-          if (error.response?.status === 400 && error.response?.data?.detail?.includes("already exists")) {
-            throw new APIError("An account with this email already exists. Please log in instead.", 400);
+          if (
+            error.response?.status === 400 &&
+            error.response?.data?.detail?.includes("already exists")
+          ) {
+            throw new APIError(
+              "An account with this email already exists. Please log in instead.",
+              400,
+            );
           }
-          
+
           throw new APIError(
-            error.response?.data?.detail || "Registration failed. Please try again.",
-            error.response?.status || 400
+            error.response?.data?.detail ||
+              "Registration failed. Please try again.",
+            error.response?.status || 400,
           );
         }
       }
 
       // 2. If no password, this is a resend request or just sending OTP for existing user
       try {
-        await api.post('/auth/send-otp', { email: normalizedEmail });
+        await api.post("/auth/send-otp", { email: normalizedEmail });
         return { message: "OTP sent successfully! Please check your email." };
       } catch (error: any) {
         throw new APIError(
-          error.response?.data?.detail || "Failed to send OTP. Please try again.",
-          error.response?.status || 400
+          error.response?.data?.detail ||
+            "Failed to send OTP. Please try again.",
+          error.response?.status || 400,
         );
       }
     });
   }
 
-  async verifyEmailOTP(email: string, otp: string, password?: string): Promise<LoginResponse> {
+  async verifyEmailOTP(email: string, otp: string): Promise<LoginResponse> {
     return safeAsyncRequired(async () => {
       const normalizedEmail = email.toLowerCase().trim();
       // 1. Verify OTP via External API
       try {
-        const response = await api.post('/auth/verify-otp', { email: normalizedEmail, otp_code: otp });
-        
+        const response = await api.post("/auth/verify-otp", {
+          email: normalizedEmail,
+          otp_code: otp,
+        });
+
         if (response.data && response.data.access_token) {
           // Store token for future requests
-          localStorage.setItem('authToken', response.data.access_token);
-          
+          localStorage.setItem("authToken", response.data.access_token);
+
           const user = response.data.user;
           const userData = {
             id: user.id,
             email: user.email,
-            fullname: `${user.firstname || ""} ${user.lastname || ""}`.trim() || "User",
+            fullname:
+              `${user.firstname || ""} ${user.lastname || ""}`.trim() || "User",
             role: user.role,
             rider_id: user.rider_id,
-            vendor_id: user.vendor_id
+            vendor_id: user.vendor_id,
           };
-          
-          localStorage.setItem('userData', JSON.stringify(userData));
-          
+
+          localStorage.setItem("userData", JSON.stringify(userData));
+
           return {
             success: true,
             message: response.data.message || "Email verified successfully!",
@@ -188,24 +202,24 @@ class AuthService {
             token: response.data.access_token,
           };
         }
-        
+
         throw new APIError("Invalid response from server", 500);
       } catch (e: any) {
         if (e instanceof APIError) throw e;
-        throw new APIError(e.response?.data?.detail || "OTP verification failed", 400);
+        throw new APIError(
+          e.response?.data?.detail || "OTP verification failed",
+          400,
+        );
       }
     });
   }
 
-  async resendOtp(
-    email: string,
-    type: "signup" | "recovery" = "signup",
-  ): Promise<GetOTPResponse> {
+  async resendOtp(email: string): Promise<GetOTPResponse> {
     return safeAsyncRequired(async () => {
       try {
         // Use our backend instead of Supabase for OTP resend
         await this.sendEmailOTP(email);
-        
+
         return {
           success: true,
           message: "A new code has been sent to your email.",
@@ -288,25 +302,28 @@ class AuthService {
         // Insert rider profile into riders table
         const { error: riderProfileError } = await supabase
           .from("riders")
-          .upsert([
-            {
-              user_id: authData.user.id,
-              email: data.email,
-              firstname: data.firstName,
-              lastname: data.lastName,
-              phone: data.phone,
-              gender: data.gender || null,
-              next_of_kin_name: data.nextOfKinName || null,
-              next_of_kin_phone: data.nextOfKinPhone || null,
-              vehicle_type: data.vehicleType || null,
-              vehicle_brand: data.vehicleBrand || null,
-              plate_number: data.plateNumber || null,
-              previous_work: data.previousWork || null,
-              work_duration: data.workDuration || null,
-              referral_code: data.referralCode || null,
-              status: "pending", // Application starts as pending
-            },
-          ], { onConflict: 'email' });
+          .upsert(
+            [
+              {
+                user_id: authData.user.id,
+                email: data.email,
+                firstname: data.firstName,
+                lastname: data.lastName,
+                phone: data.phone,
+                gender: data.gender || null,
+                next_of_kin_name: data.nextOfKinName || null,
+                next_of_kin_phone: data.nextOfKinPhone || null,
+                vehicle_type: data.vehicleType || null,
+                vehicle_brand: data.vehicleBrand || null,
+                plate_number: data.plateNumber || null,
+                previous_work: data.previousWork || null,
+                work_duration: data.workDuration || null,
+                referral_code: data.referralCode || null,
+                status: "pending", // Application starts as pending
+              },
+            ],
+            { onConflict: "email" },
+          );
 
         if (riderProfileError) {
           // Handle duplicate key violation
@@ -428,34 +445,42 @@ class AuthService {
   async loginRider(email: string, password: string): Promise<LoginResponse> {
     return safeAsyncRequired(async () => {
       try {
-        const response = await api.post('/auth/login', { email, password });
-        
+        const response = await api.post("/auth/login", { email, password });
+
         if (response.data && response.data.access_token) {
           // Decode token to check role
           const tokenPayload = decodeJwtToken(response.data.access_token);
-          
+
           if (!tokenPayload) {
-            throw new APIError("Failed to authenticate session. Please try again.", 401);
+            throw new APIError(
+              "Failed to authenticate session. Please try again.",
+              401,
+            );
           }
 
-          if (tokenPayload.role !== 'rider') {
-            throw new APIError("This account is not registered as a rider.", 403);
+          if (tokenPayload.role !== "rider") {
+            throw new APIError(
+              "This account is not registered as a rider.",
+              403,
+            );
           }
 
           // Store token and user data
-          localStorage.setItem('authToken', response.data.access_token);
-          
+          localStorage.setItem("authToken", response.data.access_token);
+
           // Use data from token as source of truth for current session
           const userData = {
             id: tokenPayload.user_id || tokenPayload.sub,
             email: tokenPayload.email,
-            fullname: `${tokenPayload.firstname || ""} ${tokenPayload.lastname || ""}`.trim() || "Rider",
-            role: 'rider',
-            rider_id: tokenPayload.rider_id
+            fullname:
+              `${tokenPayload.firstname || ""} ${tokenPayload.lastname || ""}`.trim() ||
+              "Rider",
+            role: "rider",
+            rider_id: tokenPayload.rider_id,
           };
-          
-          localStorage.setItem('userData', JSON.stringify(userData));
-          
+
+          localStorage.setItem("userData", JSON.stringify(userData));
+
           return {
             success: true,
             message: "Login successful!",
@@ -463,25 +488,25 @@ class AuthService {
             token: response.data.access_token,
           };
         }
-        
+
         throw new APIError("Invalid response from server", 500);
       } catch (error: any) {
         if (error instanceof APIError) throw error;
-        
+
         // Handle specific Axios error responses
         if (error.response?.data?.detail) {
           throw new APIError(error.response.data.detail, error.response.status);
         }
-        
+
         throw new APIError(
           "Login failed. Please check your credentials.",
-          error.response?.status || 401
+          error.response?.status || 401,
         );
       }
     });
   }
   async uploadRiderDocument(
-    riderId: string,
+    _riderId: string,
     file: File,
     documentType: "drivers_license" | "selfie",
   ): Promise<{ success: boolean; url: string; message: string }> {
@@ -489,15 +514,22 @@ class AuthService {
       try {
         const formData = new FormData();
         formData.append("file", file);
-        
+
         // Map document types to match backend expectations
-        const backendDocType = documentType === "drivers_license" ? "license_photo" : "profile_photo";
-        
-        const response = await api.post(`/riders/upload-document?document_type=${backendDocType}`, formData, {
-          headers: {
-            'Content-Type': 'multipart/form-data',
+        const backendDocType =
+          documentType === "drivers_license"
+            ? "license_photo"
+            : "profile_photo";
+
+        const response = await api.post(
+          `/riders/upload-document?document_type=${backendDocType}`,
+          formData,
+          {
+            headers: {
+              "Content-Type": "multipart/form-data",
+            },
           },
-        });
+        );
 
         if (response.data && response.data.success) {
           return {
@@ -506,11 +538,12 @@ class AuthService {
             message: "Document uploaded successfully",
           };
         }
-        
+
         throw new Error("Failed to upload document");
       } catch (error: any) {
         throw new APIError(
-          error.response?.data?.detail || "Failed to upload document via backend.",
+          error.response?.data?.detail ||
+            "Failed to upload document via backend.",
           error.response?.status || 400,
         );
       }
@@ -547,15 +580,18 @@ class AuthService {
         }
 
         // Insert vendor profile into vendors table
-        const { error: profileError } = await supabase.from("vendors").upsert([
-          {
-            user_id: authData.user.id,
-            email: data.email,
-            firstname: data.firstname,
-            lastname: data.lastname,
-            phone: data.phone,
-          },
-        ], { onConflict: 'email' });
+        const { error: profileError } = await supabase.from("vendors").upsert(
+          [
+            {
+              user_id: authData.user.id,
+              email: data.email,
+              firstname: data.firstname,
+              lastname: data.lastname,
+              phone: data.phone,
+            },
+          ],
+          { onConflict: "email" },
+        );
 
         if (profileError) {
           // Handle duplicate key violation (account already exists)
@@ -649,16 +685,19 @@ class AuthService {
         }
 
         // Insert user profile into users table
-        const { error: profileError } = await supabase.from("users").upsert([
-          {
-            user_id: authData.user.id,
-            email: data.email,
-            firstname: data.firstname,
-            lastname: data.lastname,
-            phone: data.phone,
-            address: data.address || null,
-          },
-        ], { onConflict: 'email' });
+        const { error: profileError } = await supabase.from("users").upsert(
+          [
+            {
+              user_id: authData.user.id,
+              email: data.email,
+              firstname: data.firstname,
+              lastname: data.lastname,
+              phone: data.phone,
+              address: data.address || null,
+            },
+          ],
+          { onConflict: "email" },
+        );
 
         if (profileError) {
           // Handle duplicate key violation
@@ -771,19 +810,19 @@ class AuthService {
   // Backward compatibility wrapper for documents
   async uploadRiderPhoto(riderId: string, file: File, type: string) {
     const docType = type === "license_photo" ? "drivers_license" : "selfie";
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
     return this.uploadRiderDocument(riderId, file, docType as any);
   }
 
   // Batch save for registration steps
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
   async saveRiderRegistration(data: any) {
     return safeAsyncRequired(async () => {
       try {
         const { ...fields } = data;
 
         // 1. Update main rider record using the unified endpoint
-        await api.post('/riders/', {
+        await api.post("/riders/", {
           firstname: fields.firstName,
           lastname: fields.lastName,
           phone: fields.phone,
@@ -799,7 +838,7 @@ class AuthService {
 
         // 2. Save Bank Info
         if (fields.bankName) {
-          await api.post('/riders/bank-info', {
+          await api.post("/riders/bank-info", {
             bank_name: fields.bankName,
             account_number: fields.accountNumber,
             account_name: fields.accountName,
@@ -808,7 +847,7 @@ class AuthService {
 
         // 3. Save Guarantors if provided
         if (fields.guarantor1Name) {
-          await api.post('/riders/guarantors', {
+          await api.post("/riders/guarantors", {
             name: fields.guarantor1Name,
             phone: fields.guarantor1Phone,
             relationship: fields.guarantor1Relationship,
@@ -816,7 +855,7 @@ class AuthService {
         }
 
         if (fields.guarantor2Name) {
-          await api.post('/riders/guarantors', {
+          await api.post("/riders/guarantors", {
             name: fields.guarantor2Name,
             phone: fields.guarantor2Phone,
             relationship: fields.guarantor2Relationship,
@@ -826,8 +865,9 @@ class AuthService {
         return { success: true };
       } catch (error: any) {
         throw new APIError(
-          error.response?.data?.detail || "Failed to finalize rider registration.",
-          400
+          error.response?.data?.detail ||
+            "Failed to finalize rider registration.",
+          400,
         );
       }
     });
@@ -1136,40 +1176,26 @@ class AuthService {
   // Get current user profile (customer/user)
   async getCurrentUserProfile() {
     return safeAsyncRequired(async () => {
-      const authUser = await this.getCurrentUser();
-      if (!authUser) {
+      // Use backend token from localStorage instead of Supabase session
+      const token = localStorage.getItem("authToken");
+      if (!token) {
         throw new APIError("User not authenticated", 401);
       }
 
-      const { data, error } = await supabase
-        .from("users")
-        .select("*")
-        .eq("user_id", authUser.id);
-
-      if (error) {
-        throw new APIError(`Error fetching user: ${error.message}`, 400);
+      try {
+        const response = await api.get("/auth/profile");
+        return response.data;
+      } catch (error: any) {
+        throw new APIError(
+          error.response?.data?.detail || "Failed to fetch profile",
+          error.response?.status || 401,
+        );
       }
-
-      if (!data || data.length === 0) {
-        return {
-          user_id: authUser.id,
-          email: authUser.email,
-          firstname: authUser.user_metadata?.firstname || "",
-          lastname: authUser.user_metadata?.lastname || "",
-          phone: authUser.user_metadata?.phone || "",
-          address: "",
-          zip: "",
-          city: "",
-          state: "",
-        };
-      }
-
-      return data[0];
     });
   }
 
   // Update current user profile
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
   async updateCurrentUserProfile(updates: any) {
     return safeAsyncRequired(async () => {
       try {
@@ -1280,13 +1306,17 @@ class AuthService {
       try {
         const formData = new FormData();
         formData.append("file", file);
-        
+
         // Use backend API for proper Supabase upload (replaces Base64 approach)
-        const response = await api.post(`/vendors/upload-asset?vendor_id=${vendorId}&asset_type=${photoType}`, formData, {
-          headers: {
-            'Content-Type': 'multipart/form-data',
+        const response = await api.post(
+          `/vendors/upload-asset?vendor_id=${vendorId}&asset_type=${photoType}`,
+          formData,
+          {
+            headers: {
+              "Content-Type": "multipart/form-data",
+            },
           },
-        });
+        );
 
         if (response.data && response.data.success) {
           // Update vendor_profiles with the proper Supabase URL
@@ -1305,10 +1335,16 @@ class AuthService {
 
           return { publicUrl: response.data.url };
         } else {
-          throw new Error("Upload failed: " + (response.data?.detail || "Unknown error"));
+          throw new Error(
+            "Upload failed: " + (response.data?.detail || "Unknown error"),
+          );
         }
       } catch (error: any) {
-        throw new Error(error.response?.data?.detail || error.message || "Failed to upload vendor asset");
+        throw new Error(
+          error.response?.data?.detail ||
+            error.message ||
+            "Failed to upload vendor asset",
+        );
       }
     });
   }
@@ -1348,9 +1384,8 @@ class AuthService {
   // Save availability
   async saveAvailabilityDetails(
     vendorId: string,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
     availability: any,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
   ): Promise<any> {
     return safeAsyncRequired(async () => {
       try {
@@ -1382,7 +1417,7 @@ class AuthService {
   }
 
   // Save bank/payment details
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
   async savePaymentDetails(vendorId: string, payment: any): Promise<any> {
     return safeAsyncRequired(async () => {
       try {
@@ -1477,21 +1512,18 @@ export const authService = {
   loginRider: (email: string, password: string) =>
     apiService.loginRider(email, password), // NEW
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   registerRider: (data: any) => apiService.registerRider(data), // NEW
   sendEmailOTP: (email: string, password?: string, role?: string) =>
     apiService.sendEmailOTP(email, password, role),
-  createInitialRiderProfile: (userId: string, email: string) =>
-    apiService.createInitialRiderProfile(userId, email),
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  createInitialRiderProfile: () => apiService.createInitialRiderProfile(),
+
   updateRiderProfile: (riderId: string, data: any) =>
     apiService.updateRiderProfile(riderId, data),
   forgotPassword: (email: string) => apiService.forgotPassword(email),
   verifyOTP: (email: string, otp: string) => apiService.verifyOTP(email, otp),
 
-  verifyEmailOTP: (email: string, otp: string, password?: string) =>
-    apiService.verifyEmailOTP(email, otp, password),
-
+  verifyEmailOTP: (email: string, otp: string) =>
+    apiService.verifyEmailOTP(email, otp),
   getOTP: (phone: string) => apiService.getOTP(phone),
   resetPassword: (email: string, token: string, newPassword: string) =>
     apiService.resetPassword(email, token, newPassword),
@@ -1502,8 +1534,7 @@ export const authService = {
     apiService.verifyPasswordResetOTP(email, otp),
   resetPasswordWithOTP: (newPassword: string) =>
     apiService.resetPasswordWithOTP(newPassword),
-  resendOtp: (email: string, type?: "signup" | "recovery") =>
-    apiService.resendOtp(email, type),
+  resendOtp: (email: string) => apiService.resendOtp(email),
   logout: () => apiService.logout(),
   getCurrentUser: () => apiService.getCurrentUser(),
   getCurrentUserProfile: () => apiService.getCurrentUserProfile(),
@@ -1522,18 +1553,18 @@ export const authService = {
     vendorId: string,
     details: { businessDescription: string; additionalInfo: string },
   ) => apiService.saveBusinessDetails(vendorId, details),
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
   saveAvailabilityDetails: (vendorId: string, availability: any) =>
     apiService.saveAvailabilityDetails(vendorId, availability),
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  //
   savePaymentDetails: (vendorId: string, payment: any) =>
     apiService.savePaymentDetails(vendorId, payment),
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  //
   registerVendor: (vendorData: any) => apiService.registerVendor(vendorData),
   getVendorProfile: (vendorId: string) => apiService.getVendorProfile(vendorId),
   uploadRiderPhoto: (riderId: string, file: File, type: string) =>
     apiService.uploadRiderPhoto(riderId, file, type),
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  //
   saveRiderRegistration: (data: any) => apiService.saveRiderRegistration(data),
 };
 

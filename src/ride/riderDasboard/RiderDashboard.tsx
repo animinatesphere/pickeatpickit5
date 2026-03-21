@@ -18,6 +18,7 @@ import { getRiderStats, updateRiderStatus } from "../../services/api";
 
 export default function RiderDashboard() {
   const [activeStatus, setActiveStatus] = useState(true);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [riderId, setRiderId] = useState<string | null>(null);
@@ -27,13 +28,14 @@ export default function RiderDashboard() {
     async function initDashboard() {
       try {
         const user = await backendAuthService.getCurrentUser();
-        if (user && user.role === 'rider') {
+        if (user && user.role === "rider") {
           setRiderId(user.rider_id || user.id);
           setActiveStatus(true); // Default to active, or fetch from stats
-          
-          const riderStats = await getRiderStats(user.rider_id || user.id);
+
+          // AFTER
+          const riderStats = await getRiderStats();
           setStats(riderStats);
-          setActiveStatus(riderStats.is_active);
+          setActiveStatus(riderStats?.is_active ?? true);
         } else {
           navigate("/rider-login");
         }
@@ -58,17 +60,20 @@ export default function RiderDashboard() {
     }
   };
 
-  if (loading) return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <Loader2 className="w-12 h-12 text-green-600 animate-spin" />
-    </div>
-  );
+  if (loading)
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <Loader2 className="w-12 h-12 text-green-600 animate-spin" />
+      </div>
+    );
 
   return (
     <div className="min-h-screen bg-gray-50 pb-24 font-inter">
       <RiderNav />
       <div className="bg-white px-6 py-4 flex items-center justify-between shadow-sm sticky top-0 z-10 transition-all">
-        <h1 className="text-xl font-bold text-gray-800  uppercase tracking-tighter">My Dashboard</h1>
+        <h1 className="text-xl font-bold text-gray-800  uppercase tracking-tighter">
+          My Dashboard
+        </h1>
         <Link to="/rider-notifications">
           <button className="relative p-2 hover:bg-gray-100 rounded-full transition-colors active:scale-95">
             <Bell className="w-6 h-6 text-gray-700" />
@@ -79,24 +84,41 @@ export default function RiderDashboard() {
 
       <div className="px-6 py-6 space-y-4 max-w-5xl mx-auto animate-fadeIn">
         {/* Active Status Toggle */}
-        <div className={`rounded-2xl p-5 shadow-xl border transition-all duration-500 ${activeStatus ? "bg-white border-green-100" : "bg-gray-100 border-gray-200"}`}>
+        <div
+          className={`rounded-2xl p-5 shadow-xl border transition-all duration-500 ${activeStatus ? "bg-white border-green-100" : "bg-gray-100 border-gray-200"}`}
+        >
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <div className={`p-3 rounded-2xl shadow-inner transition-colors duration-500 ${activeStatus ? "bg-green-100" : "bg-gray-200"}`}>
-                <Bike className={`w-6 h-6 ${activeStatus ? "text-green-600" : "text-gray-400"}`} />
+              <div
+                className={`p-3 rounded-2xl shadow-inner transition-colors duration-500 ${activeStatus ? "bg-green-100" : "bg-gray-200"}`}
+              >
+                <Bike
+                  className={`w-6 h-6 ${activeStatus ? "text-green-600" : "text-gray-400"}`}
+                />
               </div>
               <div>
-                <span className={`font-black text-lg block  uppercase tracking-tighter ${activeStatus ? "text-green-600" : "text-gray-500"}`}>
+                <span
+                  className={`font-black text-lg block  uppercase tracking-tighter ${activeStatus ? "text-green-600" : "text-gray-500"}`}
+                >
                   {activeStatus ? "RECRUIT ACTIVE" : "SIGNAL OFFLINE"}
                 </span>
                 <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ">
-                  {activeStatus ? "Available for deployment" : "Disconnected from network"}
+                  {activeStatus
+                    ? "Available for deployment"
+                    : "Disconnected from network"}
                 </span>
               </div>
             </div>
-            <button onClick={toggleStatus} className={`relative w-16 h-8 rounded-full transition-all duration-500 shadow-inner ${activeStatus ? "bg-green-500" : "bg-gray-400"}`}>
-              <span className={`absolute top-1 left-1 w-6 h-6 bg-white rounded-full shadow-lg transition-transform duration-500 flex items-center justify-center ${activeStatus ? "translate-x-8" : "translate-x-0"}`}>
-                <div className={`w-2 h-2 rounded-full ${activeStatus ? "bg-green-500" : "bg-gray-300"}`}></div>
+            <button
+              onClick={toggleStatus}
+              className={`relative w-16 h-8 rounded-full transition-all duration-500 shadow-inner ${activeStatus ? "bg-green-500" : "bg-gray-400"}`}
+            >
+              <span
+                className={`absolute top-1 left-1 w-6 h-6 bg-white rounded-full shadow-lg transition-transform duration-500 flex items-center justify-center ${activeStatus ? "translate-x-8" : "translate-x-0"}`}
+              >
+                <div
+                  className={`w-2 h-2 rounded-full ${activeStatus ? "bg-green-500" : "bg-gray-300"}`}
+                ></div>
               </span>
             </button>
           </div>
@@ -105,7 +127,9 @@ export default function RiderDashboard() {
         {/* Date Selector */}
         <div className="flex items-center gap-2 bg-white rounded-2xl px-5 py-3 w-fit shadow-md border border-gray-100 hover:scale-105 transition-transform cursor-pointer">
           <Calendar className="w-5 h-5 text-green-600" />
-          <span className="font-black text-gray-800 text-xs  uppercase tracking-widest">Today</span>
+          <span className="font-black text-gray-800 text-xs  uppercase tracking-widest">
+            Today
+          </span>
           <ChevronRight className="w-4 h-4 text-gray-400 rotate-90" />
         </div>
 
@@ -114,7 +138,9 @@ export default function RiderDashboard() {
           <div className="absolute top-0 right-0 w-32 h-32 bg-green-500/5 blur-3xl rounded-full"></div>
           <div className="flex items-start justify-between relative z-10">
             <div>
-              <p className="text-gray-400 text-[10px] font-bold uppercase tracking-[0.2em]  mb-3">Operational Earnings</p>
+              <p className="text-gray-400 text-[10px] font-bold uppercase tracking-[0.2em]  mb-3">
+                Operational Earnings
+              </p>
               <div className="flex items-baseline gap-2">
                 <span className="text-green-600 text-2xl font-black ">₦</span>
                 <span className="text-5xl font-black text-gray-800  tracking-tighter">
@@ -130,7 +156,9 @@ export default function RiderDashboard() {
           </div>
           <div className="flex items-center gap-2 mt-8 text-green-600 bg-green-50 w-fit px-4 py-1.5 rounded-full border border-green-100">
             <TrendingUp className="w-4 h-4" />
-            <span className="text-[10px] font-black uppercase tracking-widest ">Signal performance: Optimal</span>
+            <span className="text-[10px] font-black uppercase tracking-widest ">
+              Signal performance: Optimal
+            </span>
           </div>
         </div>
 
@@ -143,20 +171,30 @@ export default function RiderDashboard() {
                   <div className="p-2 bg-gray-50 rounded-xl group-hover:rotate-12 transition-transform">
                     <Package className="w-6 h-6 text-gray-400" />
                   </div>
-                  <p className="text-gray-400 text-[10px] font-bold uppercase tracking-widest ">Daily Task Count</p>
+                  <p className="text-gray-400 text-[10px] font-bold uppercase tracking-widest ">
+                    Daily Task Count
+                  </p>
                 </div>
                 <div className="flex items-baseline gap-4 mb-6">
-                  <span className="text-6xl font-black text-green-600  tracking-tighter">{stats?.todayOrdersCount || 0}</span>
-                  <span className="text-gray-300 text-xl font-black  uppercase tracking-tighter">Units</span>
+                  <span className="text-6xl font-black text-green-600  tracking-tighter">
+                    {stats?.todayOrdersCount || 0}
+                  </span>
+                  <span className="text-gray-300 text-xl font-black  uppercase tracking-tighter">
+                    Units
+                  </span>
                 </div>
                 <div className="flex items-center gap-6">
                   <div className="flex items-center gap-2">
                     <div className="w-3 h-3 bg-green-500 rounded-full shadow-lg shadow-green-500/20"></div>
-                    <span className="text-[10px] font-black uppercase text-gray-500 ">{stats?.completedToday || 0} SECURED</span>
+                    <span className="text-[10px] font-black uppercase text-gray-500 ">
+                      {stats?.completedToday || 0} SECURED
+                    </span>
                   </div>
                   <div className="flex items-center gap-2">
                     <div className="w-3 h-3 bg-amber-500 rounded-full shadow-lg shadow-amber-500/20"></div>
-                    <span className="text-[10px] font-black uppercase text-gray-500 ">{stats?.inProgressToday || 0} IN TRANSIT</span>
+                    <span className="text-[10px] font-black uppercase text-gray-500 ">
+                      {stats?.inProgressToday || 0} IN TRANSIT
+                    </span>
                   </div>
                 </div>
               </div>
@@ -174,20 +212,32 @@ export default function RiderDashboard() {
               <div className="p-2 bg-blue-50 rounded-lg">
                 <Clock className="w-4 h-4 text-blue-500" />
               </div>
-              <span className="text-[10px] font-black uppercase text-gray-400 ">Completed</span>
+              <span className="text-[10px] font-black uppercase text-gray-400 ">
+                Completed
+              </span>
             </div>
-            <p className="text-3xl font-black text-gray-800  tracking-tighter">{stats?.completedToday || 0}</p>
-            <p className="text-[10px] font-bold text-gray-400 mt-2 uppercase ">Deliveries today</p>
+            <p className="text-3xl font-black text-gray-800  tracking-tighter">
+              {stats?.completedToday || 0}
+            </p>
+            <p className="text-[10px] font-bold text-gray-400 mt-2 uppercase ">
+              Deliveries today
+            </p>
           </div>
           <div className="bg-white rounded-[1.5rem] p-6 shadow-lg border border-gray-50">
             <div className="flex items-center gap-2 mb-4">
               <div className="p-2 bg-yellow-50 rounded-lg">
                 <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
               </div>
-              <span className="text-[10px] font-black uppercase text-gray-400 ">In Transit</span>
+              <span className="text-[10px] font-black uppercase text-gray-400 ">
+                In Transit
+              </span>
             </div>
-            <p className="text-3xl font-black text-gray-800  tracking-tighter">{stats?.inProgressToday || 0}</p>
-            <p className="text-[10px] font-bold text-gray-400 mt-2 uppercase ">Active deliveries</p>
+            <p className="text-3xl font-black text-gray-800  tracking-tighter">
+              {stats?.inProgressToday || 0}
+            </p>
+            <p className="text-[10px] font-bold text-gray-400 mt-2 uppercase ">
+              Active deliveries
+            </p>
           </div>
         </div>
       </div>

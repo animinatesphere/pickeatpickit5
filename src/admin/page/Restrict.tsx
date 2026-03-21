@@ -1,7 +1,16 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useEffect } from "react";
-import { ArrowLeft, ChevronRight, Search, Loader2 } from "lucide-react";
-import { getAdminUsers, getAdminVendors, getAdminRiders } from "../../services/api";
+import {
+  ArrowLeft,
+  ChevronRight,
+  Search,
+  Loader2,
+  Trash2,
+  X,
+} from "lucide-react";
+import api from "../../services/api";
 
+// ── Types ─────────────────────────────────────────────────────────────────────
 type Screen =
   | "main"
   | "user-list"
@@ -17,88 +26,115 @@ interface PageItem {
   name: string;
   enabled: boolean;
 }
-
 interface UserItem {
   id: string;
   name: string;
   avatar: string;
-  orders: number;
   pages: PageItem[];
 }
 
+// ── API helpers ───────────────────────────────────────────────────────────────
+const fetchAllUsers = () => api.get("/admin/users");
+const fetchPendingVendors = () => api.get("/admin/vendors/pending");
+const fetchPendingRiders = () => api.get("/admin/riders/pending");
+const deleteAdminUser = (id: string) => api.delete(`/admin/users/${id}`);
+
+// ── Default page sets ─────────────────────────────────────────────────────────
+const defaultUserPages: PageItem[] = [
+  { id: "1", name: "Special Offers", enabled: true },
+  { id: "2", name: "Featured Sellers", enabled: true },
+  { id: "3", name: "Kitchens Near You", enabled: true },
+  { id: "4", name: "Schedule Delivery", enabled: true },
+  { id: "5", name: "Order", enabled: true },
+];
+const defaultVendorPages: PageItem[] = [
+  { id: "1", name: "Orders", enabled: true },
+  { id: "2", name: "Earnings", enabled: true },
+  { id: "3", name: "Chat", enabled: true },
+  { id: "4", name: "Reviews & Feedback", enabled: true },
+];
+const defaultRiderPages: PageItem[] = [
+  { id: "1", name: "Rider Games", enabled: true },
+  { id: "2", name: "Map", enabled: true },
+  { id: "3", name: "Order", enabled: true },
+];
+
+// ── Component ─────────────────────────────────────────────────────────────────
 const Restrict: React.FC = () => {
   const [currentScreen, setCurrentScreen] = useState<Screen>("main");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [currentPageType, setCurrentPageType] = useState<PageType>("user");
   const [loading, setLoading] = useState(false);
+  const [deleteModal, setDeleteModal] = useState<{
+    show: boolean;
+    user: UserItem | null;
+  }>({ show: false, user: null });
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
-  // Users with their individual page settings
   const [users, setUsers] = useState<UserItem[]>([]);
   const [vendors, setVendors] = useState<UserItem[]>([]);
   const [riders, setRiders] = useState<UserItem[]>([]);
 
-  const defaultUserPages = [
-    { id: "1", name: "Special Offers", enabled: true },
-    { id: "2", name: "Featured Sellers", enabled: true },
-    { id: "3", name: "Kitchens near you", enabled: true },
-    { id: "4", name: "Schedule Delivery", enabled: true },
-    { id: "5", name: "Order", enabled: true },
-  ];
-
-  const defaultVendorPages = [
-    { id: "1", name: "Orders", enabled: true },
-    { id: "2", name: "Earnings", enabled: true },
-    { id: "3", name: "Chat", enabled: true },
-    { id: "4", name: "Reviews and Feedback", enabled: true },
-  ];
-
-  const defaultRiderPages = [
-    { id: "1", name: "Rider Games", enabled: true },
-    { id: "2", name: "Map", enabled: true },
-    { id: "3", name: "Order", enabled: true },
-  ];
-
+  // ── Fetch ───────────────────────────────────────────────────────────────────
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [uRes, vRes, rRes] = await Promise.all([
-        getAdminUsers(),
-        getAdminVendors(),
-        getAdminRiders()
+      const [uRes, vRes, rRes] = await Promise.allSettled([
+        fetchAllUsers(),
+        fetchPendingVendors(),
+        fetchPendingRiders(),
       ]);
 
-      if (!uRes.error && uRes.data) {
-        setUsers(uRes.data.map(u => ({
-          id: u.user_id,
-          name: `${u.firstname} ${u.lastname}`,
-          avatar: u.avatar_url || "",
-          orders: 0, // In a real app, we'd fetch this too
-          pages: [...defaultUserPages]
-        })));
+      if (uRes.status === "fulfilled") {
+        const data: any[] = Array.isArray(uRes.value.data)
+          ? uRes.value.data
+          : [];
+        setUsers(
+          data.map((u) => ({
+            id: u.id || u.user_id,
+            name:
+              `${u.firstname || ""} ${u.lastname || ""}`.trim() ||
+              u.email ||
+              "Unknown",
+            avatar: u.profile_image || "",
+            pages: defaultUserPages.map((p) => ({ ...p })),
+          })),
+        );
       }
 
-      if (!vRes.error && vRes.data) {
-        setVendors(vRes.data.map(v => ({
-          id: v.id,
-          name: v.business_name || "Unknown Vendor",
-          avatar: v.avatar_url || "",
-          orders: 0,
-          pages: [...defaultVendorPages]
-        })));
+      if (vRes.status === "fulfilled") {
+        const data: any[] = Array.isArray(vRes.value.data)
+          ? vRes.value.data
+          : [];
+        setVendors(
+          data.map((v) => ({
+            id: v.id,
+            name:
+              v.business_name ||
+              `${v.firstname || ""} ${v.lastname || ""}`.trim() ||
+              "Unknown",
+            avatar: v.logo_url || "",
+            pages: defaultVendorPages.map((p) => ({ ...p })),
+          })),
+        );
       }
 
-      if (!rRes.error && rRes.data) {
-        setRiders(rRes.data.map(r => ({
-          id: r.id,
-          name: `${r.firstname} ${r.lastname}`,
-          avatar: r.avatar_url || "",
-          orders: 0,
-          pages: [...defaultRiderPages]
-        })));
+      if (rRes.status === "fulfilled") {
+        const data: any[] = Array.isArray(rRes.value.data)
+          ? rRes.value.data
+          : [];
+        setRiders(
+          data.map((r) => ({
+            id: r.id,
+            name: `${r.firstname || ""} ${r.lastname || ""}`.trim() || "Rider",
+            avatar: r.profile_image || "",
+            pages: defaultRiderPages.map((p) => ({ ...p })),
+          })),
+        );
       }
     } catch (err) {
-      // Failed to fetch restriction data
+      console.error("Failed to fetch restriction data:", err);
     } finally {
       setLoading(false);
     }
@@ -108,413 +144,430 @@ const Restrict: React.FC = () => {
     fetchData();
   }, []);
 
+  // ── Handlers ─────────────────────────────────────────────────────────────────
   const handleUserClick = (userId: string, pageType: PageType) => {
     setSelectedUserId(userId);
     setCurrentPageType(pageType);
-
-    if (pageType === "user") {
-      setCurrentScreen("user-pages");
-    } else if (pageType === "vendor") {
-      setCurrentScreen("vendor-pages");
-    } else {
-      setCurrentScreen("rider-pages");
-    }
+    setCurrentScreen(
+      pageType === "user"
+        ? "user-pages"
+        : pageType === "vendor"
+          ? "vendor-pages"
+          : "rider-pages",
+    );
   };
 
   const handleToggle = (pageId: string) => {
     if (!selectedUserId) return;
+    const toggle = (list: UserItem[]) =>
+      list.map((item) =>
+        item.id === selectedUserId
+          ? {
+              ...item,
+              pages: item.pages.map((p) =>
+                p.id === pageId ? { ...p, enabled: !p.enabled } : p,
+              ),
+            }
+          : item,
+      );
+    if (currentPageType === "user") setUsers(toggle(users));
+    if (currentPageType === "vendor") setVendors(toggle(vendors));
+    if (currentPageType === "rider") setRiders(toggle(riders));
+  };
 
-    if (currentPageType === "user") {
-      setUsers(
-        users.map((user) =>
-          user.id === selectedUserId
-            ? {
-                ...user,
-                pages: user.pages.map((page) =>
-                  page.id === pageId
-                    ? { ...page, enabled: !page.enabled }
-                    : page
-                ),
-              }
-            : user
-        )
-      );
-    } else if (currentPageType === "vendor") {
-      setVendors(
-        vendors.map((vendor) =>
-          vendor.id === selectedUserId
-            ? {
-                ...vendor,
-                pages: vendor.pages.map((page) =>
-                  page.id === pageId
-                    ? { ...page, enabled: !page.enabled }
-                    : page
-                ),
-              }
-            : vendor
-        )
-      );
-    } else if (currentPageType === "rider") {
-      setRiders(
-        riders.map((rider) =>
-          rider.id === selectedUserId
-            ? {
-                ...rider,
-                pages: rider.pages.map((page) =>
-                  page.id === pageId
-                    ? { ...page, enabled: !page.enabled }
-                    : page
-                ),
-              }
-            : rider
-        )
-      );
+  const handleDelete = async () => {
+    if (!deleteModal.user) return;
+    setDeleteLoading(true);
+    try {
+      await deleteAdminUser(deleteModal.user.id);
+      // Remove from local state
+      setUsers((prev) => prev.filter((u) => u.id !== deleteModal.user!.id));
+      setVendors((prev) => prev.filter((u) => u.id !== deleteModal.user!.id));
+      setRiders((prev) => prev.filter((u) => u.id !== deleteModal.user!.id));
+      setDeleteModal({ show: false, user: null });
+      // If on pages screen, go back
+      if (selectedUserId === deleteModal.user.id) {
+        setCurrentScreen(
+          currentPageType === "user"
+            ? "user-list"
+            : currentPageType === "vendor"
+              ? "vendor-list"
+              : "rider-list",
+        );
+        setSelectedUserId(null);
+      }
+    } catch (e) {
+      console.error("Delete failed:", e);
+    } finally {
+      setDeleteLoading(false);
     }
   };
 
-  const getCurrentList = () => {
-    switch (currentPageType) {
-      case "user":
-        return users;
-      case "vendor":
-        return vendors;
-      case "rider":
-        return riders;
-      default:
-        return users;
-    }
-  };
-
-  const getSelectedUser = () => {
-    const list = getCurrentList();
-    return list.find((item) => item.id === selectedUserId);
-  };
-
-  const getScreenTitle = () => {
-    if (currentScreen === "user-list") return "User Pages";
-    if (currentScreen === "vendor-list") return "Vendor Pages";
-    if (currentScreen === "rider-list") return "Rider Pages";
-    if (
-      currentScreen === "user-pages" ||
-      currentScreen === "vendor-pages" ||
-      currentScreen === "rider-pages"
-    ) {
-      return "Pages";
-    }
-    return "Pages";
-  };
-
-  const filteredList = getCurrentList().filter((item) =>
-    item.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
-  const handleBackClick = () => {
+  const handleBack = () => {
     if (currentScreen === "user-pages") {
       setCurrentScreen("user-list");
       setSelectedUserId(null);
-    } else if (currentScreen === "vendor-pages") {
+      return;
+    }
+    if (currentScreen === "vendor-pages") {
       setCurrentScreen("vendor-list");
       setSelectedUserId(null);
-    } else if (currentScreen === "rider-pages") {
+      return;
+    }
+    if (currentScreen === "rider-pages") {
       setCurrentScreen("rider-list");
       setSelectedUserId(null);
-    } else {
-      setCurrentScreen("main");
-      setSearchQuery("");
+      return;
     }
+    setCurrentScreen("main");
+    setSearchQuery("");
   };
 
-  if (loading) {
+  // ── Derived ──────────────────────────────────────────────────────────────────
+  const getCurrentList = () =>
+    currentPageType === "user"
+      ? users
+      : currentPageType === "vendor"
+        ? vendors
+        : riders;
+
+  const getSelectedUser = () =>
+    getCurrentList().find((i) => i.id === selectedUserId);
+
+  const filteredList = getCurrentList().filter((i) =>
+    i.name.toLowerCase().includes(searchQuery.toLowerCase()),
+  );
+
+  const screenTitle =
+    currentScreen === "user-list"
+      ? "Users"
+      : currentScreen === "vendor-list"
+        ? "Vendors"
+        : currentScreen === "rider-list"
+          ? "Riders"
+          : currentScreen === "user-pages"
+            ? "User Pages"
+            : currentScreen === "vendor-pages"
+              ? "Vendor Pages"
+              : currentScreen === "rider-pages"
+                ? "Rider Pages"
+                : "Pages & Restrictions";
+
+  if (loading)
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
         <Loader2 className="w-12 h-12 text-green-600 animate-spin" />
       </div>
     );
-  }
 
   return (
     <div className="min-h-screen bg-white">
-      <div className="w-full">
-        {/* Main Pages Screen */}
-        {currentScreen === "main" && (
-          <div className="animate-fadeIn min-h-screen">
-            {/* Header */}
-            <div className="bg-gradient-to-r from-green-600 to-green-500 text-white p-6">
-              <div className="flex items-center gap-4">
-                <button className="hover:bg-white/10 p-2 rounded-lg transition-all">
-                  <ArrowLeft size={24} />
+      {/* ── MAIN ──────────────────────────────────────────────────────────── */}
+      {currentScreen === "main" && (
+        <div>
+          <div className="bg-gradient-to-r from-green-600 to-green-500 text-white px-6 py-4 shadow-lg">
+            <h1 className="text-lg font-bold tracking-tighter uppercase">
+              Pages & Restrictions
+            </h1>
+            <p className="text-white/70 text-xs mt-1">
+              Control page access per user type
+            </p>
+          </div>
+          <div className="p-6 space-y-3">
+            {[
+              {
+                label: "Users",
+                count: users.length,
+                type: "user" as PageType,
+                screen: "user-list" as Screen,
+              },
+              {
+                label: "Vendors",
+                count: vendors.length,
+                type: "vendor" as PageType,
+                screen: "vendor-list" as Screen,
+              },
+              {
+                label: "Riders",
+                count: riders.length,
+                type: "rider" as PageType,
+                screen: "rider-list" as Screen,
+              },
+            ].map((item) => (
+              <button
+                key={item.label}
+                onClick={() => {
+                  setCurrentScreen(item.screen);
+                  setCurrentPageType(item.type);
+                }}
+                className="w-full flex justify-between items-center p-5 bg-white border border-gray-100 rounded-[2rem] hover:shadow-xl transition-all group shadow-lg"
+              >
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-green-50 rounded-2xl flex items-center justify-center font-black text-green-600 text-xl group-hover:rotate-6 transition-transform">
+                    {item.label.charAt(0)}
+                  </div>
+                  <div className="text-left">
+                    <p className="font-black text-gray-800 tracking-tighter uppercase">
+                      {item.label}
+                    </p>
+                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                      {item.count} accounts
+                    </p>
+                  </div>
+                </div>
+                <ChevronRight
+                  className="text-gray-300 group-hover:text-green-600 group-hover:translate-x-1 transition-all"
+                  size={22}
+                />
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ── LIST SCREEN ───────────────────────────────────────────────────── */}
+      {(currentScreen === "user-list" ||
+        currentScreen === "vendor-list" ||
+        currentScreen === "rider-list") && (
+        <div className="min-h-screen">
+          {/* Header */}
+          <div className="bg-gradient-to-r from-green-600 to-green-500 text-white px-6 py-4 shadow-lg sticky top-0 z-40">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={handleBack}
+                  className="p-2 hover:bg-white/20 rounded-full transition-all active:scale-95"
+                >
+                  <ArrowLeft size={22} />
                 </button>
-                <h1 className="text-xl font-bold">Pages</h1>
+                <h1 className="text-lg font-bold tracking-tighter uppercase">
+                  {screenTitle}
+                </h1>
               </div>
-            </div>
-
-            {/* Menu Items */}
-            <div className="p-6 space-y-3">
-              <button
-                onClick={() => {
-                  setCurrentScreen("user-list");
-                  setCurrentPageType("user");
-                }}
-                className="w-full flex justify-between items-center p-5 bg-white border border-gray-200 rounded-xl hover:shadow-xl transition-all transform hover:scale-[1.02] group"
-              >
-                <span className="font-semibold text-gray-800 text-lg">
-                  Users
-                </span>
-                <ChevronRight
-                  className="text-gray-400 group-hover:translate-x-1 transition-transform"
-                  size={22}
-                />
-              </button>
-
-              <button
-                onClick={() => {
-                  setCurrentScreen("vendor-list");
-                  setCurrentPageType("vendor");
-                }}
-                className="w-full flex justify-between items-center p-5 bg-white border border-gray-200 rounded-xl hover:shadow-xl transition-all transform hover:scale-[1.02] group"
-              >
-                <span className="font-semibold text-gray-800 text-lg">
-                  Vendors
-                </span>
-                <ChevronRight
-                  className="text-gray-400 group-hover:translate-x-1 transition-transform"
-                  size={22}
-                />
-              </button>
-
-              <button
-                onClick={() => {
-                  setCurrentScreen("rider-list");
-                  setCurrentPageType("rider");
-                }}
-                className="w-full flex justify-between items-center p-5 bg-white border border-gray-200 rounded-xl hover:shadow-xl transition-all transform hover:scale-[1.02] group"
-              >
-                <span className="font-semibold text-gray-800 text-lg">
-                  Riders
-                </span>
-                <ChevronRight
-                  className="text-gray-400 group-hover:translate-x-1 transition-transform"
-                  size={22}
-                />
-              </button>
+              <span className="text-white/80 font-black text-sm">
+                {filteredList.length}
+              </span>
             </div>
           </div>
-        )}
 
-        {/* User/Vendor/Rider List Screen */}
-        {(currentScreen === "user-list" ||
-          currentScreen === "vendor-list" ||
-          currentScreen === "rider-list") && (
-          <div className="animate-slideIn min-h-screen overflow-y-auto">
-            {/* Header */}
-            <div className="bg-gradient-to-r from-green-600 to-green-500 text-white p-6 sticky top-0 z-20 shadow-lg">
-              <div className="flex justify-between items-center">
-                <div className="flex items-center gap-4 flex-1">
-                  <button
-                    onClick={handleBackClick}
-                    className="hover:bg-white/10 p-2 rounded-lg transition-all"
-                  >
-                    <ArrowLeft size={24} />
-                  </button>
-                  <h1 className="text-xl font-bold">{getScreenTitle()}</h1>
-                </div>
-                <span className="text-white/90 font-semibold text-lg">
-                  {filteredList.length.toLocaleString()}
-                </span>
-              </div>
+          {/* Search */}
+          <div className="px-6 py-4 bg-white border-b border-gray-100 sticky top-[60px] z-30">
+            <div className="relative">
+              <Search
+                size={18}
+                className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
+              />
+              <input
+                type="text"
+                placeholder="Search..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-11 pr-4 py-3.5 bg-gray-50 border border-gray-200 rounded-2xl outline-none focus:border-green-500 focus:ring-4 focus:ring-green-500/10 transition-all text-sm"
+              />
             </div>
+          </div>
 
-            {/* Search Bar */}
-            <div className="p-6 pb-4 bg-white sticky top-[88px] z-10 shadow-sm">
-              <div className="relative">
-                <Search
-                  className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400"
-                  size={20}
-                />
-                <input
-                  type="text"
-                  placeholder="Search for User/Vendor/Riders"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-12 pr-4 py-3.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
-                />
+          {/* List */}
+          <div className="px-4 py-4 space-y-3">
+            {filteredList.length === 0 ? (
+              <div className="text-center py-20 text-gray-300">
+                <p className="font-bold uppercase tracking-widest text-sm">
+                  No accounts found
+                </p>
               </div>
-            </div>
-
-            {/* Users/Vendors/Riders List */}
-            <div className="px-6 pb-6 space-y-3">
-              {filteredList.map((item, index) => (
-                <button
+            ) : (
+              filteredList.map((item, i) => (
+                <div
                   key={item.id}
-                  onClick={() => handleUserClick(item.id, currentPageType)}
-                  className="w-full flex items-center gap-4 p-4 bg-white border-b border-gray-200 hover:bg-gray-50 hover:shadow-md transition-all animate-slideUp rounded-lg group"
-                  style={{ animationDelay: `${index * 50}ms` }}
+                  className="bg-white rounded-[2rem] p-5 shadow-xl border border-gray-50 flex items-center gap-4 hover:border-green-200 hover:shadow-2xl transition-all"
+                  style={{ animationDelay: `${i * 40}ms` }}
                 >
+                  {/* Avatar */}
                   {item.avatar ? (
                     <img
                       src={item.avatar}
                       alt={item.name}
-                      className="w-12 h-12 rounded-full object-cover shadow-md"
+                      className="w-14 h-14 rounded-2xl object-cover shadow-md flex-shrink-0"
                     />
                   ) : (
-                    <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center shadow-md text-green-600 font-bold text-lg">
-                      {item.name.charAt(0)}
+                    <div className="w-14 h-14 rounded-2xl bg-green-50 flex items-center justify-center font-black text-green-600 text-2xl flex-shrink-0 shadow-inner">
+                      {item.name.charAt(0).toUpperCase()}
                     </div>
                   )}
-                  <div className="flex-1 text-left">
-                    <h3 className="font-semibold text-gray-800">{item.name}</h3>
-                    <p className="text-sm text-gray-500">
-                      {item.orders} orders
+                  {/* Name */}
+                  <div className="flex-1 min-w-0">
+                    <p className="font-black text-gray-800 tracking-tighter uppercase truncate">
+                      {item.name}
+                    </p>
+                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-0.5">
+                      {item.pages.filter((p) => p.enabled).length}/
+                      {item.pages.length} pages active
                     </p>
                   </div>
-                  <ChevronRight
-                    className="text-gray-400 group-hover:translate-x-1 transition-transform"
-                    size={20}
+                  {/* Actions */}
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <button
+                      onClick={() => setDeleteModal({ show: true, user: item })}
+                      className="p-2.5 bg-red-50 text-red-500 rounded-xl hover:bg-red-100 transition-all active:scale-95"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                    <button
+                      onClick={() => handleUserClick(item.id, currentPageType)}
+                      className="p-2.5 bg-green-50 text-green-600 rounded-xl hover:bg-green-100 transition-all active:scale-95 group"
+                    >
+                      <ChevronRight
+                        size={16}
+                        className="group-hover:translate-x-0.5 transition-transform"
+                      />
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ── PAGES SCREEN ──────────────────────────────────────────────────── */}
+      {(currentScreen === "user-pages" ||
+        currentScreen === "vendor-pages" ||
+        currentScreen === "rider-pages") && (
+        <div className="min-h-screen">
+          {/* Header */}
+          <div className="bg-gradient-to-r from-green-600 to-green-500 text-white px-6 py-4 shadow-lg sticky top-0 z-40">
+            <div className="flex items-center gap-3">
+              <button
+                onClick={handleBack}
+                className="p-2 hover:bg-white/20 rounded-full transition-all active:scale-95"
+              >
+                <ArrowLeft size={22} />
+              </button>
+              <h1 className="text-lg font-bold tracking-tighter uppercase">
+                {screenTitle}
+              </h1>
+            </div>
+          </div>
+
+          {/* User info */}
+          {getSelectedUser() && (
+            <div className="px-6 py-5 bg-white border-b border-gray-100 flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                {getSelectedUser()!.avatar ? (
+                  <img
+                    src={getSelectedUser()!.avatar}
+                    alt={getSelectedUser()!.name}
+                    className="w-16 h-16 rounded-2xl object-cover shadow-lg"
+                  />
+                ) : (
+                  <div className="w-16 h-16 rounded-2xl bg-green-50 flex items-center justify-center font-black text-green-600 text-3xl shadow-inner">
+                    {getSelectedUser()!.name.charAt(0).toUpperCase()}
+                  </div>
+                )}
+                <div>
+                  <h2 className="font-black text-gray-800 tracking-tighter uppercase">
+                    {getSelectedUser()!.name}
+                  </h2>
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-0.5">
+                    {getSelectedUser()!.pages.filter((p) => p.enabled).length}{" "}
+                    of {getSelectedUser()!.pages.length} pages enabled
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() =>
+                  setDeleteModal({ show: true, user: getSelectedUser()! })
+                }
+                className="p-3 bg-red-50 text-red-500 rounded-2xl hover:bg-red-100 transition-all active:scale-95"
+              >
+                <Trash2 size={18} />
+              </button>
+            </div>
+          )}
+
+          {/* Toggles */}
+          <div className="px-4 py-4 space-y-3">
+            {getSelectedUser()?.pages.map((page, i) => (
+              <div
+                key={page.id}
+                className="bg-white rounded-[2rem] p-5 shadow-xl border border-gray-50 flex justify-between items-center hover:border-green-100 transition-all"
+                style={{ animationDelay: `${i * 40}ms` }}
+              >
+                <div>
+                  <p className="font-black text-gray-800 uppercase tracking-tighter">
+                    {page.name}
+                  </p>
+                  <p className="text-[10px] font-bold uppercase tracking-widest mt-0.5 text-gray-400">
+                    {page.enabled ? "Enabled" : "Restricted"}
+                  </p>
+                </div>
+                <button
+                  onClick={() => handleToggle(page.id)}
+                  className={`relative w-14 h-7 rounded-full transition-all duration-300 shadow-inner ${
+                    page.enabled ? "bg-green-600" : "bg-gray-200"
+                  }`}
+                >
+                  <div
+                    className={`absolute top-0.5 left-0.5 w-6 h-6 bg-white rounded-full shadow-md transition-transform duration-300 ${
+                      page.enabled ? "translate-x-7" : "translate-x-0"
+                    }`}
                   />
                 </button>
-              ))}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ── DELETE MODAL ──────────────────────────────────────────────────── */}
+      {deleteModal.show && deleteModal.user && (
+        <div
+          className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+          onClick={() => setDeleteModal({ show: false, user: null })}
+        >
+          <div
+            className="bg-white rounded-[2.5rem] w-full max-w-sm p-10 text-center shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-6">
+              <X className="w-8 h-8 text-red-600" />
+            </div>
+            <h2 className="text-2xl font-black text-gray-800 mb-2 tracking-tighter uppercase">
+              Delete Account?
+            </h2>
+            <p className="text-gray-400 text-sm mb-2">
+              You are about to delete{" "}
+              <span className="font-bold text-gray-600">
+                {deleteModal.user.name}
+              </span>
+              .
+            </p>
+            <p className="text-red-400 text-xs font-bold uppercase tracking-widest mb-8">
+              This cannot be undone.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setDeleteModal({ show: false, user: null })}
+                className="flex-1 py-4 bg-gray-100 text-gray-700 rounded-2xl font-bold uppercase tracking-widest text-xs active:scale-95 transition-all"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDelete}
+                disabled={deleteLoading}
+                className="flex-1 py-4 bg-red-600 text-white rounded-2xl font-bold uppercase tracking-widest text-xs shadow-xl shadow-red-500/20 active:scale-95 transition-all disabled:opacity-60 flex items-center justify-center gap-2"
+              >
+                {deleteLoading ? (
+                  <Loader2 size={14} className="animate-spin" />
+                ) : (
+                  <Trash2 size={14} />
+                )}
+                Delete
+              </button>
             </div>
           </div>
-        )}
-
-        {/* Individual User/Vendor/Rider Pages Screen */}
-        {(currentScreen === "user-pages" ||
-          currentScreen === "vendor-pages" ||
-          currentScreen === "rider-pages") && (
-          <div className="animate-slideIn min-h-screen overflow-y-auto">
-            {/* Header */}
-            <div className="bg-gradient-to-r from-green-600 to-green-500 text-white p-6 sticky top-0 z-20 shadow-lg">
-              <div className="flex items-center gap-4">
-                <button
-                  onClick={handleBackClick}
-                  className="hover:bg-white/10 p-2 rounded-lg transition-all"
-                >
-                  <ArrowLeft size={24} />
-                </button>
-                <h1 className="text-xl font-bold">{getScreenTitle()}</h1>
-              </div>
-            </div>
-
-            {/* User Info */}
-            {getSelectedUser() && (
-              <div className="p-6 pb-4 bg-white border-b border-gray-200">
-                <div className="flex items-center gap-4">
-                  {getSelectedUser()!.avatar ? (
-                    <img
-                      src={getSelectedUser()!.avatar}
-                      alt={getSelectedUser()!.name}
-                      className="w-16 h-16 rounded-full object-cover shadow-lg"
-                    />
-                  ) : (
-                    <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center shadow-lg text-green-600 font-bold text-2xl">
-                      {getSelectedUser()!.name.charAt(0)}
-                    </div>
-                  )}
-                  <div>
-                    <h2 className="text-lg font-bold text-gray-800">
-                      {getSelectedUser()!.name}
-                    </h2>
-                    <p className="text-sm text-gray-500">
-                      {getSelectedUser()!.orders} orders
-                    </p>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Toggle Settings */}
-            <div className="px-6 py-6 space-y-3">
-              {getSelectedUser()?.pages.map((page, index) => (
-                <div
-                  key={page.id}
-                  className="flex justify-between items-center p-5 bg-white border-b border-gray-200 hover:bg-gray-50 transition-all animate-slideUp rounded-lg"
-                  style={{ animationDelay: `${index * 50}ms` }}
-                >
-                  <span className="font-semibold text-gray-800 text-base">
-                    {page.name}
-                  </span>
-                  <button
-                    onClick={() => handleToggle(page.id)}
-                    className={`relative w-14 h-7 rounded-full transition-all duration-300 transform hover:scale-105 shadow-md ${
-                      page.enabled ? "bg-green-600" : "bg-gray-300"
-                    }`}
-                  >
-                    <div
-                      className={`absolute top-0.5 left-0.5 w-6 h-6 bg-white rounded-full shadow-md transition-transform duration-300 ${
-                        page.enabled ? "translate-x-7" : "translate-x-0"
-                      }`}
-                    />
-                  </button>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-
-      <style>{`
-        @keyframes fadeIn {
-          from {
-            opacity: 0;
-          }
-          to {
-            opacity: 1;
-          }
-        }
-
-        @keyframes slideIn {
-          from {
-            transform: translateX(100%);
-            opacity: 0;
-          }
-          to {
-            transform: translateX(0);
-            opacity: 1;
-          }
-        }
-
-        @keyframes slideUp {
-          from {
-            transform: translateY(20px);
-            opacity: 0;
-          }
-          to {
-            transform: translateY(0);
-            opacity: 1;
-          }
-        }
-
-        .animate-fadeIn {
-          animation: fadeIn 0.3s ease-out;
-        }
-
-        .animate-slideIn {
-          animation: slideIn 0.3s ease-out;
-        }
-
-        .animate-slideUp {
-          animation: slideUp 0.4s ease-out forwards;
-          opacity: 0;
-        }
-
-        /* Custom scrollbar */
-        ::-webkit-scrollbar {
-          width: 6px;
-        }
-
-        ::-webkit-scrollbar-track {
-          background: #f1f1f1;
-        }
-
-        ::-webkit-scrollbar-thumb {
-          background: #16a34a;
-          border-radius: 3px;
-        }
-
-        ::-webkit-scrollbar-thumb:hover {
-          background: #15803d;
-        }
-      `}</style>
+        </div>
+      )}
     </div>
   );
 };
