@@ -3,7 +3,7 @@ import axios from "axios";
 import { supabase } from "./authService";
 
 const API_BASE_URL = "http://localhost:8000/api";
-// const API_BASE_URL = 'https://smoggy-alexandrina-justboj-92783a09.koyeb.app/api';
+// const API_BASE_URL = 'https://pickeatpickitbe.onrender.com/api';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -202,16 +202,18 @@ export const updateVendorProfile = (vendorId: string | number, updates: any) =>
   api.patch(`/vendors/${vendorId}`, updates);
 
 // Vendor Order Management (Backend)
+// KEEP this one
 export const getVendorOrdersBackend = (vendorId: string | number) =>
   api.get("/orders/", { params: { vendor_id: vendorId } });
 export const getVendorOrderTracking = (orderId: string | number) =>
   api.get(`/orders/${orderId}/tracking`);
+// KEEP this one — full signature
 export const addOrderTrackingUpdate = (
   orderId: string | number,
   trackingData: any,
 ) => api.post(`/orders/${orderId}/tracking`, trackingData);
-
 // --- VENDOR SYSTEM (SUPABASE) ---
+// KEEP this one
 
 export const getVendorOrders = async (vendorId: string | number) => {
   const { data, error } = await supabase

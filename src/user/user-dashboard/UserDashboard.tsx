@@ -8,7 +8,7 @@ import {
   TrendingUp,
   Award,
   Clock,
-  ChevronRight
+  ChevronRight,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Navbar } from "../../component/Navbar";
@@ -17,7 +17,32 @@ import { Link, useNavigate } from "react-router-dom";
 import FoodScrollCarousel from "../component/FoodScrollCarouse";
 import { useToast } from "../../context/ToastContext";
 import { backendAuthService } from "../../services/backendAuthService";
+interface MenuItem {
+  id: string;
+  vendor_id: string;
+  name: string;
+  description: string;
+  price: number;
+  category: string;
+  image_url: string;
+  discount: number;
+  is_available: boolean;
+  vendor_name: string;
+}
 
+interface Vendor {
+  id: string;
+  vendor_id: string;
+  business_name: string | null;
+  business_description: string | null;
+  business_address: string | null;
+  business_phone: string | null;
+  logo_url: string | null;
+  cover_url: string | null;
+  business_category: string | null;
+  is_open: boolean;
+  status: string;
+}
 interface LikedState {
   [key: string]: boolean;
 }
@@ -31,17 +56,18 @@ interface UserProfile {
 export default function UserDashboard() {
   const navigate = useNavigate();
   const toast = useToast();
-  
+
   const [liked, setLiked] = useState<LikedState>({});
-  const [foods, setFoods] = useState<any[]>([]);
-  const [offers, setOffers] = useState<any[]>([]);
-  const [vendors, setVendors] = useState<any[]>([]);
- const [userProfile, setUserProfile] = useState<UserProfile>({
+  const [foods, setFoods] = useState<MenuItem[]>([]);
+  const [offers, setOffers] = useState<MenuItem[]>([]);
+  const [vendors, setVendors] = useState<Vendor[]>([]);
+  const [userProfile, setUserProfile] = useState<UserProfile>({
     firstname: "",
     lastname: "",
     email: "",
-    phone: ""
-  });  const [loading, setLoading] = useState(true);
+    phone: "",
+  });
+  const [loading, setLoading] = useState(true);
 
   const toggleLike = async (vendorId: string) => {
     if (!backendAuthService.isAuthenticated()) {
@@ -50,7 +76,7 @@ export default function UserDashboard() {
     }
 
     const isCurrentlyLiked = liked[vendorId];
-    setLiked(prev => ({ ...prev, [vendorId]: !isCurrentlyLiked }));
+    setLiked((prev) => ({ ...prev, [vendorId]: !isCurrentlyLiked }));
 
     try {
       if (isCurrentlyLiked) {
@@ -60,90 +86,94 @@ export default function UserDashboard() {
       }
     } catch (error) {
       // Revert on error
-      setLiked(prev => ({ ...prev, [vendorId]: isCurrentlyLiked }));
-      console.error('Failed to update favorite:', error);
+      setLiked((prev) => ({ ...prev, [vendorId]: isCurrentlyLiked }));
+      console.error("Failed to update favorite:", error);
     }
   };
 
- useEffect(() => {
-  const fetchData = async () => {
-    try {
-      setLoading(true);
-      
-      // Fetch user profile if authenticated
-      if (backendAuthService.isAuthenticated()) {
-        try {
-          const profile = await backendAuthService.getProfile();
-          setUserProfile({
-            firstname: profile.firstname || "",
-            lastname: profile.lastname || "",
-            email: profile.email || "",
-            phone: profile.phone || ""
-          });
-        } catch (error) {
-          console.error('Failed to fetch profile:', error);
-        }
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
 
-        // Fetch favorites
-        try {
-          const favs = await backendAuthService.getFavorites();
-          if (favs && favs.length > 0) {
-            const likedMap: LikedState = {};
-            favs.forEach((f: { vendor_id: string }) => { likedMap[f.vendor_id] = true; });
-            setLiked(likedMap);
+        // Fetch user profile if authenticated
+        if (backendAuthService.isAuthenticated()) {
+          try {
+            const profile = await backendAuthService.getProfile();
+            setUserProfile({
+              firstname: profile.firstname || "",
+              lastname: profile.lastname || "",
+              email: profile.email || "",
+              phone: profile.phone || "",
+            });
+          } catch (error) {
+            console.error("Failed to fetch profile:", error);
           }
-        } catch (error) {
-          console.error('Failed to fetch favorites:', error);
+
+          // Fetch favorites
+          try {
+            const favs = await backendAuthService.getFavorites();
+            if (favs && favs.length > 0) {
+              const likedMap: LikedState = {};
+              favs.forEach((f: { vendor_id: string }) => {
+                likedMap[f.vendor_id] = true;
+              });
+              setLiked(likedMap);
+            }
+          } catch (error) {
+            console.error("Failed to fetch favorites:", error);
+          }
         }
-      }
 
-      // Fetch menu items
-      try {
-        const menuData = await backendAuthService.getMenuItems(10);
-        setFoods(menuData);
+        // Fetch menu items
+        try {
+          const menuData = await backendAuthService.getMenuItems(10);
+          setFoods(menuData);
+        } catch (error) {
+          console.error("Failed to fetch menu items:", error);
+        }
+
+        // Fetch vendors
+        try {
+          const vendorData = await backendAuthService.getVendors(8);
+          setVendors(vendorData);
+        } catch (error) {
+          console.error("Failed to fetch vendors:", error);
+        }
+
+        // Fetch offers
+        try {
+          const offerData = await backendAuthService.getOffers(5);
+          setOffers(offerData);
+        } catch (error) {
+          console.error("Failed to fetch offers:", error);
+        }
       } catch (error) {
-        console.error('Failed to fetch menu items:', error);
+        console.error("Dashboard fetch error:", error);
+      } finally {
+        setTimeout(() => setLoading(false), 800);
       }
+    };
 
-      // Fetch vendors
-      try {
-        const vendorData = await backendAuthService.getVendors(8);
-        setVendors(vendorData);
-      } catch (error) {
-        console.error('Failed to fetch vendors:', error);
-      }
+    fetchData();
+  }, []);
 
-      // Fetch offers
-      try {
-        const offerData = await backendAuthService.getOffers(5);
-        setOffers(offerData);
-      } catch (error) {
-        console.error('Failed to fetch offers:', error);
-      }
-
-    } catch (error) {
-      console.error('Dashboard fetch error:', error);
-    } finally {
-      setTimeout(() => setLoading(false), 800);
-    }
-  };
-
-  fetchData();
-}, []);
-
-  const fullName = `${userProfile.firstname || ""} ${userProfile.lastname || ""}`.trim() || "Guest";
-  const initials = (userProfile.firstname?.[0] || "U") + (userProfile.lastname?.[0] || "S");
+  const fullName =
+    `${userProfile.firstname || ""} ${userProfile.lastname || ""}`.trim() ||
+    "Guest";
+  const initials =
+    (userProfile.firstname?.[0] || "U") + (userProfile.lastname?.[0] || "S");
   const containerVariants = {
     hidden: { opacity: 0 },
     show: {
       opacity: 1,
-      transition: { staggerChildren: 0.1 }
-    }
+      transition: { staggerChildren: 0.1 },
+    },
   };
 
   const itemVariants = {
     hidden: { opacity: 0, y: 20 },
-    show: { opacity: 1, y: 0 }
+    show: { opacity: 1, y: 0 },
   };
 
   return (
@@ -155,7 +185,7 @@ export default function UserDashboard() {
 
       <AnimatePresence mode="wait">
         {loading ? (
-          <motion.div 
+          <motion.div
             key="loading"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -163,23 +193,23 @@ export default function UserDashboard() {
             className="min-h-screen flex flex-col"
           >
             <div className="px-6 py-6 border-b">
-               <div className="flex items-center justify-between mb-6">
-                 <div className="flex items-center gap-4">
-                   <div className="w-14 h-14 rounded-2xl bg-gray-200 animate-pulse" />
-                   <div className="space-y-2">
-                     <div className="h-3 w-24 bg-gray-200 rounded animate-pulse" />
-                     <div className="h-5 w-40 bg-gray-300 rounded animate-pulse" />
-                   </div>
-                 </div>
-               </div>
-               <div className="w-full h-14 bg-gray-50 rounded-[2rem] animate-pulse" />
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-4">
+                  <div className="w-14 h-14 rounded-2xl bg-gray-200 animate-pulse" />
+                  <div className="space-y-2">
+                    <div className="h-3 w-24 bg-gray-200 rounded animate-pulse" />
+                    <div className="h-5 w-40 bg-gray-300 rounded animate-pulse" />
+                  </div>
+                </div>
+              </div>
+              <div className="w-full h-14 bg-gray-50 rounded-[2rem] animate-pulse" />
             </div>
             <div className="px-6 py-10">
-               <div className="w-full h-[400px] rounded-[3rem] bg-gray-200 animate-pulse" />
+              <div className="w-full h-[400px] rounded-[3rem] bg-gray-200 animate-pulse" />
             </div>
           </motion.div>
         ) : (
-          <motion.div 
+          <motion.div
             key="content"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -190,12 +220,19 @@ export default function UserDashboard() {
               <div className="max-w-7xl mx-auto px-6 py-6">
                 <div className="flex flex-col md:flex-row gap-6 items-center justify-between">
                   <div className="flex items-center gap-4 w-full md:w-auto">
-                    <motion.div whileHover={{ scale: 1.05 }} className="w-14 h-14 bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl flex items-center justify-center text-white font-black text-xl shadow-xl shadow-green-500/20">
+                    <motion.div
+                      whileHover={{ scale: 1.05 }}
+                      className="w-14 h-14 bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl flex items-center justify-center text-white font-black text-xl shadow-xl shadow-green-500/20"
+                    >
                       {initials}
                     </motion.div>
                     <div>
-                      <p className="text-[10px] font-black uppercase  tracking-widest text-gray-400 leading-none mb-1">Welcome Back</p>
-                      <h1 className="text-xl font-black  tracking-tighter uppercase">{fullName}</h1>
+                      <p className="text-[10px] font-black uppercase  tracking-widest text-gray-400 leading-none mb-1">
+                        Welcome Back
+                      </p>
+                      <h1 className="text-xl font-black  tracking-tighter uppercase">
+                        {fullName}
+                      </h1>
                     </div>
                   </div>
 
@@ -211,10 +248,13 @@ export default function UserDashboard() {
                       />
                     </div>
                     <div className="flex gap-2">
-                       <Link to="/notification" className="w-14 h-14 bg-gray-50 flex items-center justify-center rounded-2xl text-green-600 border border-gray-100 relative">
-                         <Bell className="w-6 h-6" />
-                         <span className="absolute top-4 right-4 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white"></span>
-                       </Link>
+                      <Link
+                        to="/notification"
+                        className="w-14 h-14 bg-gray-50 flex items-center justify-center rounded-2xl text-green-600 border border-gray-100 relative"
+                      >
+                        <Bell className="w-6 h-6" />
+                        <span className="absolute top-4 right-4 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white"></span>
+                      </Link>
                     </div>
                   </div>
                 </div>
@@ -222,22 +262,54 @@ export default function UserDashboard() {
             </div>
 
             <div className="max-w-7xl mx-auto px-6 py-10">
-              <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="rounded-[3rem] overflow-hidden shadow-3xl mb-16">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="rounded-[3rem] overflow-hidden shadow-3xl mb-16"
+              >
                 <HeroFoodCarousel />
               </motion.div>
 
               <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-20">
                 {[
-                  { label: 'Popular', icon: TrendingUp, color: 'text-green-500', bg: 'bg-green-500/10' },
-                  { label: 'Featured', icon: Award, color: 'text-orange-500', bg: 'bg-orange-500/10' },
-                  { label: 'Recent', icon: Clock, color: 'text-blue-500', bg: 'bg-blue-500/10' },
-                  { label: 'Favorite', icon: Heart, color: 'text-pink-500', bg: 'bg-pink-500/10' },
+                  {
+                    label: "Popular",
+                    icon: TrendingUp,
+                    color: "text-green-500",
+                    bg: "bg-green-500/10",
+                  },
+                  {
+                    label: "Featured",
+                    icon: Award,
+                    color: "text-orange-500",
+                    bg: "bg-orange-500/10",
+                  },
+                  {
+                    label: "Recent",
+                    icon: Clock,
+                    color: "text-blue-500",
+                    bg: "bg-blue-500/10",
+                  },
+                  {
+                    label: "Favorite",
+                    icon: Heart,
+                    color: "text-pink-500",
+                    bg: "bg-pink-500/10",
+                  },
                 ].map((item, i) => (
-                  <motion.div key={i} whileHover={{ y: -5 }} className="bg-white p-6 rounded-[2rem] border border-gray-50 shadow-xl flex flex-col items-center justify-center gap-4 cursor-pointer group">
-                    <div className={`${item.bg} p-4 rounded-2xl group-hover:scale-110 transition-all`}>
+                  <motion.div
+                    key={i}
+                    whileHover={{ y: -5 }}
+                    className="bg-white p-6 rounded-[2rem] border border-gray-50 shadow-xl flex flex-col items-center justify-center gap-4 cursor-pointer group"
+                  >
+                    <div
+                      className={`${item.bg} p-4 rounded-2xl group-hover:scale-110 transition-all`}
+                    >
                       <item.icon className={`w-8 h-8 ${item.color}`} />
                     </div>
-                    <span className="font-black  uppercase tracking-widest text-[10px] text-gray-500">{item.label}</span>
+                    <span className="font-black  uppercase tracking-widest text-[10px] text-gray-500">
+                      {item.label}
+                    </span>
                   </motion.div>
                 ))}
               </div>
@@ -245,22 +317,49 @@ export default function UserDashboard() {
               <div className="mb-20">
                 <div className="flex items-center justify-between mb-10">
                   <h2 className="text-3xl font-black  tracking-tighter uppercase flex items-center gap-4">
-                    <span className="w-3 h-8 bg-green-500 rounded-full" /> Featured Foods
+                    <span className="w-3 h-8 bg-green-500 rounded-full" />{" "}
+                    Featured Foods
                   </h2>
-                  <Link to="/market" className="text-green-600 font-black text-xs uppercase  tracking-widest hover:underline flex items-center gap-2">View All <ChevronRight className="w-4 h-4" /></Link>
+                  <Link
+                    to="/market"
+                    className="text-green-600 font-black text-xs uppercase  tracking-widest hover:underline flex items-center gap-2"
+                  >
+                    View All <ChevronRight className="w-4 h-4" />
+                  </Link>
                 </div>
 
-                <motion.div variants={containerVariants} initial="hidden" animate="show" className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-8">
+                <motion.div
+                  variants={containerVariants}
+                  initial="hidden"
+                  animate="show"
+                  className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-8"
+                >
                   {foods.map((food) => (
-                    <motion.div key={food.id} variants={itemVariants} whileHover={{ y: -10 }} className="group">
+                    <motion.div
+                      key={food.id}
+                      variants={itemVariants}
+                      whileHover={{ y: -10 }}
+                      className="group"
+                    >
                       <Link to={`/market?item=${food.id}`}>
                         <div className="relative aspect-square rounded-[2.5rem] overflow-hidden shadow-2xl mb-4">
-                          <img src={food.image_url || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500"} alt={food.name} className="w-full h-full object-cover transition-all group-hover:scale-110" />
+                          <img
+                            src={
+                              food.image_url ||
+                              "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500"
+                            }
+                            alt={food.name}
+                            className="w-full h-full object-cover transition-all group-hover:scale-110"
+                          />
                           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity p-6 flex items-end">
-                             <p className="text-white font-black  text-xl tracking-tighter uppercase">₦{food.price.toLocaleString()}</p>
+                            <p className="text-white font-black  text-xl tracking-tighter uppercase">
+                              ₦{food.price.toLocaleString()}
+                            </p>
                           </div>
                         </div>
-                        <h3 className="font-black  uppercase tracking-tighter text-gray-700 text-sm truncate">{food.name}</h3>
+                        <h3 className="font-black  uppercase tracking-tighter text-gray-700 text-sm truncate">
+                          {food.name}
+                        </h3>
                       </Link>
                     </motion.div>
                   ))}
@@ -269,16 +368,35 @@ export default function UserDashboard() {
 
               <div className="mb-20">
                 <h2 className="text-3xl font-black  tracking-tighter uppercase flex items-center gap-4 mb-10">
-                  <span className="w-3 h-8 bg-orange-500 rounded-full" /> Special Offers
+                  <span className="w-3 h-8 bg-orange-500 rounded-full" />{" "}
+                  Special Offers
                 </h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   {offers.map((offer) => (
-                    <motion.div key={offer.id} whileHover={{ scale: 1.02 }} className="relative h-64 rounded-[2.5rem] overflow-hidden shadow-3xl group cursor-pointer" onClick={() => navigate("/market")}>
-                      <img src={offer.image_url || "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=800"} className="absolute inset-0 w-full h-full object-cover transition-all group-hover:scale-110" alt={offer.name} />
+                    <motion.div
+                      key={offer.id}
+                      whileHover={{ scale: 1.02 }}
+                      className="relative h-64 rounded-[2.5rem] overflow-hidden shadow-3xl group cursor-pointer"
+                      onClick={() => navigate("/market")}
+                    >
+                      <img
+                        src={
+                          offer.image_url ||
+                          "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=800"
+                        }
+                        className="absolute inset-0 w-full h-full object-cover transition-all group-hover:scale-110"
+                        alt={offer.name}
+                      />
                       <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/40 to-transparent p-10 flex flex-col justify-center">
-                        <div className="bg-orange-500 text-white w-fit px-4 py-1 rounded-full text-[10px] font-black uppercase  tracking-widest mb-4">{offer.discount}% DISCOUNT</div>
-                        <h3 className="text-3xl font-black text-white  tracking-tighter uppercase mb-2">{offer.name}</h3>
-                        <p className="text-white/60 font-bold uppercase  text-xs tracking-widest">{offer.vendor_profiles?.business_name}</p>
+                        <div className="bg-orange-500 text-white w-fit px-4 py-1 rounded-full text-[10px] font-black uppercase  tracking-widest mb-4">
+                          {offer.discount}% DISCOUNT
+                        </div>
+                        <h3 className="text-3xl font-black text-white  tracking-tighter uppercase mb-2">
+                          {offer.name}
+                        </h3>
+                        <p className="text-white/60 font-bold uppercase text-xs tracking-widest">
+                          {offer.vendor_name}
+                        </p>
                       </div>
                     </motion.div>
                   ))}
@@ -287,28 +405,69 @@ export default function UserDashboard() {
 
               <div className="mb-20">
                 <h2 className="text-3xl font-black  tracking-tighter uppercase flex items-center gap-4 mb-10">
-                  <span className="w-3 h-8 bg-red-500 rounded-full" /> Kitchens Near You
+                  <span className="w-3 h-8 bg-red-500 rounded-full" /> Kitchens
+                  Near You
                 </h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
                   {vendors.map((vendor) => (
-                    <motion.div key={vendor.id} whileHover={{ y: -10 }} onClick={() => navigate(`/market?vendor=${vendor.vendor_id}`)} className="bg-white p-8 rounded-[2.5rem] border border-gray-50 shadow-2xl cursor-pointer group hover:border-green-500/30 transition-all">
+                    <motion.div
+                      key={vendor.id}
+                      whileHover={{ y: -10 }}
+                      onClick={() =>
+                        navigate(`/market?vendor=${vendor.vendor_id}`)
+                      }
+                      className="bg-white p-8 rounded-[2.5rem] border border-gray-50 shadow-2xl cursor-pointer group hover:border-green-500/30 transition-all"
+                    >
                       <div className="flex flex-col gap-6">
                         <div className="flex items-center justify-between">
                           <div className="w-20 h-20 rounded-[1.5rem] bg-gray-50 flex items-center justify-center text-4xl shadow-inner border border-gray-100">
-                            {vendor.logo_url ? <img src={vendor.logo_url} className="w-full h-full object-cover" alt="logo" /> : <div className="font-black  text-green-600">🏪</div>}
+                            {vendor.logo_url ? (
+                              <img
+                                src={vendor.logo_url}
+                                className="w-full h-full object-cover"
+                                alt="logo"
+                              />
+                            ) : (
+                              <div className="font-black  text-green-600">
+                                🏪
+                              </div>
+                            )}
                           </div>
-                          <motion.button whileTap={{ scale: 0.8 }} onClick={(e) => { e.stopPropagation(); toggleLike(vendor.id); }} className={`p-3 rounded-2xl ${liked[vendor.id] ? 'bg-pink-500/10 text-pink-500' : 'bg-gray-50 text-gray-300'}`}>
-                            <Heart size={24} fill={liked[vendor.id] ? "currentColor" : "none"} />
+                          <motion.button
+                            whileTap={{ scale: 0.8 }}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleLike(vendor.id);
+                            }}
+                            className={`p-3 rounded-2xl ${liked[vendor.id] ? "bg-pink-500/10 text-pink-500" : "bg-gray-50 text-gray-300"}`}
+                          >
+                            <Heart
+                              size={24}
+                              fill={liked[vendor.id] ? "currentColor" : "none"}
+                            />
                           </motion.button>
                         </div>
                         <div>
-                          <h3 className="text-xl font-black  tracking-tighter uppercase mb-2 truncate">{vendor.business_name}</h3>
+                          <h3 className="text-xl font-black  tracking-tighter uppercase mb-2 truncate">
+                            {vendor.business_name}
+                          </h3>
                           <div className="flex items-center gap-4">
-                            <div className="flex items-center gap-1.5 text-yellow-500"><Star size={16} fill="currentColor" /><span className="text-sm font-black ">4.5</span></div>
-                            <div className="flex items-center gap-1.5 text-gray-400"><MapPin size={16} /><span className="text-[10px] font-black uppercase  tracking-widest">2.4km</span></div>
+                            <div className="flex items-center gap-1.5 text-yellow-500">
+                              <Star size={16} fill="currentColor" />
+                              <span className="text-sm font-black ">4.5</span>
+                            </div>
+                            <div className="flex items-center gap-1.5 text-gray-400">
+                              <MapPin size={16} />
+                              <span className="text-[10px] font-black uppercase  tracking-widest">
+                                2.4km
+                              </span>
+                            </div>
                           </div>
                         </div>
-                        <p className="text-xs text-gray-400 line-clamp-2 ">{vendor.business_description || "Premium kitchen with fresh ingredients."}</p>
+                        <p className="text-xs text-gray-400 line-clamp-2 ">
+                          {vendor.business_description ||
+                            "Premium kitchen with fresh ingredients."}
+                        </p>
                       </div>
                     </motion.div>
                   ))}

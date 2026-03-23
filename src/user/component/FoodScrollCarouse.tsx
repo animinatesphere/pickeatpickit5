@@ -7,8 +7,9 @@ export default function FoodScrollCarousel() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [showLeftArrow, setShowLeftArrow] = useState(false);
   const [showRightArrow, setShowRightArrow] = useState(true);
-  
+
   // Real Data States
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [foods, setFoods] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -17,9 +18,10 @@ export default function FoodScrollCarousel() {
     const fetchChefSpecials = async () => {
       try {
         setLoading(true);
-       const { data, error } = await supabase
-  .from("menu_items")
-  .select(`
+        const { data, error } = await supabase
+          .from("menu_items")
+          .select(
+            `
     *,
     vendor_profiles (
       business_name,
@@ -27,8 +29,9 @@ export default function FoodScrollCarousel() {
       business_address,
       logo_url
     )
-  `)
-  .eq("is_chef_special", true)
+  `,
+          )
+          .eq("is_chef_special", true)
           .limit(10);
 
         if (!error && data) {
@@ -68,7 +71,12 @@ export default function FoodScrollCarousel() {
     return (price * (1 - (discount || 0) / 100)).toFixed(2);
   };
 
-  if (loading) return <div className="p-10 text-center font-bold text-gray-400">Loading Chef's Specials...</div>;
+  if (loading)
+    return (
+      <div className="p-10 text-center font-bold text-gray-400">
+        Loading Chef's Specials...
+      </div>
+    );
   if (foods.length === 0) return null; // Don't show the section if no specials exist
 
   return (
@@ -88,10 +96,20 @@ export default function FoodScrollCarousel() {
         <div className="relative group">
           {/* Arrows */}
           {showLeftArrow && (
-            <button onClick={() => scroll("left")} className="absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-white rounded-full p-3 shadow-xl hover:shadow-2xl transition-all hidden md:flex items-center justify-center"><ChevronLeft className="w-6 h-6 text-gray-800" /></button>
+            <button
+              onClick={() => scroll("left")}
+              className="absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-white rounded-full p-3 shadow-xl hover:shadow-2xl transition-all hidden md:flex items-center justify-center"
+            >
+              <ChevronLeft className="w-6 h-6 text-gray-800" />
+            </button>
           )}
           {showRightArrow && (
-            <button onClick={() => scroll("right")} className="absolute right-0 top-1/2 -translate-y-1/2 z-10 bg-white rounded-full p-3 shadow-xl hover:shadow-2xl transition-all hidden md:flex items-center justify-center"><ChevronRight className="w-6 h-6 text-gray-800" /></button>
+            <button
+              onClick={() => scroll("right")}
+              className="absolute right-0 top-1/2 -translate-y-1/2 z-10 bg-white rounded-full p-3 shadow-xl hover:shadow-2xl transition-all hidden md:flex items-center justify-center"
+            >
+              <ChevronRight className="w-6 h-6 text-gray-800" />
+            </button>
           )}
 
           {/* Scroll Container */}
@@ -102,14 +120,21 @@ export default function FoodScrollCarousel() {
             style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
           >
             {foods.map((item) => (
-              <div key={item.id} className="flex-shrink-0 w-80 group cursor-pointer">
+              <div
+                key={item.id}
+                className="flex-shrink-0 w-80 group cursor-pointer"
+              >
                 <div className="bg-white rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:scale-105 h-full flex flex-col">
                   {/* Image Container */}
                   <div className="relative overflow-hidden h-48 bg-gray-200 flex items-center justify-center">
-                    {item.image_url?.startsWith('http') ? (
-                       <img src={item.image_url} alt={item.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                    {item.image_url?.startsWith("http") ? (
+                      <img
+                        src={item.image_url}
+                        alt={item.name}
+                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                      />
                     ) : (
-                       <span className="text-6xl">{item.image_url || '🥘'}</span>
+                      <span className="text-6xl">{item.image_url || "🥘"}</span>
                     )}
 
                     {item.discount > 0 && (
@@ -120,36 +145,52 @@ export default function FoodScrollCarousel() {
 
                     <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-sm rounded-full px-3 py-1 flex items-center gap-1 shadow-lg">
                       <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                      <span className="font-bold text-sm text-gray-900">4.9</span>
+                      <span className="font-bold text-sm text-gray-900">
+                        4.9
+                      </span>
                     </div>
                   </div>
 
                   {/* Content */}
                   <div className="p-5 flex flex-col flex-1">
                     <div className="mb-3">
-                      <h3 className="text-xl font-bold text-gray-900 mb-2 line-clamp-2">{item.name}</h3>
+                      <h3 className="text-xl font-bold text-gray-900 mb-2 line-clamp-2">
+                        {item.name}
+                      </h3>
                       <div className="flex items-center gap-2">
-                        <span className="text-2xl font-bold text-green-600">₦{getDiscountedPrice(item.price, item.discount)}</span>
+                        <span className="text-2xl font-bold text-green-600">
+                          ₦{getDiscountedPrice(item.price, item.discount)}
+                        </span>
                         {item.discount > 0 && (
-                          <span className="text-lg text-gray-400 line-through">₦{item.price.toFixed(2)}</span>
+                          <span className="text-lg text-gray-400 line-through">
+                            ₦{item.price.toFixed(2)}
+                          </span>
                         )}
                       </div>
                     </div>
 
-                    <p className="text-gray-600 text-sm mb-4 line-clamp-2">{item.description}</p>
+                    <p className="text-gray-600 text-sm mb-4 line-clamp-2">
+                      {item.description}
+                    </p>
 
                     {/* Vendor Info (Joined Data) */}
                     <div className="bg-gradient-to-r from-slate-50 to-slate-100 rounded-xl p-4 mb-4">
                       <div className="flex items-center gap-3">
                         <div className="w-12 h-12 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600 font-bold overflow-hidden border-2 border-white shadow-sm">
                           {item.vendor_profiles?.logo_url ? (
-                             <img src={item.vendor_profiles.logo_url} className="w-full h-full object-cover" />
+                            <img
+                              src={item.vendor_profiles.logo_url}
+                              className="w-full h-full object-cover"
+                            />
                           ) : (
-                             item.vendor_profiles?.full_name?.charAt(0) || 'V'
+                            item.vendor_profiles?.full_name?.charAt(0) || "V"
                           )}
                         </div>
                         <div className="flex-1">
-                          <p className="font-bold text-gray-900 text-sm">{item.vendor_profiles?.full_name || "Professional Chef"}</p>
+                          <p className="font-bold text-gray-900 text-sm">
+                            {item.vendor_profiles?.full_name ||
+                              "Professional Chef"}
+                          </p>
                           <div className="flex items-center gap-1 text-xs text-gray-600">
                             <MapPin className="w-3 h-3" />
                             {item.vendor_profiles?.business_address || "Nearby"}

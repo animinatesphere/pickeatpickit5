@@ -1,23 +1,34 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Camera, MapPin, Edit2, Check, X } from "lucide-react";
+import {
+  ArrowLeft,
+  Camera,
+  MapPin,
+  Edit2,
+  Check,
+  X,
+  Loader2,
+} from "lucide-react";
 import { VendorNav } from "../component/VendorNav";
-// import { apiService } from "../services/authService";
-import { apiService, supabase } from "../../services/authService";
+import { backendAuthService } from "../../services/backendAuthService";
+import { supabase } from "../../services/authService";
 import { useToast } from "../../context/ToastContext";
-// import { error } from "console";
+import api from "../../services/api";
 
 const ProfileSetting = () => {
   const navigate = useNavigate();
   const toast = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isPhotoLoading, setIsPhotoLoading] = useState(false);
   const [isOpen, setIsOpen] = useState(true);
   const [editingField, setEditingField] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [tempValue, setTempValue] = useState("");
   const [vendorId, setVendorId] = useState<string | null>(null);
   const [profileImage, setProfileImage] = useState<string>("");
-  const [isPhotoLoading, setIsPhotoLoading] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  // Initialize formData with empty values - will be populated by useEffect
+
   const [formData, setFormData] = useState({
     restaurantName: "",
     category: "Restaurant",
@@ -31,267 +42,238 @@ const ProfileSetting = () => {
     deliveryRange: "",
   });
 
-  const [tempValue, setTempValue] = useState("");
-
-  // ... rest of your code
-  const handleEdit = (field: string, currentValue: string) => {
-    setEditingField(field);
-    setTempValue(currentValue);
-  };
-
-  const handleSave = (field: string) => {
-    setFormData({ ...formData, [field]: tempValue });
-    setEditingField(null);
-  };
-
-  const handleCancel = () => {
-    setEditingField(null);
-    setTempValue("");
-  };
+  // ── Fetch vendor from backend ───────────────────────────────────────────────
   useEffect(() => {
-    const fetchVendorData = async () => {
+    (async () => {
       try {
         setIsLoading(true);
 
-        // 1. Check session
-        const {
-          data: { session },
-        } = await supabase.auth.getSession();
-        if (!session) {
-          window.location.href = "/vendor-login";
-          return;
-        }
-
-        // 2. Check email verification
-        if (!session.user.email_confirmed_at) {
-          toast.warning(
-            "Please verify your email before accessing your profile.",
-            "Email Verification Required",
-          );
-          window.location.href = "/vendor-login";
-          return;
-        }
-
-        // 3. Get current user
-        const user = await apiService.getCurrentUser();
+        const user = await backendAuthService.getCurrentUser();
         if (!user) {
           window.location.href = "/vendor-login";
           return;
         }
 
-        // 4. Get vendor record FIRST (This provides the vendor ID)
-        const { data: vendorData, error: vendorError } = await supabase
-          .from("vendors")
-          .select(
-            "id, email, firstname, lastname, phone, business_address, business_name, state, lga",
-          )
-          .eq("user_id", user.id)
-          .single();
+        const vId = user.vendor_id || user.id;
+        setVendorId(vId);
 
-        if (vendorError || !vendorData) {
-          console.error("Error fetching vendor:", vendorError);
-          return;
-        }
+        // GET /vendors/{vendor_id}
+        const res = await api.get(`/vendors/${vId}`);
+        const d = res.data;
 
-        setVendorId(vendorData.id);
+        setProfileImage(d.logo_url || "");
+        setIsOpen(d.opening_time ? true : false);
 
-        // 5. NOW fetch the photo using the valid vendorData.id
-        const { data: photoData } = await supabase
-          .from("vendor_photos")
-          .select("photo_url")
-          .eq("vendor_id", vendorData.id)
-          .eq("photo_type", "store_logo")
-          .order("uploaded_at", { ascending: false })
-          .limit(1);
-
-        if (photoData && photoData.length > 0) {
-          setProfileImage(photoData[0].photo_url);
-        }
-
-        // 6. Fetch remaining profile data
-        const { data: profileData } = await supabase
-          .from("vendor_profiles")
-          .select("*")
-          .eq("vendor_id", vendorData.id)
-          .single();
-
-        const { data: availabilityData } = await supabase
-          .from("vendor_availability")
-          .select("*")
-          .eq("vendor_id", vendorData.id)
-          .single();
-
-        // 7. Update formData
         setFormData({
-          restaurantName:
-            profileData?.business_name ||
-            vendorData.business_name ||
-            "Restaurant Name",
-          category: "Restaurant",
-          email: profileData?.business_email || vendorData.email || "",
-          phone: profileData?.business_phone || vendorData.phone || "",
+          restaurantName: d.business_name || "",
+          category: d.business_category || d.profession || "Restaurant",
+          email: d.business_email || d.email || "",
+          phone: d.business_phone || d.phone || "",
           fullName:
-            profileData?.full_name ||
-            `${vendorData.firstname || ""} ${vendorData.lastname || ""}`.trim(),
-          address:
-            profileData?.business_address || vendorData.business_address || "",
-          zip: "900104",
-          city: profileData?.lga || vendorData.lga || "City",
-          state: profileData?.state || vendorData.state || "State",
+            d.full_name || `${d.firstname || ""} ${d.lastname || ""}`.trim(),
+          address: d.business_address || "",
+          zip: "",
+          city: d.lga || "",
+          state: d.state || "",
           deliveryRange:
-            availabilityData?.day_from && availabilityData?.day_to
-              ? `${availabilityData.day_from} - ${availabilityData.day_to}`
-              : "Not Set",
+            d.day_from && d.day_to ? `${d.day_from} – ${d.day_to}` : "Not Set",
         });
-
-        if (availabilityData?.is_open !== undefined) {
-          setIsOpen(availabilityData.is_open);
-        }
-      } catch (error) {
-        console.error("Error loading vendor data:", error);
+      } catch (e) {
+        console.error("ProfileSetting load error:", e);
       } finally {
         setIsLoading(false);
       }
-    };
+    })();
+  }, []);
 
-    fetchVendorData();
-  }, [toast]);
+  // ── Inline field editing ────────────────────────────────────────────────────
+  const handleEdit = (field: string, val: string) => {
+    setEditingField(field);
+    setTempValue(val);
+  };
+  const handleSave = (field: string) => {
+    setFormData((p) => ({ ...p, [field]: tempValue }));
+    setEditingField(null);
+  };
+  const handleCancel = () => {
+    setEditingField(null);
+    setTempValue("");
+  };
 
+  // ── Photo upload — Supabase storage ─────────────────────────────────────────
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !vendorId) return;
 
-    // Basic validation
-    if (file.size > 1024 * 1024) {
-      toast.warning("File size must be less than 1MB", "File Too Large");
+    if (file.size > 5 * 1024 * 1024) {
+      toast.warning("File must be under 5MB", "File Too Large");
       return;
     }
 
+    setIsPhotoLoading(true);
     try {
-      setIsPhotoLoading(true);
+      const ext = file.name.split(".").pop() || "jpg";
+      const path = `vendor-logos/${vendorId}/${Date.now()}.${ext}`;
 
-      // Call your existing service
-      const response = await apiService.uploadVendorPhoto(
-        vendorId,
-        file,
-        "store_logo",
-      );
+      const { error } = await supabase.storage
+        .from("vendor-assets") // update bucket name if different
+        .upload(path, file, { upsert: true, contentType: file.type });
 
-      if (response && response.publicUrl) {
-        // Update local UI
-        setProfileImage(response.publicUrl);
-        toast.success("Profile photo updated!", "Photo Updated");
-      }
-    } catch (error) {
-      console.error("Upload error:", error);
-      toast.error("Failed to upload photo", "Upload Error");
+      if (error) throw error;
+
+      const { data } = supabase.storage
+        .from("vendor-assets")
+        .getPublicUrl(path);
+      const url = data.publicUrl;
+
+      // Save URL back to backend
+      await api.patch(`/vendors/${vendorId}`, { logo_url: url });
+      setProfileImage(url);
+      toast.success("Profile photo updated!");
+    } catch (err) {
+      console.error("Photo upload error:", err);
+      toast.error("Failed to upload photo");
     } finally {
       setIsPhotoLoading(false);
     }
   };
+
+  // ── Save all changes ─────────────────────────────────────────────────────────
   const handleSaveChanges = async () => {
     if (!vendorId) return;
-
+    setIsSaving(true);
     try {
-      // Update vendor_profiles
-      await supabase
-        .from("vendor_profiles")
-        .update({
-          business_name: formData.restaurantName,
-          full_name: formData.fullName,
-          business_email: formData.email,
-          business_phone: formData.phone,
-          business_address: formData.address,
-          state: formData.state,
-          lga: formData.city,
-        })
-        .eq("vendor_id", vendorId);
-
-      toast.success("Profile updated successfully!", "Profile Saved");
-    } catch (error) {
-      console.error("Error saving:", error);
-      toast.error("Failed to save changes", "Save Error");
+      await api.patch(`/vendors/${vendorId}`, {
+        business_name: formData.restaurantName,
+        full_name: formData.fullName,
+        business_email: formData.email,
+        business_phone: formData.phone,
+        business_address: formData.address,
+        state: formData.state,
+        lga: formData.city,
+      });
+      toast.success("Profile saved successfully!");
+    } catch (e) {
+      console.error("Save error:", e);
+      toast.error("Failed to save changes");
+    } finally {
+      setIsSaving(false);
     }
   };
-  // / Add this before the main return
-  // if (error) {
-  //   return (
-  //     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
-  //       <div className="text-center bg-white p-8 rounded-2xl shadow-lg">
-  //         <p className="text-red-600 mb-4">{error}</p>
-  //         <button
-  //           onClick={() => (window.location.href = "/vendor-login")}
-  //           className="px-6 py-3 bg-green-600 text-white rounded-xl hover:bg-green-700"
-  //         >
-  //           Go to Login
-  //         </button>
-  //       </div>
-  //     </div>
-  //   );
-  // }
-  if (isLoading) {
+
+  // ── Editable field component ────────────────────────────────────────────────
+  const EditableField = ({
+    label,
+    field,
+    value,
+    type = "text",
+  }: {
+    label: string;
+    field: string;
+    value: string;
+    type?: string;
+  }) => (
+    <div className="mb-5">
+      <label className="text-xs text-gray-500 mb-2 block font-bold uppercase tracking-widest">
+        {label}
+      </label>
+      <div className="flex gap-2">
+        {editingField === field ? (
+          <>
+            <input
+              type={type}
+              value={tempValue}
+              onChange={(e) => setTempValue(e.target.value)}
+              autoFocus
+              className="flex-1 px-4 py-3 bg-blue-50 border-2 border-blue-300 rounded-xl text-gray-900 outline-none focus:border-blue-500 transition-all font-medium"
+            />
+            <button
+              onClick={() => handleSave(field)}
+              className="px-4 py-3 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-all active:scale-95"
+            >
+              <Check className="w-5 h-5" />
+            </button>
+            <button
+              onClick={handleCancel}
+              className="px-4 py-3 bg-red-500 text-white rounded-xl hover:bg-red-600 transition-all active:scale-95"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </>
+        ) : (
+          <>
+            <div className="flex-1 px-4 py-3 bg-gray-50 rounded-xl text-gray-800 font-bold border border-gray-100 min-h-[48px] flex items-center">
+              {value || (
+                <span className="text-gray-300 font-normal">Not set</span>
+              )}
+            </div>
+            <button
+              onClick={() => handleEdit(field, value)}
+              className="px-5 py-3 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-all active:scale-95 font-bold uppercase text-xs tracking-widest"
+            >
+              Edit
+            </button>
+          </>
+        )}
+      </div>
+    </div>
+  );
+
+  if (isLoading)
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center transition-colors duration-300">
+      <div className="min-h-screen bg-white flex items-center justify-center">
         <div className="text-center">
-          <div className="w-16 h-16 border-4 border-green-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600 font-medium">
-            Loading profile...
-          </p>
+          <Loader2 className="w-12 h-12 text-green-600 animate-spin mx-auto mb-4" />
+          <p className="text-gray-500 font-medium">Loading profile...</p>
         </div>
       </div>
     );
-  }
 
   return (
-    <div className="min-h-screen bg-white transition-colors duration-300">
+    <div className="min-h-screen bg-white pb-32">
       <VendorNav />
+
       {/* Header */}
-      <div className="bg-gradient-to-r from-green-600 to-green-700 text-white px-6 py-4 shadow-lg sticky top-0 z-20 transition-all">
+      <div className="bg-gradient-to-r from-green-600 to-green-700 text-white px-6 py-4 shadow-lg sticky top-0 z-20">
         <div className="flex items-center gap-4">
           <button
-            className="p-2 hover:bg-white/20 rounded-lg transition-all"
             onClick={() => navigate(-1)}
+            className="p-2 hover:bg-white/20 rounded-lg transition-all active:scale-95"
           >
             <ArrowLeft className="w-6 h-6" />
           </button>
-          <h1 className="text-xl font-bold font-inter  tracking-tighter uppercase">
+          <h1 className="text-xl font-bold tracking-tighter uppercase">
             Profile Settings
           </h1>
         </div>
       </div>
 
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 pb-24">
-        {/* Restaurant Status Toggle */}
-        <div className="bg-white rounded-2xl shadow-lg p-6 mb-6 border border-transparent flex flex-col sm:flex-row sm:items-center sm:justify-between">
+      <div className="max-w-2xl mx-auto px-4 py-6 space-y-5">
+        {/* Status toggle */}
+        <div className="bg-white rounded-[2rem] shadow-xl p-6 border border-gray-50 flex items-center justify-between">
           <div>
-            <h3 className="text-lg font-bold text-gray-800 font-inter  uppercase tracking-tighter">
+            <h3 className="font-black text-gray-800 uppercase tracking-tighter">
               Restaurant Status
             </h3>
-            <p className="text-sm text-gray-500 font-medium mt-2">
-              {isOpen
-                ? "Your restaurant is currently open"
-                : "Your restaurant is currently closed"}
+            <p className="text-sm text-gray-400 mt-1 font-medium">
+              {isOpen ? "Currently open for orders" : "Currently closed"}
             </p>
           </div>
           <button
             onClick={() => setIsOpen(!isOpen)}
-            className={`relative w-16 h-8 rounded-full transition-all duration-300 ${
-              isOpen ? "bg-green-600" : "bg-gray-300"
-            } mt-4 sm:mt-0`}
+            className={`relative w-16 h-8 rounded-full transition-all duration-300 ${isOpen ? "bg-green-600" : "bg-gray-300"}`}
           >
             <div
-              className={`absolute top-1 w-6 h-6 bg-white rounded-full shadow-md transition-all duration-300 ${
-                isOpen ? "left-9" : "left-1"
-              }`}
+              className={`absolute top-1 w-6 h-6 bg-white rounded-full shadow-md transition-all duration-300 ${isOpen ? "left-9" : "left-1"}`}
             />
           </button>
         </div>
 
-        {/* Profile Card */}
-        <div className="bg-white rounded-2xl shadow-lg p-6 mb-6 border border-transparent transition-all">
-          <div className="flex flex-col sm:flex-row items-start gap-4">
-            <div className="relative group mx-auto sm:mx-0">
-              {/* Hidden File Input */}
+        {/* Profile card */}
+        <div className="bg-white rounded-[2rem] shadow-xl p-6 border border-gray-50">
+          <div className="flex flex-col sm:flex-row items-center gap-6">
+            {/* Photo */}
+            <div className="relative flex-shrink-0">
               <input
                 type="file"
                 ref={fileInputRef}
@@ -301,13 +283,13 @@ const ProfileSetting = () => {
               />
               <div
                 onClick={() => fileInputRef.current?.click()}
-                className="w-24 h-24 rounded-full bg-gray-100 flex items-center justify-center shadow-lg cursor-pointer overflow-hidden border-4 border-white relative group transition-all"
+                className="w-24 h-24 rounded-full bg-gray-100 flex items-center justify-center shadow-lg cursor-pointer overflow-hidden border-4 border-white relative"
               >
-                {isPhotoLoading ? (
+                {isPhotoLoading && (
                   <div className="absolute inset-0 bg-black/40 flex items-center justify-center z-10">
-                    <div className="w-6 h-6 border-2 border-green-600 border-t-transparent rounded-full animate-spin"></div>
+                    <Loader2 className="w-6 h-6 text-white animate-spin" />
                   </div>
-                ) : null}
+                )}
                 {profileImage ? (
                   <img
                     src={profileImage}
@@ -320,170 +302,60 @@ const ProfileSetting = () => {
               </div>
               <button
                 onClick={() => fileInputRef.current?.click()}
-                className="absolute bottom-0 right-0 w-8 h-8 bg-green-600 rounded-full flex items-center justify-center shadow-lg hover:bg-green-700 transition-all transform hover:scale-110"
+                className="absolute bottom-0 right-0 w-8 h-8 bg-green-600 rounded-full flex items-center justify-center shadow-lg hover:bg-green-700 transition-all active:scale-90"
               >
                 <Edit2 className="w-4 h-4 text-white" />
               </button>
             </div>
-            <div className="flex-1 font-inter transition-all text-center sm:text-left">
-              <h2 className="text-2xl font-bold text-gray-800  uppercase tracking-tighter">
-                {formData.restaurantName}
+
+            {/* Name preview */}
+            <div className="text-center sm:text-left">
+              <h2 className="text-2xl font-black text-gray-800 uppercase tracking-tighter">
+                {formData.restaurantName || "Restaurant Name"}
               </h2>
-              <p className="text-green-600 font-bold uppercase text-sm tracking-wide">
+              <p className="text-green-600 font-bold uppercase text-sm tracking-widest">
                 {formData.category}
               </p>
-              <p className="text-sm text-gray-600 font-medium mt-1 break-all">
-                {formData.email}
-              </p>
-              <p className="text-sm font-bold text-gray-700 mt-1 break-all">
+              <p className="text-gray-400 text-sm mt-1">{formData.email}</p>
+              <p className="text-gray-500 text-sm font-bold">
                 {formData.phone}
               </p>
             </div>
           </div>
         </div>
 
-        {/* Personal Information */}
-        <div className="bg-white rounded-2xl shadow-lg p-6 mb-6 border border-transparent transition-all">
-          <h3 className="text-xl font-bold text-green-700 mb-6 font-inter  uppercase tracking-tighter">
+        {/* Personal info */}
+        <div className="bg-white rounded-[2rem] shadow-xl p-6 border border-gray-50">
+          <h3 className="font-black text-green-700 uppercase tracking-tighter mb-6">
             Personal Information
           </h3>
-
-          {/* Full Name */}
-          <div className="mb-4">
-            <label className="text-sm text-gray-600 mb-2 block font-medium">
-              Full Name
-            </label>
-            <div className="flex gap-2">
-              {editingField === "fullName" ? (
-                <>
-                  <input
-                    type="text"
-                    value={tempValue}
-                    onChange={(e) => setTempValue(e.target.value)}
-                    className="flex-1 px-4 py-3 bg-blue-50 border-2 border-blue-300 rounded-xl text-gray-900 focus:outline-none focus:border-blue-500 transition-all font-inter"
-                    autoFocus
-                  />
-                  <button
-                    onClick={() => handleSave("fullName")}
-                    className="px-4 py-3 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-all"
-                  >
-                    <Check className="w-5 h-5" />
-                  </button>
-                  <button
-                    onClick={handleCancel}
-                    className="px-4 py-3 bg-red-500 text-white rounded-xl hover:bg-red-600 transition-all"
-                  >
-                    <X className="w-5 h-5" />
-                  </button>
-                </>
-              ) : (
-                <>
-                  <div className="flex-1 px-4 py-3 bg-gray-50 rounded-xl text-gray-800 font-bold font-inter border border-transparent">
-                    {formData.fullName}
-                  </div>
-                  <button
-                    onClick={() => handleEdit("fullName", formData.fullName)}
-                    className="px-6 py-3 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-all font-bold uppercase text-xs tracking-widest "
-                  >
-                    Edit
-                  </button>
-                </>
-              )}
-            </div>
-          </div>
-
-          {/* Email Address */}
-          <div className="mb-4">
-            <label className="text-sm text-gray-600 mb-2 block font-medium">
-              Email Address
-            </label>
-            <div className="flex gap-2">
-              {editingField === "email" ? (
-                <>
-                  <input
-                    type="email"
-                    value={tempValue}
-                    onChange={(e) => setTempValue(e.target.value)}
-                    className="flex-1 px-4 py-3 bg-blue-50 border-2 border-blue-300 rounded-xl text-gray-900 focus:outline-none focus:border-blue-500 transition-all font-inter"
-                    autoFocus
-                  />
-                  <button
-                    onClick={() => handleSave("email")}
-                    className="px-4 py-3 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-all"
-                  >
-                    <Check className="w-5 h-5" />
-                  </button>
-                  <button
-                    onClick={handleCancel}
-                    className="px-4 py-3 bg-red-500 text-white rounded-xl hover:bg-red-600 transition-all"
-                  >
-                    <X className="w-5 h-5" />
-                  </button>
-                </>
-              ) : (
-                <>
-                  <div className="flex-1 px-4 py-3 bg-gray-50 rounded-xl text-gray-800 font-bold font-inter border border-transparent">
-                    {formData.email}
-                  </div>
-                  <button
-                    onClick={() => handleEdit("email", formData.email)}
-                    className="px-6 py-3 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-all font-bold uppercase text-xs tracking-widest "
-                  >
-                    Edit
-                  </button>
-                </>
-              )}
-            </div>
-          </div>
-
-          {/* Phone Number */}
-          <div className="mb-4">
-            <label className="text-sm text-gray-600 mb-2 block font-medium">
-              Phone Number
-            </label>
-            <div className="flex gap-2">
-              {editingField === "phone" ? (
-                <>
-                  <input
-                    type="tel"
-                    value={tempValue}
-                    onChange={(e) => setTempValue(e.target.value)}
-                    className="flex-1 px-4 py-3 bg-blue-50 border-2 border-blue-300 rounded-xl text-gray-900 focus:outline-none focus:border-blue-500 transition-all font-inter"
-                    autoFocus
-                  />
-                  <button
-                    onClick={() => handleSave("phone")}
-                    className="px-4 py-3 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-all"
-                  >
-                    <Check className="w-5 h-5" />
-                  </button>
-                  <button
-                    onClick={handleCancel}
-                    className="px-4 py-3 bg-red-500 text-white rounded-xl hover:bg-red-600 transition-all"
-                  >
-                    <X className="w-5 h-5" />
-                  </button>
-                </>
-              ) : (
-                <>
-                  <div className="flex-1 px-4 py-3 bg-gray-50 rounded-xl text-gray-800 font-bold font-inter border border-transparent">
-                    {formData.phone}
-                  </div>
-                  <button
-                    onClick={() => handleEdit("phone", formData.phone)}
-                    className="px-6 py-3 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-all font-bold uppercase text-xs tracking-widest "
-                  >
-                    Edit
-                  </button>
-                </>
-              )}
-            </div>
-          </div>
+          <EditableField
+            label="Full Name"
+            field="fullName"
+            value={formData.fullName}
+          />
+          <EditableField
+            label="Business Name"
+            field="restaurantName"
+            value={formData.restaurantName}
+          />
+          <EditableField
+            label="Email"
+            field="email"
+            value={formData.email}
+            type="email"
+          />
+          <EditableField
+            label="Phone"
+            field="phone"
+            value={formData.phone}
+            type="tel"
+          />
         </div>
 
-        {/* Address Section */}
-        <div className="bg-white rounded-2xl shadow-lg p-6 mb-6 border border-transparent transition-all">
-          <h3 className="text-lg font-bold text-gray-800 mb-4 font-inter  uppercase tracking-tighter">
+        {/* Address */}
+        <div className="bg-white rounded-[2rem] shadow-xl p-6 border border-gray-50">
+          <h3 className="font-black text-gray-800 uppercase tracking-tighter mb-4">
             Address
           </h3>
 
@@ -492,20 +364,20 @@ const ProfileSetting = () => {
               <textarea
                 value={tempValue}
                 onChange={(e) => setTempValue(e.target.value)}
-                className="w-full px-4 py-3 bg-blue-50 border-2 border-blue-300 rounded-xl text-gray-900 focus:outline-none focus:border-blue-500 transition-all font-inter"
-                rows={2}
+                rows={3}
                 autoFocus
+                className="w-full px-4 py-3 bg-blue-50 border-2 border-blue-300 rounded-xl text-gray-900 outline-none transition-all resize-none"
               />
               <div className="flex gap-2 mt-2">
                 <button
                   onClick={() => handleSave("address")}
-                  className="flex-1 px-4 py-3 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-all font-semibold"
+                  className="flex-1 py-3 bg-green-600 text-white rounded-xl font-bold hover:bg-green-700 transition-all active:scale-95"
                 >
                   Save
                 </button>
                 <button
                   onClick={handleCancel}
-                  className="flex-1 px-4 py-3 bg-red-500 text-white rounded-xl hover:bg-red-600 transition-all font-semibold"
+                  className="flex-1 py-3 bg-red-500 text-white rounded-xl font-bold hover:bg-red-600 transition-all active:scale-95"
                 >
                   Cancel
                 </button>
@@ -514,73 +386,51 @@ const ProfileSetting = () => {
           ) : (
             <div
               onClick={() => handleEdit("address", formData.address)}
-              className="text-gray-700 mb-4 p-4 bg-gray-50 rounded-xl cursor-pointer hover:bg-gray-100 border border-transparent transition-all font-inter font-medium"
+              className="p-4 bg-gray-50 rounded-xl cursor-pointer hover:bg-gray-100 transition-all font-medium text-gray-700 mb-4 min-h-[48px]"
             >
-              {formData.address}
+              {formData.address || (
+                <span className="text-gray-300">Click to add address</span>
+              )}
             </div>
           )}
 
-          <div className="grid grid-cols-3 gap-4">
-            <div>
-              <label className="text-xs text-gray-600 mb-1 block font-medium uppercase tracking-widest">
-                Zip
-              </label>
-              <input
-                type="text"
-                value={formData.zip}
-                onChange={(e) =>
-                  setFormData({ ...formData, zip: e.target.value })
-                }
-                className="w-full px-3 py-2 bg-gray-50 border-b-2 border-gray-300 rounded-lg text-gray-900 focus:border-green-500 focus:outline-none transition-all font-inter font-bold"
-              />
-            </div>
-            <div>
-              <label className="text-xs text-gray-600 mb-1 block font-medium uppercase tracking-widest">
-                City
-              </label>
-              <input
-                type="text"
-                value={formData.city}
-                onChange={(e) =>
-                  setFormData({ ...formData, city: e.target.value })
-                }
-                className="w-full px-3 py-2 bg-gray-50 border-b-2 border-gray-300 rounded-lg text-gray-900 focus:border-green-500 focus:outline-none transition-all font-inter font-bold"
-              />
-            </div>
-            <div>
-              <label className="text-xs text-gray-600 mb-1 block font-medium uppercase tracking-widest">
-                State
-              </label>
-              <input
-                type="text"
-                value={formData.state}
-                onChange={(e) =>
-                  setFormData({ ...formData, state: e.target.value })
-                }
-                className="w-full px-3 py-2 bg-gray-50 border-b-2 border-gray-300 rounded-lg text-gray-900 focus:border-green-500 focus:outline-none transition-all font-inter font-bold"
-              />
-            </div>
+          <div className="grid grid-cols-3 gap-3">
+            {[
+              { label: "Zip", key: "zip" },
+              { label: "City", key: "city" },
+              { label: "State", key: "state" },
+            ].map((f) => (
+              <div key={f.key}>
+                <label className="text-[10px] text-gray-400 mb-1 block font-bold uppercase tracking-widest">
+                  {f.label}
+                </label>
+                <input
+                  type="text"
+                  value={formData[f.key as keyof typeof formData]}
+                  onChange={(e) =>
+                    setFormData((p) => ({ ...p, [f.key]: e.target.value }))
+                  }
+                  className="w-full px-3 py-2.5 bg-gray-50 border-b-2 border-gray-200 rounded-lg text-gray-900 outline-none focus:border-green-500 transition-all font-bold text-sm"
+                />
+              </div>
+            ))}
           </div>
         </div>
 
-        {/* Delivery Range */}
-        <div className="bg-white rounded-2xl shadow-lg p-6 mb-6 border border-transparent transition-all">
+        {/* Delivery range */}
+        <div className="bg-white rounded-[2rem] shadow-xl p-6 border border-gray-50">
           <div className="flex items-center gap-3 mb-4">
             <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-              <MapPin className="w-6 h-6 text-green-600" />
+              <MapPin className="w-5 h-5 text-green-600" />
             </div>
             <div>
-              <h3 className="text-lg font-bold text-gray-800 font-inter  uppercase tracking-tighter">
+              <h3 className="font-black text-gray-800 uppercase tracking-tighter">
                 Delivery Range
               </h3>
-              <p className="text-sm text-gray-600 font-medium">
-                {formData.deliveryRange}
-              </p>
+              <p className="text-sm text-gray-400">{formData.deliveryRange}</p>
             </div>
           </div>
-
-          {/* Interactive Map */}
-          <div className="relative rounded-xl overflow-hidden shadow-md h-64 bg-gradient-to-br from-green-100 to-blue-100 border">
+          <div className="relative rounded-2xl overflow-hidden h-56 bg-gray-100">
             <iframe
               width="100%"
               height="100%"
@@ -589,22 +439,22 @@ const ProfileSetting = () => {
               allowFullScreen
               src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d126182.48419177555!2d7.314454!3d9.073676!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x104e0a5e32c9a903%3A0x9c9b57a5e7c0f5d6!2sAbuja%2C%20Nigeria!5e0!3m2!1sen!2sng!4v1234567890"
             />
-            {/* Map Overlay Marker */}
-            <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-full">
-              <div className="w-12 h-12 bg-green-600 rounded-full shadow-lg flex items-center justify-center animate-bounce">
-                <MapPin className="w-8 h-8 text-white fill-white" />
-              </div>
-            </div>
           </div>
         </div>
+      </div>
 
-        {/* Save Button */}
-        <button
-          onClick={handleSaveChanges}
-          className="w-full py-4 bg-gradient-to-r from-green-600 to-green-700..."
-        >
-          Save Changes
-        </button>
+      {/* Sticky save bar */}
+      <div className="fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-xl border-t border-gray-100 p-5 z-40">
+        <div className="max-w-2xl mx-auto">
+          <button
+            onClick={handleSaveChanges}
+            disabled={isSaving}
+            className="w-full py-5 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-2xl font-black uppercase tracking-widest shadow-xl hover:from-green-700 hover:to-emerald-700 transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-3"
+          >
+            {isSaving && <Loader2 className="w-5 h-5 animate-spin" />}
+            {isSaving ? "Saving..." : "Save Changes"}
+          </button>
+        </div>
       </div>
     </div>
   );

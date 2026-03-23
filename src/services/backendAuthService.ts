@@ -77,6 +77,33 @@ export interface JwtPayload {
   business_name?: string;
   exp: number; // expiration timestamp
 }
+// Add to backendAuthService.ts — reuse your existing interfaces
+export interface MenuItem {
+  id: string;
+  vendor_id: string;
+  name: string;
+  description: string;
+  price: number;
+  category: string;
+  image_url: string;
+  discount: number;
+  is_available: boolean;
+  vendor_name: string;
+}
+
+export interface Vendor {
+  id: string;
+  vendor_id: string;
+  business_name: string | null;
+  business_description: string | null;
+  business_address: string | null;
+  business_phone: string | null;
+  logo_url: string | null;
+  cover_url: string | null;
+  business_category: string | null;
+  is_open: boolean;
+  status: string;
+}
 
 // Helper function to decode JWT token
 export function decodeJwtToken(token: string): JwtPayload | null {
@@ -766,7 +793,7 @@ class BackendAuthService {
 
   // Get vendors
 
-  async getVendors(limit: number = 8): Promise<any[]> {
+  async getVendors(limit: number = 8): Promise<Vendor[]> {
     try {
       const response = await api.get(`/customer/vendors?limit=${limit}`);
       return response.data;
@@ -816,8 +843,10 @@ class BackendAuthService {
   }
 
   // Get menu items
-
-  async getMenuItems(limit: number = 10, vendorId?: string): Promise<any[]> {
+  async getMenuItems(
+    limit: number = 10,
+    vendorId?: string,
+  ): Promise<MenuItem[]> {
     try {
       // Use 10 as default if limit is somehow null or empty string
       const finalLimit = limit || 10;
@@ -850,7 +879,7 @@ class BackendAuthService {
 
   // Get offers (menu items with discount)
 
-  async getOffers(limit: number = 5): Promise<any[]> {
+  async getOffers(limit: number = 5): Promise<MenuItem[]> {
     try {
       const response = await api.get(`/customer/offers?limit=${limit}`);
       return response.data;
