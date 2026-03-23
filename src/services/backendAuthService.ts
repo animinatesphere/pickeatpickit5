@@ -92,6 +92,7 @@ export interface MenuItem {
 }
 
 export interface Vendor {
+  [x: string]: any;
   id: string;
   vendor_id: string;
   business_name: string | null;
