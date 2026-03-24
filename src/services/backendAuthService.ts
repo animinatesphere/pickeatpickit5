@@ -406,7 +406,36 @@ class BackendAuthService {
       );
     }
   }
+  async uploadVendorAsset(
+    vendorId: string,
+    file: File,
+    assetType: "store_logo" | "store_cover",
+  ): Promise<{ success: boolean; url: string }> {
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
 
+      const response = await api.post(
+        `/vendors/upload-asset?vendor_id=${vendorId}&asset_type=${assetType}`,
+        formData,
+        { headers: { "Content-Type": "multipart/form-data" } },
+      );
+
+      if (response.data && response.data.success) {
+        return { success: true, url: response.data.url };
+      }
+      throw new Error("Upload failed");
+    } catch (error) {
+      const err = error as {
+        response?: { data?: { detail?: string }; status?: number };
+        message?: string;
+      };
+      throw new APIError(
+        err.response?.data?.detail || "Failed to upload vendor asset.",
+        err.response?.status || 400,
+      );
+    }
+  }
   // Send OTP for email verification
   async sendOTP(email: string): Promise<{ success: boolean; message: string }> {
     try {
