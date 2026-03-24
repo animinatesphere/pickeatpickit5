@@ -13,7 +13,10 @@ import {
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useToast, ToastContainer } from "../../component/Toast";
-import { backendAuthService } from "../../services/backendAuthService";
+import {
+  backendAuthService,
+  type VendorRegistrationPayload,
+} from "../../services/backendAuthService";
 import { motion, AnimatePresence } from "framer-motion";
 
 type NavigateFunction = (page: string) => void;
@@ -919,7 +922,9 @@ const PaymentOption = ({ onNavigate, registrationData }: PageProps) => {
       delete finalData.logoFile;
       delete finalData.coverFile;
 
-      const result = await backendAuthService.registerVendor(finalData);
+      const result = await backendAuthService.registerVendor(
+        finalData as unknown as VendorRegistrationPayload,
+      );
       const resultData = result.data as Record<string, string> | undefined;
       const vendorId = resultData?.id || resultData?.vendor_id;
 

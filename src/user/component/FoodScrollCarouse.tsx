@@ -1,52 +1,34 @@
 import { useState, useRef, useEffect } from "react";
 import { ChevronLeft, ChevronRight, Star, Clock, MapPin } from "lucide-react";
 import { Link } from "react-router-dom";
-import { supabase } from "../../services/authService"; // Ensure this path is correct
+import {
+  backendAuthService,
+  type MenuItem,
+} from "../../services/backendAuthService";
 
 export default function FoodScrollCarousel() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [showLeftArrow, setShowLeftArrow] = useState(false);
   const [showRightArrow, setShowRightArrow] = useState(true);
-
-  // Real Data States
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [foods, setFoods] = useState<any[]>([]);
+  const [foods, setFoods] = useState<MenuItem[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // 1. Fetch Chef's Specials from Supabase
   useEffect(() => {
-    const fetchChefSpecials = async () => {
+    const fetchSpecials = async () => {
       try {
         setLoading(true);
-        const { data, error } = await supabase
-          .from("menu_items")
-          .select(
-            `
-    *,
-    vendor_profiles (
-      business_name,
-      full_name,
-      business_address,
-      logo_url
-    )
-  `,
-          )
-          .eq("is_chef_special", true)
-          .limit(10);
-
-        if (!error && data) {
-          setFoods(data);
-        }
+        // Fetch menu items with a discount — these are the "specials"
+        const data = await backendAuthService.getOffers(10);
+        setFoods(data);
       } catch (err) {
         console.error("Error fetching specials:", err);
       } finally {
         setLoading(false);
-        // Trigger arrow check after data loads
         setTimeout(handleScroll, 100);
       }
     };
 
-    fetchChefSpecials();
+    fetchSpecials();
   }, []);
 
   const handleScroll = () => {
@@ -59,17 +41,15 @@ export default function FoodScrollCarousel() {
 
   const scroll = (direction: "left" | "right") => {
     if (scrollRef.current) {
-      const scrollAmount = 320;
       scrollRef.current.scrollBy({
-        left: direction === "left" ? -scrollAmount : scrollAmount,
+        left: direction === "left" ? -320 : 320,
         behavior: "smooth",
       });
     }
   };
 
-  const getDiscountedPrice = (price: number, discount: number) => {
-    return (price * (1 - (discount || 0) / 100)).toFixed(2);
-  };
+  const getDiscountedPrice = (price: number, discount: number) =>
+    (price * (1 - (discount || 0) / 100)).toFixed(2);
 
   if (loading)
     return (
@@ -77,12 +57,12 @@ export default function FoodScrollCarousel() {
         Loading Chef's Specials...
       </div>
     );
-  if (foods.length === 0) return null; // Don't show the section if no specials exist
+
+  if (foods.length === 0) return null;
 
   return (
     <div className="w-full bg-gradient-to-br from-slate-50 to-slate-100 py-12 px-4 md:px-8">
       <div className="w-full mx-auto">
-        {/* Header */}
         <div className="mb-8">
           <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">
             Chef's Specials
@@ -92,9 +72,7 @@ export default function FoodScrollCarousel() {
           </p>
         </div>
 
-        {/* Carousel Container */}
         <div className="relative group">
-          {/* Arrows */}
           {showLeftArrow && (
             <button
               onClick={() => scroll("left")}
@@ -112,7 +90,6 @@ export default function FoodScrollCarousel() {
             </button>
           )}
 
-          {/* Scroll Container */}
           <div
             ref={scrollRef}
             onScroll={handleScroll}
@@ -125,7 +102,6 @@ export default function FoodScrollCarousel() {
                 className="flex-shrink-0 w-80 group cursor-pointer"
               >
                 <div className="bg-white rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:scale-105 h-full flex flex-col">
-                  {/* Image Container */}
                   <div className="relative overflow-hidden h-48 bg-gray-200 flex items-center justify-center">
                     {item.image_url?.startsWith("http") ? (
                       <img
@@ -134,7 +110,7 @@ export default function FoodScrollCarousel() {
                         className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                       />
                     ) : (
-                      <span className="text-6xl">{item.image_url || "🥘"}</span>
+                      <span className="text-6xl">🥘</span>
                     )}
 
                     {item.discount > 0 && (
@@ -151,7 +127,6 @@ export default function FoodScrollCarousel() {
                     </div>
                   </div>
 
-                  {/* Content */}
                   <div className="p-5 flex flex-col flex-1">
                     <div className="mb-3">
                       <h3 className="text-xl font-bold text-gray-900 mb-2 line-clamp-2">
@@ -173,27 +148,18 @@ export default function FoodScrollCarousel() {
                       {item.description}
                     </p>
 
-                    {/* Vendor Info (Joined Data) */}
                     <div className="bg-gradient-to-r from-slate-50 to-slate-100 rounded-xl p-4 mb-4">
                       <div className="flex items-center gap-3">
                         <div className="w-12 h-12 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600 font-bold overflow-hidden border-2 border-white shadow-sm">
-                          {item.vendor_profiles?.logo_url ? (
-                            <img
-                              src={item.vendor_profiles.logo_url}
-                              className="w-full h-full object-cover"
-                            />
-                          ) : (
-                            item.vendor_profiles?.full_name?.charAt(0) || "V"
-                          )}
+                          {item.vendor_name?.charAt(0) ?? "V"}
                         </div>
                         <div className="flex-1">
                           <p className="font-bold text-gray-900 text-sm">
-                            {item.vendor_profiles?.full_name ||
-                              "Professional Chef"}
+                            {item.vendor_name ?? "Professional Chef"}
                           </p>
                           <div className="flex items-center gap-1 text-xs text-gray-600">
                             <MapPin className="w-3 h-3" />
-                            {item.vendor_profiles?.business_address || "Nearby"}
+                            Nearby
                           </div>
                         </div>
                       </div>

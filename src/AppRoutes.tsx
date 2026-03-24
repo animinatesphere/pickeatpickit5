@@ -65,6 +65,8 @@ import About from "./pages/About";
 import Careers from "./pages/Careers";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import Terms from "./pages/Terms";
+// Change these three imports from static to lazy
+import { Suspense } from "react";
 
 const AppRoutes = () => {
   return (
@@ -77,7 +79,14 @@ const AppRoutes = () => {
       <Route path="/user-dashboard" element={<UserDashboard />} />
       <Route path="/search" element={<SearchComponent />} />
       <Route path="/market" element={<MArket />} />
-      <Route path="/inbox" element={<ChatApp />} />
+      <Route
+        path="/inbox"
+        element={
+          <Suspense fallback={<div />}>
+            <ChatApp />
+          </Suspense>
+        }
+      />
       <Route path="/notification" element={<Notification />} />
       <Route path="/cart" element={<FoodCartApp />} />
       <Route path="/payment" element={<PaymentComponent />} />
@@ -95,7 +104,14 @@ const AppRoutes = () => {
       {/* vendor */}
 
       <Route path="/vendor-dashboard" element={<VendorDashboard />} />
-      <Route path="/vendor-chat" element={<VendorChat />} />
+      <Route
+        path="/vendor-chat"
+        element={
+          <Suspense fallback={<div />}>
+            <VendorChat />
+          </Suspense>
+        }
+      />
 
       <Route path="/welcome1" element={<Rider1 />} />
       <Route path="/welcome2" element={<Rider2 />} />
@@ -132,7 +148,14 @@ const AppRoutes = () => {
       <Route path="/rider-device" element={<RiderDevice />} />
       <Route path="/rider-support" element={<RiderSupport />} />
       <Route path="/rider-settings" element={<SettingsScreen />} />
-      <Route path="/rider-chat" element={<RiderChat />} />
+      <Route
+        path="/rider-chat"
+        element={
+          <Suspense fallback={<div />}>
+            <RiderChat />
+          </Suspense>
+        }
+      />
 
       {/* Admin section */}
       <Route path="/admin-login" element={<AdminLogin />} />

@@ -137,7 +137,7 @@ No page refresh needed - updates happen instantly!
 When user completes checkout, create an order:
 
 ```typescript
-import { supabase } from "../services/authService";
+//
 
 const createOrder = async (
   userId: string,

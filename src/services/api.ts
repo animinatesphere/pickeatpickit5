@@ -1,238 +1,240 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-unused-vars */
+// src/services/api.ts
+// All calls go to the FastAPI backend. No Supabase.
 import axios from "axios";
-import { supabase } from "./authService";
 
-// const API_BASE_URL = "http://localhost:8000/api";
 const API_BASE_URL = "https://pickeatpickitbe.onrender.com/api";
 
 const api = axios.create({
   baseURL: API_BASE_URL,
-  headers: {
-    "Content-Type": "application/json",
-  },
+  headers: { "Content-Type": "application/json" },
 });
 
-// Request interceptor to add Bearer token to every request
+// ─── Auth interceptors ────────────────────────────────────────────────────────
+
 api.interceptors.request.use(
   (config) => {
-    // Get token from localStorage (set by backendAuthService)
     const token = localStorage.getItem("authToken");
-
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-
+    if (token) config.headers.Authorization = `Bearer ${token}`;
     return config;
   },
-  (error) => {
+  (error) => Promise.reject(error),
+);
+
+api.interceptors.response.use(
+  (response) => response,
+  (error: { response?: { status?: number } }) => {
+    if (error.response?.status === 401) {
+      localStorage.removeItem("authToken");
+      localStorage.removeItem("userData");
+    }
     return Promise.reject(error);
   },
 );
 
-// --- ADMIN ENDPOINTS ---
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+export interface OrderItem {
+  menu_item_id: string;
+  quantity: number;
+  price: number;
+  name?: string;
+}
+
+export interface OrderPayload {
+  vendor_id: string;
+  delivery_address?: string;
+  notes?: string;
+  promo_code?: string;
+  items?: OrderItem[];
+}
+
+export interface TrackingData {
+  status: string;
+  message?: string;
+  location?: string;
+}
+
+export interface ConversationRow {
+  id: string;
+  updated_at: string;
+  last_message_text: string | null;
+  last_message_time: string | null;
+  type: string;
+  metadata: Record<string, unknown>;
+}
+
+export interface ConversationParticipant {
+  conversation_id: string;
+  user_id: string;
+}
+
+export interface MessagePayload {
+  content: string;
+  type?: string;
+  url?: string;
+}
+
+// ─── Admin ────────────────────────────────────────────────────────────────────
 
 export const getAdminStats = async () => {
-  const response = await api.get("/admin/dashboard-stats");
-  return response.data;
-};
-
-// --- RIDER SYSTEM (BACKEND) ---
-
-// AFTER
-export const riderAcceptOrder = async (orderId: string | number) => {
-  return api.post(`/riders/accept-orders/${orderId}`);
-};
-
-export const riderRejectOrder = async (orderId: string | number) => {
-  return api.post(`/riders/reject-orders/${orderId}`);
-};
-
-export const getAvailableDeliveries = async () => {
-  return api.get("/riders/available-orders");
-};
-
-export const getRiderOrders = async () => {
-  return api.get("/riders/orders");
-};
-export const getRiderStats = async () => {
-  // GET /riders/dashboard-stats
-  const response = await api.get("/riders/dashboard-stats");
-  return response.data;
-};
-
-export const getRiderTransactions = async () => {
-  const response = await api.get("/riders/earnings-history");
-  return { data: Array.isArray(response.data) ? response.data : [] };
-};
-
-export const getRiderBankInfo = async () => {
-  try {
-    const response = await api.get("/riders/bank-info");
-    return { data: response.data };
-  } catch {
-    return { data: null };
-  }
-};
-export const saveRiderBankInfo = async (bankInfo: Record<string, unknown>) => {
-  const response = await api.post("/riders/bank-info", bankInfo);
-  return { data: response.data };
-};
-
-export const getRiderEarningsHistory = async () => {
-  const response = await api.get("/riders/earnings-history");
-  return { data: Array.isArray(response.data) ? response.data : [] };
-};
-
-export const updateRiderStatus = async (
-  _riderId: string, // kept for call-site compat, JWT handles identity
-  status: string,
-) => {
-  // PATCH /riders/status?is_active=true|false
-  return api.patch("/riders/status", null, {
-    params: { is_active: status === "active" },
-  });
+  const res = await api.get("/admin/dashboard-stats");
+  return res.data;
 };
 
 export const getAllSystemUsers = async () => {
-  const response = await api.get("/admin/users");
-  return response.data;
+  const res = await api.get("/admin/users");
+  return res.data;
 };
+
 export const getPendingVendors = async () => {
-  const response = await api.get("/admin/vendors/pending");
-  return response.data;
+  const res = await api.get("/admin/vendors/pending");
+  return res.data;
 };
 
-// PATCH /admin/vendors/{vendor_id}/status
-export const updateVendorStatus = async (vendorId: string, status: string) => {
-  return api.patch(`/admin/vendors/${vendorId}/status`, null, {
-    params: { status },
-  });
+export const updateVendorStatus = async (vendorId: string, status: string) =>
+  api.patch(`/admin/vendors/${vendorId}/status`, null, { params: { status } });
+
+export const getAdminUsers = async () => {
+  const res = await api.get("/admin/users");
+  return { data: res.data, error: null };
 };
 
-export const updateRiderOrderStatus = async (
-  orderId: string | number,
+export const getAdminVendors = async () => {
+  const res = await api.get("/admin/vendors");
+  return { data: res.data, error: null };
+};
+
+export const getAdminRiders = async () => {
+  const res = await api.get("/admin/riders");
+  return { data: res.data, error: null };
+};
+
+export const getAllOrders = async () => {
+  const res = await api.get("/admin/orders");
+  return { data: res.data, error: null };
+};
+
+export const getAdminOrderDetails = async (orderId: string | number) => {
+  const res = await api.get(`/admin/orders/${orderId}`);
+  return { data: res.data, error: null };
+};
+
+export const getRevenueAnalytics = async (period: string) => {
+  const res = await api.get("/admin/revenue", { params: { period } });
+  return { data: res.data, error: null };
+};
+
+export const getTopUsers = async (limit = 5) => {
+  const res = await api.get("/admin/top-users", { params: { limit } });
+  return { data: res.data, error: null };
+};
+
+export const getPopularItems = async (limit = 3) => {
+  const res = await api.get("/admin/popular-items", { params: { limit } });
+  return { data: res.data, error: null };
+};
+
+export const getAllTransactions = async () => {
+  const res = await api.get("/admin/transactions");
+  return { data: res.data, error: null };
+};
+
+export const getPayoutRequests = async () => {
+  const res = await api.get("/admin/payouts");
+  return { data: res.data, error: null };
+};
+
+export const updatePayoutStatus = async (
+  payoutId: string | number,
   status: string,
 ) => {
-  // PATCH /riders/orders/{order_id}/status?status=xxx
-  return api.patch(`/riders/orders/${orderId}/status`, null, {
-    params: { status },
-  });
+  const res = await api.patch(`/admin/payouts/${payoutId}`, { status });
+  return { data: res.data, error: null };
 };
 
-export const getRiderProfile = async () => {
-  return api.get("/riders/profile");
+export const getPlatformTotals = async () => {
+  const res = await api.get("/admin/platform-totals");
+  return res.data as { totalEarnings: number; totalPendingPayouts: number };
 };
 
-export const updateRiderProfile = async (updates: any) => {
-  return api.patch("/riders/profile", updates);
+export const deleteUserFromSystem = async (
+  id: string | number,
+  type: string,
+) => {
+  const res = await api.delete(`/admin/users/${id}`, { params: { type } });
+  return { error: res.status >= 400 ? new Error("Delete failed") : null };
 };
 
-// Response interceptor to handle auth errors
-api.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    // Handle 401 Unauthorized errors
-    if (error.response?.status === 401) {
-      // Clear auth data
-      localStorage.removeItem("authToken");
-      localStorage.removeItem("userData");
+// ─── Auth ─────────────────────────────────────────────────────────────────────
 
-      // Optionally redirect to login page
-      // window.location.href = '/vendor-login';
-    }
-    return Promise.reject(error);
-  },
-);
-
-// Authentication
-export const registerUser = (userData: any) =>
+export const registerUser = (userData: Record<string, unknown>) =>
   api.post("/auth/register", userData);
-export const sendOTP = (email: string) => api.post("/auth/send-otp", { email });
-export const verifyOTP = (otpData: any) =>
-  api.post("/auth/verify-otp", otpData);
-export const updateProfile = (data: any) => api.patch("/auth/profile", data);
 
-// Payment Management
-export const initializePayment = (paymentData: any) =>
+export const sendOTP = (email: string) => api.post("/auth/send-otp", { email });
+
+export const verifyOTP = (otpData: { email: string; otp_code: string }) =>
+  api.post("/auth/verify-otp", otpData);
+
+export const updateProfile = (data: Record<string, unknown>) =>
+  api.patch("/auth/profile", data);
+
+// ─── Payments ─────────────────────────────────────────────────────────────────
+
+export const initializePayment = (paymentData: Record<string, unknown>) =>
   api.post("/payments/initialize", paymentData);
+
 export const verifyPayment = (reference: string) =>
   api.post(`/payments/verify/${reference}`);
+
 export const getMyPayments = () => api.get("/payments/my-payments");
 
-// Vendor Management
-export const registerVendor = (vendorData: any) =>
+// ─── Vendors ──────────────────────────────────────────────────────────────────
+
+export const registerVendor = (vendorData: Record<string, unknown>) =>
   api.post("/vendors/", vendorData);
-export const getVendors = (status: any) =>
+
+export const getVendors = (status?: string) =>
   api.get("/vendors/", { params: { status } });
+
 export const getVendorById = (id: string | number) => api.get(`/vendors/${id}`);
-export const updateVendor = (id: string | number, updates: any) =>
-  api.patch(`/vendors/${id}`, updates);
 
-// Menu Management
-export const addMenuItem = (itemData: any) => api.post("/menu/", itemData);
-export const createMenuItem = (itemData: any) => api.post("/menu/", itemData); // Keep for compatibility if needed
-export const getMenuItems = (vendorId: string | number) =>
-  api.get("/menu/", { params: { vendor_id: vendorId } });
-export const getMenuItemById = (id: string | number) => api.get(`/menu/${id}`);
-export const updateMenuItem = (id: string | number, updates: any) =>
-  api.put(`/menu/${id}`, updates);
-export const deleteMenuItem = (id: string | number) =>
-  api.delete(`/menu/${id}`);
+export const updateVendor = (
+  id: string | number,
+  updates: Record<string, unknown>,
+) => api.patch(`/vendors/${id}`, updates);
 
-// Order Management
-export const createOrder = (orderData: any, orderItems?: any[]) => {
-  const payload = { ...orderData, items: orderItems };
-  console.log("=== CREATE ORDER API CALL ===");
-  console.log("orderData:", orderData);
-  console.log("orderItems:", orderItems);
-  console.log("Final payload being sent:", JSON.stringify(payload, null, 2));
-  return api.post("/orders/", payload);
-};
-export const getOrders = (params: any) => api.get("/orders/", { params });
-export const getOrderById = (id: string | number) => api.get(`/orders/${id}`);
-export const updateOrderStatus = (id: string | number, updates: any) =>
-  api.patch(`/orders/${id}`, updates);
-
-// Vendor Dashboard & Management
 export const getVendorDashboardStats = () =>
   api.get("/vendors/dashboard-stats");
+
 export const getVendorProfile = (vendorId: string | number) =>
   api.get(`/vendors/${vendorId}`);
-export const updateVendorProfile = (vendorId: string | number, updates: any) =>
-  api.patch(`/vendors/${vendorId}`, updates);
 
-// Vendor Order Management (Backend)
-// KEEP this one
-export const getVendorOrdersBackend = (vendorId: string | number) =>
-  api.get("/orders/", { params: { vendor_id: vendorId } });
-export const getVendorOrderTracking = (orderId: string | number) =>
-  api.get(`/orders/${orderId}/tracking`);
-// KEEP this one — full signature
-export const addOrderTrackingUpdate = (
-  orderId: string | number,
-  trackingData: any,
-) => api.post(`/orders/${orderId}/tracking`, trackingData);
-// --- VENDOR SYSTEM (SUPABASE) ---
-// KEEP this one
+export const updateVendorProfile = (
+  vendorId: string | number,
+  updates: Record<string, unknown>,
+) => api.patch(`/vendors/${vendorId}`, updates);
 
-export const getVendorOrders = async (vendorId: string | number) => {
-  const { data, error } = await supabase
-    .from("orders")
-    .select(
-      `
-      *,
-      order_items (
-        *,
-        menu_items!order_items_menu_item_id_fkey (*)
-      ),
-      riders!orders_rider_id_fkey (*)
-    `,
-    )
-    .eq("vendor_id", vendorId)
-    .order("created_at", { ascending: false });
+// ─── Menu ─────────────────────────────────────────────────────────────────────
 
-  return { data, error };
-};
+export const addMenuItem = (itemData: Record<string, unknown>) =>
+  api.post("/menu/", itemData);
+
+export const createMenuItem = (itemData: Record<string, unknown>) =>
+  api.post("/menu/", itemData);
+
+export const getMenuItems = (vendorId: string | number) =>
+  api.get("/menu/", { params: { vendor_id: vendorId } });
+
+export const getMenuItemById = (id: string | number) => api.get(`/menu/${id}`);
+
+export const updateMenuItem = (
+  id: string | number,
+  updates: Record<string, unknown>,
+) => api.put(`/menu/${id}`, updates);
+
+export const deleteMenuItem = (id: string | number) =>
+  api.delete(`/menu/${id}`);
 
 export const uploadMenuImage = async (
   file: File,
@@ -241,255 +243,203 @@ export const uploadMenuImage = async (
   try {
     const formData = new FormData();
     formData.append("file", file);
-
-    const response = await api.post(
+    const res = await api.post(
       `/menu/upload-image?vendor_id=${vendorId}`,
       formData,
-      {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      },
+      { headers: { "Content-Type": "multipart/form-data" } },
     );
-
-    if (response.data && response.data.success) {
-      return { data: response.data.url, error: null };
-    } else {
-      return {
-        data: null,
-        error: new Error(
-          "Upload failed: " + (response.data?.detail || "Unknown error"),
-        ),
-      };
-    }
-  } catch (error: any) {
+    if (res.data?.success) return { data: res.data.url as string, error: null };
     return {
       data: null,
       error: new Error(
-        error.response?.data?.detail ||
-          error.message ||
-          "Failed to upload image",
+        "Upload failed: " +
+          ((res.data as { detail?: string })?.detail ?? "Unknown error"),
+      ),
+    };
+  } catch (error: unknown) {
+    const err = error as {
+      response?: { data?: { detail?: string } };
+      message?: string;
+    };
+    return {
+      data: null,
+      error: new Error(
+        err.response?.data?.detail ?? err.message ?? "Failed to upload image",
       ),
     };
   }
 };
 
-// Health Check
-export const checkHealth = () => api.get("/health");
+// ─── Orders ───────────────────────────────────────────────────────────────────
 
-// --- USER & PROFILE (SUPABASE) ---
-
-export const getUserProfile = async (userId: string) => {
-  const { data, error } = await supabase
-    .from("users")
-    .select("*")
-    .eq("user_id", userId);
-  return { data: data?.[0] || null, error };
-};
-
-export const updateUserProfile = async (userId: string, updates: any) => {
-  const { data, error } = await supabase
-    .from("users")
-    .update(updates)
-    .eq("user_id", userId)
-    .select();
-  return { data, error };
-};
-
-export const getUserById = async (id: string | number) => {
-  const { data, error } = await supabase
-    .from("users")
-    .select("*")
-    .eq("id", id)
-    .maybeSingle();
-  return { data, error };
-};
-
-export const createUserProfileIfNotExists = async (
-  userId: string,
-  userEmail: string,
-  userData: any,
+export const createOrder = (
+  orderData: OrderPayload,
+  orderItems?: OrderItem[],
 ) => {
-  const { data: existing } = await supabase
-    .from("users")
-    .select("*")
-    .eq("user_id", userId)
-    .maybeSingle();
-  if (existing) return { data: existing, error: null };
+  const payload = { ...orderData, items: orderItems };
+  return api.post("/orders/", payload);
+};
 
-  const { data: newUser, error } = await supabase
-    .from("users")
-    .insert([
-      {
-        user_id: userId,
-        email: userEmail,
-        firstname: userData?.firstname || "",
-        lastname: userData?.lastname || "",
-        phone: userData?.phone || "",
-      },
-    ])
-    .select()
-    .single();
-  return { data: newUser, error };
+export const getOrders = (params: Record<string, unknown>) =>
+  api.get("/orders/", { params });
+
+export const getOrderById = (id: string | number) => api.get(`/orders/${id}`);
+
+export const updateOrderStatus = (
+  id: string | number,
+  updates: Record<string, unknown>,
+) => api.patch(`/orders/${id}`, updates);
+
+export const getOrderDetails = async (orderId: string | number) => {
+  const res = await api.get(`/orders/${orderId}`);
+  return { data: res.data, error: null };
 };
 
 export const getUserOrders = async (userId: string) => {
-  const { data, error } = await supabase
-    .from("orders")
-    .select("*")
-    .eq("user_id", userId)
-    .order("created_at", { ascending: false });
-  return { data, error };
+  const res = await api.get("/customer/orders", {
+    params: { user_id: userId },
+  });
+  return { data: res.data, error: null };
 };
 
-export const getOrderDetails = async (orderId: string | number) => {
-  const { data, error } = await supabase
-    .from("orders")
-    .select(`*, order_items(*, menu_items(*))`)
-    .eq("id", orderId)
-    .maybeSingle();
-  return { data, error };
-};
+// ─── Order tracking ───────────────────────────────────────────────────────────
 
-// --- TRACKING (SUPABASE) ---
+export const getVendorOrdersBackend = (vendorId: string | number) =>
+  api.get("/orders/", { params: { vendor_id: vendorId } });
+
+export const getVendorOrderTracking = (orderId: string | number) =>
+  api.get(`/orders/${orderId}/tracking`);
+
+export const addOrderTrackingUpdate = (
+  orderId: string | number,
+  trackingData: TrackingData,
+) => api.post(`/orders/${orderId}/tracking`, trackingData);
 
 export const getOrderTracking = async (orderId: string | number) => {
-  const { data, error } = await supabase
-    .from("order_status_updates")
-    .select("*")
-    .eq("order_id", orderId)
-    .order("timestamp", { ascending: true });
-  return { data, error };
+  const res = await api.get(`/orders/${orderId}/tracking`);
+  return { data: res.data, error: null };
 };
 
 export const addTrackingUpdate = async (
   orderId: string | number,
-  trackingData: any,
+  trackingData: TrackingData,
 ) => {
-  const { data, error } = await supabase
-    .from("order_status_updates")
-    .insert([{ order_id: orderId, ...trackingData }])
-    .select();
-  return { data, error };
+  const res = await api.post(`/orders/${orderId}/tracking`, trackingData);
+  return { data: res.data, error: null };
 };
 
-// --- CHAT SYSTEM (SUPABASE) ---
+// Alias kept for call-site compat
+export const getVendorOrders = async (vendorId: string | number) => {
+  const res = await api.get("/orders/", { params: { vendor_id: vendorId } });
+  return { data: res.data, error: null };
+};
+
+// ─── Riders ───────────────────────────────────────────────────────────────────
+
+export const riderAcceptOrder = (orderId: string | number) =>
+  api.post(`/riders/accept-orders/${orderId}`);
+
+export const riderRejectOrder = (orderId: string | number) =>
+  api.post(`/riders/reject-orders/${orderId}`);
+
+export const getAvailableDeliveries = () => api.get("/riders/available-orders");
+
+export const getRiderOrders = () => api.get("/riders/orders");
+
+export const getRiderStats = async () => {
+  const res = await api.get("/riders/dashboard-stats");
+  return res.data;
+};
+
+export const getRiderTransactions = async () => {
+  const res = await api.get("/riders/earnings-history");
+  return { data: Array.isArray(res.data) ? res.data : [] };
+};
+
+export const getRiderBankInfo = async () => {
+  try {
+    const res = await api.get("/riders/bank-info");
+    return { data: res.data };
+  } catch {
+    return { data: null };
+  }
+};
+
+export const saveRiderBankInfo = async (bankInfo: Record<string, unknown>) => {
+  const res = await api.post("/riders/bank-info", bankInfo);
+  return { data: res.data };
+};
+
+export const getRiderEarningsHistory = async () => {
+  const res = await api.get("/riders/earnings-history");
+  return { data: Array.isArray(res.data) ? res.data : [] };
+};
+
+export const updateRiderStatus = (_riderId: string, status: string) =>
+  api.patch("/riders/status", null, {
+    params: { is_active: status === "active" },
+  });
+
+export const updateRiderOrderStatus = (
+  orderId: string | number,
+  status: string,
+) =>
+  api.patch(`/riders/orders/${orderId}/status`, null, { params: { status } });
+
+export const getRiderProfile = () => api.get("/riders/profile");
+
+export const updateRiderProfile = (updates: Record<string, unknown>) =>
+  api.patch("/riders/profile", updates);
+
+// ─── User profile ─────────────────────────────────────────────────────────────
+
+export const getUserProfile = async (userId: string) => {
+  const res = await api.get(`/users/${userId}`);
+  return { data: res.data, error: null };
+};
+
+export const updateUserProfile = async (
+  userId: string,
+  updates: Record<string, unknown>,
+) => {
+  const res = await api.patch(`/users/${userId}`, updates);
+  return { data: res.data, error: null };
+};
+
+export const getUserById = async (id: string | number) => {
+  const res = await api.get(`/users/${id}`);
+  return { data: res.data, error: null };
+};
+
+export const createUserProfileIfNotExists = async (
+  _: string,
+  __: string,
+  ___: Record<string, unknown>,
+) => {
+  // Profile is created automatically on registration via the backend.
+  // This stub exists for call-site compatibility.
+  return { data: null, error: null };
+};
+
+// ─── Chat / Conversations ─────────────────────────────────────────────────────
 
 export const getConversations = async (userId: string) => {
-  const { data: participantData, error: partError } = await supabase
-    .from("conversation_participants")
-    .select("conversation_id")
-    .eq("user_id", userId);
-
-  if (partError || !participantData || participantData.length === 0) {
-    return { data: [], error: partError };
-  }
-
-  const convIds = participantData.map((p) => p.conversation_id);
-
-  const { data: convData, error: convError } = await supabase
-    .from("conversations")
-    .select(
-      "id, updated_at, last_message_text, last_message_time, type, metadata",
-    )
-    .in("id", convIds)
-    .order("updated_at", { ascending: false });
-
-  if (convError) return { data: [], error: convError };
-
-  const formatted = (convData || []).map((conv) => ({
-    conversation_id: conv.id,
-    conversations: conv,
-  }));
-
-  return { data: formatted, error: null };
+  const res = await api.get("/chat/conversations", {
+    params: { user_id: userId },
+  });
+  return { data: res.data, error: null };
 };
 
 export const getConversationWithParticipantNames = async (userId: string) => {
-  const { data: participantData, error: partError } = await supabase
-    .from("conversation_participants")
-    .select("conversation_id")
-    .eq("user_id", userId);
-
-  if (partError || !participantData || participantData.length === 0) {
-    return { data: [], error: partError };
-  }
-
-  const convIds = participantData.map((p) => p.conversation_id);
-
-  const { data: convData, error: convError } = await supabase
-    .from("conversations")
-    .select(
-      "id, updated_at, last_message_text, last_message_time, type, metadata",
-    )
-    .in("id", convIds)
-    .order("updated_at", { ascending: false });
-
-  if (convError) return { data: [], error: convError };
-
-  const enriched = await Promise.all(
-    (convData || []).map(async (conv) => {
-      const { data: participants } = await supabase
-        .from("conversation_participants")
-        .select("user_id")
-        .eq("conversation_id", conv.id);
-
-      const otherUserId = participants?.find(
-        (p) => p.user_id !== userId,
-      )?.user_id;
-
-      let otherName = "Unknown";
-
-      if (otherUserId) {
-        const { data: user } = await supabase
-          .from("users")
-          .select("firstname, lastname")
-          .eq("user_id", otherUserId)
-          .maybeSingle();
-
-        if (user) {
-          otherName = `${user.firstname} ${user.lastname}`.trim();
-        } else {
-          const { data: vendor } = await supabase
-            .from("vendors")
-            .select("business_name")
-            .eq("id", otherUserId)
-            .maybeSingle();
-
-          if (vendor) {
-            otherName = vendor.business_name;
-          } else {
-            const { data: rider } = await supabase
-              .from("riders")
-              .select("firstname, lastname")
-              .eq("id", otherUserId)
-              .maybeSingle();
-
-            if (rider) {
-              otherName = `${rider.firstname} ${rider.lastname}`.trim();
-            }
-          }
-        }
-      }
-
-      return {
-        conversation_id: conv.id,
-        conversations: conv,
-        otherName,
-      };
-    }),
-  );
-
-  return { data: enriched, error: null };
+  const res = await api.get("/chat/conversations", {
+    params: { user_id: userId, include_names: true },
+  });
+  return { data: res.data, error: null };
 };
 
 export const getMessages = async (conversationId: string) => {
-  const { data, error } = await supabase
-    .from("messages")
-    .select("*")
-    .eq("conversation_id", conversationId)
-    .order("created_at", { ascending: true });
-  return { data, error };
+  const res = await api.get(`/chat/conversations/${conversationId}/messages`);
+  return { data: res.data, error: null };
 };
 
 export const sendMessage = async (
@@ -499,344 +449,66 @@ export const sendMessage = async (
   type: string = "text",
   url?: string,
 ) => {
-  const { data, error } = await supabase
-    .from("messages")
-    .insert({
-      conversation_id: conversationId,
-      sender_id: senderId,
-      content,
-      type,
-      url,
-    })
-    .select()
-    .single();
-  return { data, error };
+  const res = await api.post(`/chat/conversations/${conversationId}/messages`, {
+    sender_id: senderId,
+    content,
+    type,
+    url,
+  });
+  return { data: res.data, error: null };
 };
 
 export const createConversation = async (
   participants: string[],
   type: string = "direct",
-  metadata: any = {},
+  metadata: Record<string, unknown> = {},
 ) => {
-  const { data: conversation, error: convError } = await supabase
-    .from("conversations")
-    .insert({ type, metadata })
-    .select()
-    .single();
-
-  if (convError) return { data: null, error: convError };
-
-  const participantData = participants.map((userId) => ({
-    conversation_id: conversation.id,
-    user_id: userId,
-  }));
-
-  const { error: partError } = await supabase
-    .from("conversation_participants")
-    .insert(participantData);
-
-  return { data: conversation, error: partError };
-};
-
-export const subscribeToMessages = (
-  conversationId: string,
-  callback: (payload: any) => void,
-) => {
-  const channelName =
-    conversationId === "all" ? "messages-all" : `messages:${conversationId}`;
-  const filter =
-    conversationId === "all" ? "*" : `conversation_id=eq.${conversationId}`;
-
-  return supabase
-    .channel(channelName)
-    .on(
-      "postgres_changes",
-      { event: "INSERT", schema: "public", table: "messages", filter },
-      callback,
-    )
-    .subscribe();
-};
-
-export const removeSupabaseChannel = (channel: any) => {
-  return supabase.removeChannel(channel);
+  const res = await api.post("/chat/conversations", {
+    participants,
+    type,
+    metadata,
+  });
+  return { data: res.data, error: null };
 };
 
 export const startDirectConversation = async (
   userId: string,
   recipientId: string,
 ) => {
-  const { data, error } = await supabase.rpc(
-    "find_or_create_direct_conversation",
-    {
-      user_a: userId,
-      user_b: recipientId,
-    },
-  );
-
-  if (error) return { data: null, error };
-
-  return {
-    data: {
-      id: data,
-      last_message_text: null,
-      last_message_time: null,
-    },
-    error: null,
-  };
+  const res = await api.post("/chat/conversations/direct", {
+    user_a: userId,
+    user_b: recipientId,
+  });
+  return { data: res.data, error: null };
 };
 
 export const searchUserByPhone = async (phoneQuery: string) => {
-  const { data, error } = await supabase.rpc("search_user_by_phone", {
-    phone_query: phoneQuery,
+  const res = await api.get("/users/search", {
+    params: { phone: phoneQuery },
   });
-  return { data, error };
+  return { data: res.data, error: null };
 };
 
-// --- RIDER SYSTEM (BACKEND) ---
-
-// export const riderAcceptOrder = async (orderId: string | number) => {
-//   return api.post(`/riders/accept-order/${orderId}`);
-// };
-
-// export const riderRejectOrder = async (orderId: string | number) => {
-//   return api.post(`/riders/reject-order/${orderId}`);
-// };
-
-// export const getAvailableDeliveries = async () => {
-//   return api.get('/riders/available-orders');
-// };
-
-// export const getRiderOrders = async (riderId: string | number) => {
-//   return api.get('/riders/orders');
-// };
-
-// export const getRiderStats = async (riderId: string | number) => {
-//   const response = await api.get('/riders/dashboard-stats');
-//   return response.data;
-// };
-
-// export const getRiderTransactions = async (riderId: string | number) => {
-//   return api.get('/riders/transactions');
-// };
-
-// export const getRiderBankInfo = async (riderId: string | number) => {
-//   return api.get('/riders/bank-info');
-// };
-
-// export const saveRiderBankInfo = async (riderId: string | number, bankInfo: any) => {
-//   return api.post('/riders/bank-info', bankInfo);
-// };
-
-// export const getRiderEarningsHistory = async (riderId: string | number) => {
-//   return api.get('/riders/earnings-history');
-// };
-
-// export const updateRiderStatus = async (riderId: string | number, status: string) => {
-//   return api.patch('/riders/status', null, { params: { is_active: status === 'active' } });
-// };
-
-// export const updateRiderOrderStatus = async (orderId: string | number, status: string) => {
-//   return api.patch(`/riders/orders/${orderId}/status`, null, { params: { status } });
-// };
-
-// // Explicitly re-export to fix possible bundling issues
-// export { updateRiderOrderStatus as updateRiderOrderStatusFix };
-
-// export const getRiderProfile = async () => {
-//   return api.get('/riders/profile');
-// };
-
-// export const updateRiderProfile = async (updates: any) => {
-//   return api.patch('/riders/profile', updates);
-// };
-
-// --- MISC SUPABASE ENDPOINTS (PENDING MIGRATION) ---
-
-export const deleteUserFromSystem = async (
-  id: string | number,
-  type: string,
+/**
+ * Real-time message subscription.
+ * Supabase channels are no longer available — poll or use a WebSocket
+ * endpoint from your backend instead. This stub returns an unsubscribe
+ * no-op so existing call sites don't break.
+ */
+export const subscribeToMessages = (
+  _: string,
+  __: (payload: unknown) => void,
 ) => {
-  const table =
-    type === "Client" ? "users" : type === "Vendor" ? "vendors" : "riders";
-  const { error } = await supabase.from(table).delete().eq("id", id);
-  return { error };
+  // TODO: replace with backend WebSocket / SSE when available
+  return { unsubscribe: () => undefined };
 };
 
-export const getAllOrders = async () => {
-  const { data, error } = await supabase
-    .from("orders")
-    .select("*, users (firstname, lastname), vendors (business_name)")
-    .order("created_at", { ascending: false });
-  return { data, error };
+export const removeSupabaseChannel = (channel: { unsubscribe: () => void }) => {
+  channel.unsubscribe();
 };
 
-export const getAdminOrderDetails = async (orderId: string | number) => {
-  const { data, error } = await supabase
-    .from("orders")
-    .select(
-      `*, users (firstname, lastname, email, phone, address, city, state), vendors (business_name, business_address, business_phone), riders (firstname, lastname, phone), order_items (id, quantity, price, menu_items (name))`,
-    )
-    .eq("id", orderId)
-    .single();
-  return { data, error };
-};
+// ─── Misc ─────────────────────────────────────────────────────────────────────
 
-export const getRevenueAnalytics = async (period: string) => {
-  const now = new Date();
-  const startDate = new Date();
-  switch (period) {
-    case "D":
-      startDate.setDate(now.getDate() - 1);
-      break;
-    case "W":
-      startDate.setDate(now.getDate() - 7);
-      break;
-    case "M":
-      startDate.setDate(now.getDate() - 30);
-      break;
-    case "Y":
-      startDate.setDate(now.getDate() - 365);
-      break;
-  }
-  const { data, error } = await supabase
-    .from("orders")
-    .select("total_amount, created_at, status")
-    .eq("status", "completed")
-    .gte("created_at", startDate.toISOString());
-  return { data, error };
-};
-
-export const getTopUsers = async (limit = 5) => {
-  const { data, error } = await supabase
-    .from("orders")
-    .select("user_id, users(firstname, lastname)")
-    .eq("status", "completed");
-  if (error || !data) return { data: null, error };
-  const counts: Record<string, { name: string; orders: number }> = {};
-  data.forEach((order: any) => {
-    const id = order.user_id;
-    if (!counts[id]) {
-      let name = "Unknown";
-      if (Array.isArray(order.users) && order.users.length > 0) {
-        name = `${order.users[0].firstname} ${order.users[0].lastname}`;
-      } else if (order.users) {
-        name = `${(order.users as any).firstname} ${(order.users as any).lastname}`;
-      }
-      counts[id] = { name, orders: 0 };
-    }
-    counts[id].orders++;
-  });
-  return {
-    data: Object.values(counts)
-      .sort((a: any, b: any) => b.orders - a.orders)
-      .slice(0, limit),
-    error: null,
-  };
-};
-
-export const getPopularItems = async (limit = 3) => {
-  const { data, error } = await supabase
-    .from("order_items")
-    .select("menu_item_id, menu_items(name, category)")
-    .order("created_at", { ascending: false });
-  if (error || !data) return { data: null, error };
-  const counts: Record<
-    string,
-    { name: string; category: string; count: number }
-  > = {};
-  data.forEach((item: any) => {
-    const id = item.menu_item_id;
-    if (!id) return;
-    if (!counts[id]) {
-      let name = "Unknown";
-      let category = "General";
-
-      if (Array.isArray(item.menu_items) && item.menu_items.length > 0) {
-        name = item.menu_items[0].name;
-        category = item.menu_items[0].category;
-      } else if (item.menu_items) {
-        name = (item.menu_items as any).name || "Unknown";
-        category = (item.menu_items as any).category || "General";
-      }
-
-      counts[id] = { name, category, count: 0 };
-    }
-    counts[id].count++;
-  });
-  return {
-    data: Object.values(counts)
-      .sort((a: any, b: any) => b.count - a.count)
-      .slice(0, limit),
-    error: null,
-  };
-};
-
-export const getAllTransactions = async () => {
-  const { data, error } = await supabase
-    .from("transactions")
-    .select("*")
-    .order("created_at", { ascending: false });
-  return { data, error };
-};
-
-export const getPayoutRequests = async () => {
-  const { data, error } = await supabase
-    .from("payout_requests")
-    .select("*")
-    .order("created_at", { ascending: false });
-  return { data, error };
-};
-
-export const updatePayoutStatus = async (
-  payoutId: string | number,
-  status: string,
-) => {
-  const { data, error } = await supabase
-    .from("payout_requests")
-    .update({ status, updated_at: new Date() })
-    .eq("id", payoutId)
-    .select();
-  return { data, error };
-};
-
-export const getPlatformTotals = async () => {
-  const { data: orders } = await supabase
-    .from("orders")
-    .select("total_amount")
-    .eq("status", "completed");
-  const totalEarnings =
-    orders?.reduce((sum, o) => sum + (o.total_amount || 0), 0) || 0;
-  const { data: pendingPayouts } = await supabase
-    .from("payout_requests")
-    .select("amount")
-    .eq("status", "pending");
-  const totalPendingPayouts =
-    pendingPayouts?.reduce((sum, p) => sum + (p.amount || 0), 0) || 0;
-  return { totalEarnings, totalPendingPayouts };
-};
-
-export const getAdminUsers = async () => {
-  const { data, error } = await supabase
-    .from("users")
-    .select("user_id, firstname, lastname, avatar_url")
-    .order("created_at", { ascending: false });
-  return { data, error };
-};
-
-export const getAdminVendors = async () => {
-  const { data, error } = await supabase
-    .from("vendors")
-    .select("id, business_name, avatar_url")
-    .order("created_at", { ascending: false });
-  return { data, error };
-};
-
-export const getAdminRiders = async () => {
-  const { data, error } = await supabase
-    .from("riders")
-    .select("id, firstname, lastname, avatar_url")
-    .order("created_at", { ascending: false });
-  return { data, error };
-};
+export const checkHealth = () => api.get("/health");
 
 export default api;

@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import { VendorNav } from "../component/VendorNav";
 import { backendAuthService } from "../../services/backendAuthService";
-import { supabase } from "../../services/authService";
+// //
 import { useToast } from "../../context/ToastContext";
 import api from "../../services/api";
 
@@ -101,6 +101,7 @@ const ProfileSetting = () => {
   };
 
   // ── Photo upload — Supabase storage ─────────────────────────────────────────
+  // ── Photo upload — FastAPI backend ──────────────────────────────────────────
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !vendorId) return;
@@ -112,22 +113,18 @@ const ProfileSetting = () => {
 
     setIsPhotoLoading(true);
     try {
-      const ext = file.name.split(".").pop() || "jpg";
-      const path = `vendor-logos/${vendorId}/${Date.now()}.${ext}`;
+      const formData = new FormData();
+      formData.append("file", file);
 
-      const { error } = await supabase.storage
-        .from("vendor-assets") // update bucket name if different
-        .upload(path, file, { upsert: true, contentType: file.type });
+      const res = await api.post(
+        `/vendors/upload-asset?vendor_id=${vendorId}&asset_type=store_logo`,
+        formData,
+        { headers: { "Content-Type": "multipart/form-data" } },
+      );
 
-      if (error) throw error;
+      const url = (res.data as { url?: string })?.url;
+      if (!url) throw new Error("No URL returned from upload");
 
-      const { data } = supabase.storage
-        .from("vendor-assets")
-        .getPublicUrl(path);
-      const url = data.publicUrl;
-
-      // Save URL back to backend
-      await api.patch(`/vendors/${vendorId}`, { logo_url: url });
       setProfileImage(url);
       toast.success("Profile photo updated!");
     } catch (err) {

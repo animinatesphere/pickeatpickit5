@@ -324,10 +324,11 @@ const PaymentComponent: React.FC = () => {
         is_paid: paymentMethod === "online",
       };
 
+      // After — cast id to string to match OrderItem type
       const orderItems = orderData!.items.map((item) => ({
-        menu_item_id: item.id,
+        menu_item_id: String(item.id),
         quantity: item.quantity,
-        price: item.price, // Backend expects 'price', not 'price_at_order'
+        price: item.price,
       }));
 
       try {

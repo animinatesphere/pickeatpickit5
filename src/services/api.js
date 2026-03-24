@@ -1,5 +1,5 @@
 import axios from "axios";
-import { supabase } from "./authService";
+// import { supabase } from "./authService";
 
 // const API_BASE_URL = 'http://localhost:8000/api';
 const API_BASE_URL = "https://pickeatpickitbe.onrender.com/api";

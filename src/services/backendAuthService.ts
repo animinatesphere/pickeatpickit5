@@ -1,8 +1,8 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import api from "./api";
 import { APIError } from "./authService";
 
-// Types for backend authentication
+// ─── Request / Response Types ─────────────────────────────────────────────────
+
 export interface LoginRequest {
   email: string;
   password: string;
@@ -52,6 +52,7 @@ export interface RegisterResponse {
   data?: {
     id: string;
     email: string;
+    user_id?: string;
   };
 }
 
@@ -64,9 +65,8 @@ export interface OTPVerify {
   otp_code: string;
 }
 
-// JWT Token payload interface
 export interface JwtPayload {
-  sub: string; // user_id
+  sub: string;
   user_id: string;
   email: string;
   role: string;
@@ -75,9 +75,9 @@ export interface JwtPayload {
   vendor_id?: string;
   rider_id?: string;
   business_name?: string;
-  exp: number; // expiration timestamp
+  exp: number;
 }
-// Add to backendAuthService.ts — reuse your existing interfaces
+
 export interface MenuItem {
   id: string;
   vendor_id: string;
@@ -91,8 +91,8 @@ export interface MenuItem {
   vendor_name: string;
 }
 
+// In the Vendor interface, add this field:
 export interface Vendor {
-  [x: string]: any;
   id: string;
   vendor_id: string;
   business_name: string | null;
@@ -104,9 +104,122 @@ export interface Vendor {
   business_category: string | null;
   is_open: boolean;
   status: string;
+  accept_cod: boolean; // ← add this
 }
 
-// Helper function to decode JWT token
+export interface FavoriteVendor {
+  vendor_id: string;
+}
+
+export interface VendorRegistrationPayload {
+  user_id: string;
+  business_name?: string;
+  business_email?: string;
+  business_phone?: string;
+  business_address?: string;
+  business_description?: string;
+  full_name?: string;
+  how_to_address?: string;
+  years_of_experience?: string;
+  country_name?: string;
+  profession?: string;
+  vendor_type?: string;
+  work_alone?: string;
+  membership_id?: string;
+  day_from?: string;
+  day_to?: string;
+  holidays_available?: boolean;
+  opening_time?: string;
+  closing_time?: string;
+  total_workers?: number;
+  bank_name?: string;
+  account_number?: string;
+  account_name?: string;
+  accept_cod?: boolean;
+  [key: string]: string | number | boolean | undefined;
+}
+
+export interface VendorRegistrationResponse {
+  success: boolean;
+  message: string;
+  data?: {
+    id?: string;
+    vendor_id?: string;
+    [key: string]: string | undefined;
+  };
+}
+
+export interface Order {
+  id: string;
+  status: string;
+  total: number;
+  created_at: string;
+  items: OrderItem[];
+}
+
+export interface OrderItem {
+  id: string;
+  name: string;
+  price: number;
+  quantity: number;
+}
+
+export interface OrderTracking {
+  id: string;
+  status: string;
+  timestamp: string;
+  message: string;
+}
+
+export interface PaymentData {
+  order_id: string;
+  amount: number;
+  email: string;
+  callback_url?: string;
+}
+
+export interface PaymentResponse {
+  authorization_url: string;
+  reference: string;
+}
+
+export interface PaymentVerification {
+  status: string;
+  reference: string;
+  amount: number;
+}
+
+export interface PaymentHistory {
+  id: string;
+  amount: number;
+  status: string;
+  reference: string;
+  created_at: string;
+}
+
+export interface PromoCodeValidation {
+  valid: boolean;
+  code: string;
+  discount_type: string;
+  discount_value: number;
+  message?: string;
+}
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+type ApiErrorShape = {
+  response?: { data?: { detail?: string }; status?: number };
+  message?: string;
+};
+
+function extractError(error: unknown, fallback: string): never {
+  const err = error as ApiErrorShape;
+  if (err.response?.data?.detail) {
+    throw new APIError(err.response.data.detail, err.response.status ?? 500);
+  }
+  throw new APIError(err.message ?? fallback, err.response?.status ?? 500);
+}
+
 export function decodeJwtToken(token: string): JwtPayload | null {
   try {
     const base64Url = token.split(".")[1];
@@ -117,42 +230,38 @@ export function decodeJwtToken(token: string): JwtPayload | null {
         .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
         .join(""),
     );
-    return JSON.parse(jsonPayload);
+    return JSON.parse(jsonPayload) as JwtPayload;
   } catch (error) {
     console.error("Failed to decode JWT token:", error);
     return null;
   }
 }
 
-// Backend API Authentication Service
+// ─── Service Class ────────────────────────────────────────────────────────────
+
 class BackendAuthService {
-  // Login with email and password (general login)
+  // ── Auth ───────────────────────────────────────────────────────────────────
+
   async login(email: string, password: string): Promise<LoginResponse> {
     try {
       const response = await api.post("/auth/login", { email, password });
-
-      if (response.data && response.data.access_token) {
-        // Store token for future requests
+      if (response.data?.access_token) {
         localStorage.setItem("authToken", response.data.access_token);
-
-        // Decode token to get user context
         const tokenPayload = decodeJwtToken(response.data.access_token);
-
-        // Store user data for current user retrieval
         const userData: UserData = {
-          id: tokenPayload?.user_id || response.data.user?.id,
-          email: tokenPayload?.email || response.data.user?.email,
-          firstname: tokenPayload?.firstname || response.data.user?.firstname,
-          lastname: tokenPayload?.lastname || response.data.user?.lastname,
-          phone: response.data.user?.phone,
+          id: tokenPayload?.user_id ?? response.data.user?.id,
+          email: tokenPayload?.email ?? response.data.user?.email,
+          firstname:
+            tokenPayload?.firstname ?? response.data.user?.firstname ?? null,
+          lastname:
+            tokenPayload?.lastname ?? response.data.user?.lastname ?? null,
+          phone: response.data.user?.phone ?? null,
           is_verified: response.data.user?.is_verified ?? true,
-          role: tokenPayload?.role || "customer",
+          role: tokenPayload?.role ?? "customer",
           vendor_id: tokenPayload?.vendor_id,
           rider_id: tokenPayload?.rider_id,
         };
-
         localStorage.setItem("userData", JSON.stringify(userData));
-
         return {
           success: true,
           message: "Login successful",
@@ -160,59 +269,41 @@ class BackendAuthService {
           user: userData,
         };
       }
-
       throw new APIError("Invalid response from server", 500);
-    } catch (error: any) {
-      console.error("Backend login error:", error);
-
-      if (error.response?.data?.detail) {
-        throw new APIError(error.response.data.detail, error.response.status);
-      }
-
-      throw new APIError(
-        error.message || "Login failed. Please check your credentials.",
-        error.response?.status || 500,
-      );
+    } catch (error) {
+      if (error instanceof APIError) throw error;
+      extractError(error, "Login failed. Please check your credentials.");
     }
   }
 
-  // Vendor-specific login with enhanced response
   async vendorLogin(email: string, password: string): Promise<LoginResponse> {
     try {
       const response = await api.post("/auth/vendor/login", {
         email,
         password,
       });
-
-      if (response.data && response.data.access_token) {
-        // Store token for future requests
+      if (response.data?.access_token) {
         localStorage.setItem("authToken", response.data.access_token);
-
-        // Decode token to get user context
         const tokenPayload = decodeJwtToken(response.data.access_token);
-
-        // Store user data for current user retrieval
         const userData: UserData = {
-          id: tokenPayload?.user_id || response.data.user?.id,
-          email: tokenPayload?.email || response.data.user?.email,
-          firstname: tokenPayload?.firstname || response.data.user?.firstname,
-          lastname: tokenPayload?.lastname || response.data.user?.lastname,
-          phone: response.data.user?.phone,
+          id: tokenPayload?.user_id ?? response.data.user?.id,
+          email: tokenPayload?.email ?? response.data.user?.email,
+          firstname:
+            tokenPayload?.firstname ?? response.data.user?.firstname ?? null,
+          lastname:
+            tokenPayload?.lastname ?? response.data.user?.lastname ?? null,
+          phone: response.data.user?.phone ?? null,
           is_verified: response.data.user?.is_verified ?? true,
           role: "vendor",
-          vendor_id: tokenPayload?.vendor_id || response.data.vendor?.id,
+          vendor_id: tokenPayload?.vendor_id ?? response.data.vendor?.id,
         };
-
         localStorage.setItem("userData", JSON.stringify(userData));
-
-        // Store vendor data separately if available
         if (response.data.vendor) {
           localStorage.setItem(
             "vendorData",
             JSON.stringify(response.data.vendor),
           );
         }
-
         return {
           success: true,
           message: "Vendor login successful",
@@ -221,81 +312,69 @@ class BackendAuthService {
           vendor: response.data.vendor,
         };
       }
-
       throw new APIError("Invalid response from server", 500);
-    } catch (error: any) {
-      console.error("Vendor login error:", error);
-
-      if (error.response?.data?.detail) {
-        throw new APIError(error.response.data.detail, error.response.status);
-      }
-
-      throw new APIError(
-        error.message || "Vendor login failed. Please check your credentials.",
-        error.response?.status || 500,
+    } catch (error) {
+      if (error instanceof APIError) throw error;
+      extractError(
+        error,
+        "Vendor login failed. Please check your credentials.",
       );
     }
   }
 
-  // Register new user
   async register(data: RegisterRequest): Promise<RegisterResponse> {
     try {
       const response = await api.post("/auth/register", data);
+      const responseData = response.data as RegisterResponse["data"];
+
+      // Backend does NOT auto-send OTP — call send-otp explicitly
+      try {
+        await api.post("/auth/send-otp", { email: data.email });
+      } catch (otpError) {
+        // Log but don't fail registration if OTP send fails
+        console.warn("OTP send failed after registration:", otpError);
+      }
 
       return {
         success: true,
-        message: "Registration successful! Please verify your email.",
-        data: response.data,
+        message: "Registration successful! OTP sent to your email.",
+        data: responseData,
       };
-    } catch (error: any) {
-      console.error("Backend registration error:", error);
-
-      if (error.response?.data?.detail) {
-        const detail = error.response.data.detail;
-        if (detail.includes("already exists")) {
-          throw new APIError(
-            "An account with this email already exists. Please log in instead.",
-            400,
-          );
-        }
-        throw new APIError(detail, error.response.status);
+    } catch (error) {
+      if (error instanceof APIError) throw error;
+      const err = error as ApiErrorShape;
+      const detail = err.response?.data?.detail ?? "";
+      if (detail.includes("already exists")) {
+        throw new APIError(
+          "An account with this email already exists. Please log in instead.",
+          400,
+        );
       }
-
-      throw new APIError(
-        error.message || "Registration failed. Please try again.",
-        error.response?.status || 500,
-      );
+      extractError(error, "Registration failed. Please try again.");
     }
   }
 
-  // Customer-specific login
   async customerLogin(email: string, password: string): Promise<LoginResponse> {
     try {
       const response = await api.post("/auth/customer/login", {
         email,
         password,
       });
-
-      if (response.data && response.data.access_token) {
-        // Store token for future requests
+      if (response.data?.access_token) {
         localStorage.setItem("authToken", response.data.access_token);
-
-        // Decode token to get user context
         const tokenPayload = decodeJwtToken(response.data.access_token);
-
-        // Store user data
         const userData: UserData = {
-          id: tokenPayload?.user_id || response.data.user?.id,
-          email: tokenPayload?.email || response.data.user?.email,
-          firstname: tokenPayload?.firstname || response.data.user?.firstname,
-          lastname: tokenPayload?.lastname || response.data.user?.lastname,
-          phone: response.data.user?.phone,
+          id: tokenPayload?.user_id ?? response.data.user?.id,
+          email: tokenPayload?.email ?? response.data.user?.email,
+          firstname:
+            tokenPayload?.firstname ?? response.data.user?.firstname ?? null,
+          lastname:
+            tokenPayload?.lastname ?? response.data.user?.lastname ?? null,
+          phone: response.data.user?.phone ?? null,
           is_verified: response.data.user?.is_verified ?? true,
           role: "customer",
         };
-
         localStorage.setItem("userData", JSON.stringify(userData));
-
         return {
           success: true,
           message: "Customer login successful",
@@ -303,68 +382,93 @@ class BackendAuthService {
           user: userData,
         };
       }
-
       throw new APIError("Invalid response from server", 500);
     } catch (error) {
-      const err = error as {
-        response?: { data?: { detail?: string }; status?: number };
-        message?: string;
-      };
-      console.error("Customer login error:", error);
-
-      if (err.response?.data?.detail) {
-        throw new APIError(
-          err.response.data.detail,
-          err.response.status || 500,
-        );
-      }
-
-      throw new APIError(
-        err.message || "Customer login failed. Please check your credentials.",
-        err.response?.status || 500,
+      if (error instanceof APIError) throw error;
+      extractError(
+        error,
+        "Customer login failed. Please check your credentials.",
       );
     }
   }
 
-  // Customer registration - sends OTP automatically
   async customerRegister(data: {
     email: string;
     password: string;
   }): Promise<RegisterResponse> {
     try {
       const response = await api.post("/auth/register", {
-        email: data.email,
-        password: data.password,
+        ...data,
         role: "customer",
       });
-
       return {
         success: true,
         message: "Registration successful! Please verify your email.",
-        data: response.data,
+        data: response.data as RegisterResponse["data"],
       };
-    } catch (error: any) {
-      console.error("Customer registration error:", error);
-
-      if (error.response?.data?.detail) {
-        const detail = error.response.data.detail;
-        if (detail.includes("already exists")) {
-          throw new APIError(
-            "An account with this email already exists. Please log in instead.",
-            400,
-          );
-        }
-        throw new APIError(detail, error.response.status);
+    } catch (error) {
+      if (error instanceof APIError) throw error;
+      const err = error as ApiErrorShape;
+      const detail = err.response?.data?.detail ?? "";
+      if (detail.includes("already exists")) {
+        throw new APIError(
+          "An account with this email already exists. Please log in instead.",
+          400,
+        );
       }
-
-      throw new APIError(
-        error.message || "Registration failed. Please try again.",
-        error.response?.status || 500,
-      );
+      extractError(error, "Registration failed. Please try again.");
     }
   }
 
-  // Update user profile (requires authentication)
+  async sendOTP(email: string): Promise<{ success: boolean; message: string }> {
+    try {
+      await api.post("/auth/send-otp", { email });
+      return {
+        success: true,
+        message: "OTP sent successfully! Please check your email.",
+      };
+    } catch (error) {
+      if (error instanceof APIError) throw error;
+      extractError(error, "Failed to send OTP. Please try again.");
+    }
+  }
+
+  async verifyOTP(email: string, otpCode: string): Promise<LoginResponse> {
+    try {
+      const response = await api.post("/auth/verify-otp", {
+        email,
+        otp_code: otpCode,
+      });
+      if (response.data?.access_token) {
+        localStorage.setItem("authToken", response.data.access_token);
+        const tokenPayload = decodeJwtToken(response.data.access_token);
+        const user = response.data.user;
+        const userData: UserData = {
+          id: user.id,
+          email: user.email,
+          firstname: user.firstname ?? tokenPayload?.firstname ?? null,
+          lastname: user.lastname ?? tokenPayload?.lastname ?? null,
+          phone: user.phone ?? null,
+          is_verified: true,
+          role: user.role ?? tokenPayload?.role ?? "customer",
+          vendor_id: user.vendor_id ?? tokenPayload?.vendor_id,
+          rider_id: user.rider_id ?? tokenPayload?.rider_id,
+        };
+        localStorage.setItem("userData", JSON.stringify(userData));
+        return {
+          success: true,
+          message: response.data.message ?? "Email verified successfully!",
+          token: response.data.access_token,
+          user: userData,
+        };
+      }
+      throw new APIError("Invalid response from server", 500);
+    } catch (error) {
+      if (error instanceof APIError) throw error;
+      extractError(error, "OTP verification failed. Please try again.");
+    }
+  }
+
   async updateProfile(data: {
     firstname?: string;
     lastname?: string;
@@ -375,165 +479,53 @@ class BackendAuthService {
   }): Promise<{ success: boolean; message: string; user?: UserData }> {
     try {
       const response = await api.patch("/auth/profile", data);
-
-      // Update stored user data
       if (response.data.user) {
         localStorage.setItem("userData", JSON.stringify(response.data.user));
       }
-
       return {
         success: true,
-        message: response.data.message || "Profile updated successfully",
-        user: response.data.user,
+        message: response.data.message ?? "Profile updated successfully",
+        user: response.data.user as UserData,
       };
     } catch (error) {
-      const err = error as {
-        response?: { data?: { detail?: string }; status?: number };
-        message?: string;
-      };
-      console.error("Profile update error:", error);
-
-      if (err.response?.data?.detail) {
-        throw new APIError(
-          err.response.data.detail,
-          err.response.status || 500,
-        );
-      }
-
-      throw new APIError(
-        err.message || "Failed to update profile. Please try again.",
-        err.response?.status || 500,
-      );
-    }
-  }
-  async uploadVendorAsset(
-    vendorId: string,
-    file: File,
-    assetType: "store_logo" | "store_cover",
-  ): Promise<{ success: boolean; url: string }> {
-    try {
-      const formData = new FormData();
-      formData.append("file", file);
-
-      const response = await api.post(
-        `/vendors/upload-asset?vendor_id=${vendorId}&asset_type=${assetType}`,
-        formData,
-        { headers: { "Content-Type": "multipart/form-data" } },
-      );
-
-      if (response.data && response.data.success) {
-        return { success: true, url: response.data.url };
-      }
-      throw new Error("Upload failed");
-    } catch (error) {
-      const err = error as {
-        response?: { data?: { detail?: string }; status?: number };
-        message?: string;
-      };
-      throw new APIError(
-        err.response?.data?.detail || "Failed to upload vendor asset.",
-        err.response?.status || 400,
-      );
-    }
-  }
-  // Send OTP for email verification
-  async sendOTP(email: string): Promise<{ success: boolean; message: string }> {
-    try {
-      await api.post("/auth/send-otp", { email });
-
-      return {
-        success: true,
-        message: "OTP sent successfully! Please check your email.",
-      };
-    } catch (error: any) {
-      console.error("Backend send OTP error:", error);
-
-      if (error.response?.data?.detail) {
-        throw new APIError(error.response.data.detail, error.response.status);
-      }
-
-      throw new APIError(
-        error.message || "Failed to send OTP. Please try again.",
-        error.response?.status || 500,
-      );
-    }
-  }
-
-  // Verify OTP code
-  async verifyOTP(email: string, otpCode: string): Promise<LoginResponse> {
-    try {
-      const response = await api.post("/auth/verify-otp", {
-        email,
-        otp_code: otpCode,
-      });
-
-      if (response.data && response.data.access_token) {
-        // Store token for future requests
-        localStorage.setItem("authToken", response.data.access_token);
-
-        // Decode token to get user context
-        const tokenPayload = decodeJwtToken(response.data.access_token);
-
-        // Store user data
-        const user = response.data.user;
-        const userData: UserData = {
-          id: user.id,
-          email: user.email,
-          firstname: user.firstname || tokenPayload?.firstname || null,
-          lastname: user.lastname || tokenPayload?.lastname || null,
-          phone: user.phone || null,
-          is_verified: true,
-          role: user.role || tokenPayload?.role || "customer",
-          vendor_id: user.vendor_id || tokenPayload?.vendor_id,
-          rider_id: user.rider_id || tokenPayload?.rider_id,
-        };
-
-        localStorage.setItem("userData", JSON.stringify(userData));
-
-        return {
-          success: true,
-          message: response.data.message || "Email verified successfully!",
-          token: response.data.access_token,
-          user: userData,
-        };
-      }
-
-      throw new APIError("Invalid response from server", 500);
-    } catch (error: any) {
-      console.error("Backend verify OTP error:", error);
-
       if (error instanceof APIError) throw error;
-
-      if (error.response?.data?.detail) {
-        throw new APIError(error.response.data.detail, error.response.status);
-      }
-
-      throw new APIError(
-        error.message || "OTP verification failed. Please try again.",
-        error.response?.status || 500,
-      );
+      extractError(error, "Failed to update profile. Please try again.");
     }
   }
 
-  // Get current user profile (authenticated)
+  async getProfile(): Promise<UserData> {
+    try {
+      const response = await api.get("/auth/profile");
+      return {
+        id: response.data.id as string,
+        email: response.data.email as string,
+        firstname: response.data.firstname as string | null,
+        lastname: response.data.lastname as string | null,
+        phone: response.data.phone as string | null,
+        is_verified: response.data.is_verified as boolean,
+        role: "customer",
+      };
+    } catch (error) {
+      if (error instanceof APIError) throw error;
+      extractError(error, "Failed to get profile.");
+    }
+  }
+
+  // ── Session helpers ────────────────────────────────────────────────────────
+
   async getCurrentUser(): Promise<UserData | null> {
     try {
       const token = localStorage.getItem("authToken");
-      const userData = localStorage.getItem("userData");
-
-      if (!token) {
-        throw new APIError("No authentication token found", 401);
-      }
-
-      if (!userData) {
-        // Try to get user from token
+      const storedUser = localStorage.getItem("userData");
+      if (!token) throw new APIError("No authentication token found", 401);
+      if (!storedUser) {
         const tokenPayload = decodeJwtToken(token);
         if (tokenPayload) {
           return {
             id: tokenPayload.user_id,
             email: tokenPayload.email,
-            firstname: tokenPayload.firstname || null,
-            lastname: tokenPayload.lastname || null,
+            firstname: tokenPayload.firstname ?? null,
+            lastname: tokenPayload.lastname ?? null,
             phone: null,
             is_verified: true,
             role: tokenPayload.role,
@@ -543,30 +535,17 @@ class BackendAuthService {
         }
         throw new APIError("No user data found. Please login again.", 401);
       }
-
-      // Return the stored user data from login
-      return JSON.parse(userData);
-    } catch (error: any) {
-      console.error("Backend get current user error:", error);
-
-      if (error instanceof APIError) {
-        throw error;
-      }
-
-      throw new APIError(error.message || "Failed to fetch user profile.", 500);
+      return JSON.parse(storedUser) as UserData;
+    } catch (error) {
+      if (error instanceof APIError) throw error;
+      extractError(error, "Failed to fetch user profile.");
     }
   }
 
-  // Get current vendor data
   async getCurrentVendor(): Promise<VendorData | null> {
     try {
-      const vendorData = localStorage.getItem("vendorData");
-
-      if (vendorData) {
-        return JSON.parse(vendorData);
-      }
-
-      // If not stored, get from user data
+      const storedVendor = localStorage.getItem("vendorData");
+      if (storedVendor) return JSON.parse(storedVendor) as VendorData;
       const userData = await this.getCurrentUser();
       if (userData?.vendor_id) {
         return {
@@ -578,53 +557,80 @@ class BackendAuthService {
           status: "active",
         };
       }
-
       return null;
-    } catch (error: any) {
-      console.error("Get current vendor error:", error);
+    } catch {
       return null;
     }
   }
 
-  // Get user context from token
   getTokenContext(): JwtPayload | null {
     const token = localStorage.getItem("authToken");
     if (!token) return null;
     return decodeJwtToken(token);
   }
 
-  // Logout (clear local storage)
   async logout(): Promise<{ success: boolean; message: string }> {
     localStorage.removeItem("authToken");
     localStorage.removeItem("userData");
     localStorage.removeItem("vendorData");
-
-    return {
-      success: true,
-      message: "Logged out successfully",
-    };
+    return { success: true, message: "Logged out successfully" };
   }
 
-  // Check if user is authenticated
   isAuthenticated(): boolean {
-    const token = localStorage.getItem("authToken");
-    return !!token;
+    return !!localStorage.getItem("authToken");
   }
 
-  // Get authentication token
   getToken(): string | null {
     return localStorage.getItem("authToken");
   }
 
-  // Set authentication token (for external use)
   setToken(token: string): void {
     localStorage.setItem("authToken", token);
   }
 
-  // Register vendor profile (after user is created and verified)
-  // Upload rider document
-  // document_type: "drivers_license" → license_photo
-  // document_type: "selfie"          → profile_photo
+  // ── Vendor ─────────────────────────────────────────────────────────────────
+
+  async registerVendor(
+    vendorData: VendorRegistrationPayload,
+  ): Promise<VendorRegistrationResponse> {
+    try {
+      const response = await api.post("/vendors/", vendorData);
+      return {
+        success: true,
+        message: "Vendor profile created successfully!",
+        data: response.data as VendorRegistrationResponse["data"],
+      };
+    } catch (error) {
+      if (error instanceof APIError) throw error;
+      extractError(error, "Failed to create vendor profile. Please try again.");
+    }
+  }
+
+  async uploadVendorAsset(
+    vendorId: string,
+    file: File,
+    assetType: "store_logo" | "store_cover",
+  ): Promise<{ success: boolean; url: string }> {
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const response = await api.post(
+        `/vendors/upload-asset?vendor_id=${vendorId}&asset_type=${assetType}`,
+        formData,
+        { headers: { "Content-Type": "multipart/form-data" } },
+      );
+      if (response.data?.success) {
+        return { success: true, url: response.data.url as string };
+      }
+      throw new Error("Upload failed");
+    } catch (error) {
+      if (error instanceof APIError) throw error;
+      extractError(error, "Failed to upload vendor asset.");
+    }
+  }
+
+  // ── Rider ──────────────────────────────────────────────────────────────────
+
   async uploadRiderDocument(
     _riderId: string,
     file: File,
@@ -633,137 +639,39 @@ class BackendAuthService {
     try {
       const formData = new FormData();
       formData.append("file", file);
-
       const backendDocType =
         documentType === "drivers_license" ? "license_photo" : "profile_photo";
-
       const response = await api.post(
         `/riders/upload-document?document_type=${backendDocType}`,
         formData,
         { headers: { "Content-Type": "multipart/form-data" } },
       );
-
-      if (response.data && response.data.success) {
+      if (response.data?.success) {
         return {
           success: true,
-          url: response.data.url,
+          url: response.data.url as string,
           message: "Document uploaded successfully",
         };
       }
-
       throw new Error("Upload failed");
-    } catch (error: any) {
-      throw new APIError(
-        error.response?.data?.detail || "Failed to upload document.",
-        error.response?.status || 400,
-      );
-    }
-  }
-
-  async registerVendor(
-    vendorData: any,
-  ): Promise<{ success: boolean; message: string; data?: any }> {
-    try {
-      console.log("Registering vendor with data:", vendorData);
-
-      const response = await api.post("/vendors/", vendorData);
-
-      console.log("Vendor registration response:", response.data);
-
-      return {
-        success: true,
-        message: "Vendor profile created successfully!",
-        data: response.data,
-      };
     } catch (error) {
-      const err = error as {
-        response?: { data?: { detail?: string }; status?: number };
-        message?: string;
-      };
-      console.error("Vendor registration error:", error);
-      console.error("Error details:", err.response?.data);
-
-      if (err.response?.data?.detail) {
-        throw new APIError(
-          err.response.data.detail,
-          err.response.status || 500,
-        );
-      }
-
-      throw new APIError(
-        err.message || "Failed to create vendor profile. Please try again.",
-        err.response?.status || 500,
-      );
+      if (error instanceof APIError) throw error;
+      extractError(error, "Failed to upload document.");
     }
   }
 
-  // ============ CUSTOMER DASHBOARD METHODS ============
+  // ── Customer: Favorites ────────────────────────────────────────────────────
 
-  // Get user profile
-  async getProfile(): Promise<UserData> {
-    try {
-      const response = await api.get("/auth/profile");
-
-      const userData: UserData = {
-        id: response.data.id,
-        email: response.data.email,
-        firstname: response.data.firstname,
-        lastname: response.data.lastname,
-        phone: response.data.phone,
-        is_verified: response.data.is_verified,
-        role: "customer",
-      };
-
-      return userData;
-    } catch (error) {
-      const err = error as {
-        response?: { data?: { detail?: string }; status?: number };
-        message?: string;
-      };
-      console.error("Get profile error:", error);
-
-      if (err.response?.data?.detail) {
-        throw new APIError(
-          err.response.data.detail,
-          err.response.status || 500,
-        );
-      }
-
-      throw new APIError(
-        err.message || "Failed to get profile.",
-        err.response?.status || 500,
-      );
-    }
-  }
-
-  // Get user favorites
-
-  async getFavorites(): Promise<any[]> {
+  async getFavorites(): Promise<FavoriteVendor[]> {
     try {
       const response = await api.get("/customer/favorites");
-      return response.data;
+      return response.data as FavoriteVendor[];
     } catch (error) {
-      const err = error as {
-        response?: { data?: { detail?: string }; status?: number };
-        message?: string;
-      };
-      console.error("Get favorites error:", error);
-
-      if (err.response?.data?.detail) {
-        throw new APIError(
-          err.response.data.detail,
-          err.response.status || 500,
-        );
-      }
-
-      throw new APIError(
-        err.message || "Failed to get favorites.",
-        err.response?.status || 500,
-      );
+      if (error instanceof APIError) throw error;
+      extractError(error, "Failed to get favorites.");
     }
   }
 
-  // Add favorite vendor
   async addFavorite(
     vendorId: string,
   ): Promise<{ message: string; vendor_id: string }> {
@@ -771,412 +679,179 @@ class BackendAuthService {
       const response = await api.post("/customer/favorites", {
         vendor_id: vendorId,
       });
-      return response.data;
+      return response.data as { message: string; vendor_id: string };
     } catch (error) {
-      const err = error as {
-        response?: { data?: { detail?: string }; status?: number };
-        message?: string;
-      };
-      console.error("Add favorite error:", error);
-
-      if (err.response?.data?.detail) {
-        throw new APIError(
-          err.response.data.detail,
-          err.response.status || 500,
-        );
-      }
-
-      throw new APIError(
-        err.message || "Failed to add favorite.",
-        err.response?.status || 500,
-      );
+      if (error instanceof APIError) throw error;
+      extractError(error, "Failed to add favorite.");
     }
   }
 
-  // Remove favorite vendor
   async removeFavorite(
     vendorId: string,
   ): Promise<{ message: string; vendor_id: string }> {
     try {
       const response = await api.delete(`/customer/favorites/${vendorId}`);
-      return response.data;
+      return response.data as { message: string; vendor_id: string };
     } catch (error) {
-      const err = error as {
-        response?: { data?: { detail?: string }; status?: number };
-        message?: string;
-      };
-      console.error("Remove favorite error:", error);
-
-      if (err.response?.data?.detail) {
-        throw new APIError(
-          err.response.data.detail,
-          err.response.status || 500,
-        );
-      }
-
-      throw new APIError(
-        err.message || "Failed to remove favorite.",
-        err.response?.status || 500,
-      );
+      if (error instanceof APIError) throw error;
+      extractError(error, "Failed to remove favorite.");
     }
   }
 
-  // Get vendors
+  // ── Customer: Vendors ──────────────────────────────────────────────────────
 
   async getVendors(limit: number = 8): Promise<Vendor[]> {
     try {
       const response = await api.get(`/customer/vendors?limit=${limit}`);
-      return response.data;
+      return response.data as Vendor[];
     } catch (error) {
-      const err = error as {
-        response?: { data?: { detail?: string }; status?: number };
-        message?: string;
-      };
-      console.error("Get vendors error:", error);
-
-      if (err.response?.data?.detail) {
-        throw new APIError(
-          err.response.data.detail,
-          err.response.status || 500,
-        );
-      }
-
-      throw new APIError(
-        err.message || "Failed to get vendors.",
-        err.response?.status || 500,
-      );
+      if (error instanceof APIError) throw error;
+      extractError(error, "Failed to get vendors.");
     }
   }
-  async getVendorByID(vendorId: string): Promise<any[]> {
+
+  async getVendorByID(vendorId: string): Promise<Vendor> {
     try {
       const response = await api.get(`/customer/vendors/${vendorId}`);
-      return response.data;
+      return response.data as Vendor;
     } catch (error) {
-      const err = error as {
-        response?: { data?: { detail?: string }; status?: number };
-        message?: string;
-      };
-      console.error("Get vendor by ID error:", error);
-
-      if (err.response?.data?.detail) {
-        throw new APIError(
-          err.response.data.detail,
-          err.response.status || 500,
-        );
-      }
-
-      throw new APIError(
-        err.message || "Failed to get vendor by ID.",
-        err.response?.status || 500,
-      );
+      if (error instanceof APIError) throw error;
+      extractError(error, "Failed to get vendor by ID.");
     }
   }
 
-  // Get menu items
+  // ── Customer: Menu & Offers ────────────────────────────────────────────────
+
   async getMenuItems(
     limit: number = 10,
     vendorId?: string,
   ): Promise<MenuItem[]> {
     try {
-      // Use 10 as default if limit is somehow null or empty string
       const finalLimit = limit || 10;
       let url = `/customer/menu-items?limit=${finalLimit}`;
-      if (vendorId && vendorId.trim() && vendorId !== "undefined") {
+      if (vendorId?.trim() && vendorId !== "undefined") {
         url += `&vendor_id=${vendorId}`;
       }
       const response = await api.get(url);
-      return response.data;
+      return response.data as MenuItem[];
     } catch (error) {
-      const err = error as {
-        response?: { data?: { detail?: string }; status?: number };
-        message?: string;
-      };
-      console.error("Get menu items error:", error);
-
-      if (err.response?.data?.detail) {
-        throw new APIError(
-          err.response.data.detail,
-          err.response.status || 500,
-        );
-      }
-
-      throw new APIError(
-        err.message || "Failed to get menu items.",
-        err.response?.status || 500,
-      );
+      if (error instanceof APIError) throw error;
+      extractError(error, "Failed to get menu items.");
     }
   }
-
-  // Get offers (menu items with discount)
 
   async getOffers(limit: number = 5): Promise<MenuItem[]> {
     try {
       const response = await api.get(`/customer/offers?limit=${limit}`);
-      return response.data;
+      return response.data as MenuItem[];
     } catch (error) {
-      const err = error as {
-        response?: { data?: { detail?: string }; status?: number };
-        message?: string;
-      };
-      console.error("Get offers error:", error);
-
-      if (err.response?.data?.detail) {
-        throw new APIError(
-          err.response.data.detail,
-          err.response.status || 500,
-        );
-      }
-
-      throw new APIError(
-        err.message || "Failed to get offers.",
-        err.response?.status || 500,
-      );
+      if (error instanceof APIError) throw error;
+      extractError(error, "Failed to get offers.");
     }
   }
 
-  // ============ PROMO CODES ============
+  // ── Customer: Promo Codes ──────────────────────────────────────────────────
 
-  // Validate promo code
-  async validatePromoCode(code: string): Promise<{
-    valid: boolean;
-    code: string;
-    discount_type: string;
-    discount_value: number;
-    message?: string;
-  }> {
+  async validatePromoCode(code: string): Promise<PromoCodeValidation> {
     try {
       const response = await api.get(`/customer/promo-codes/${code}`);
-      return response.data;
+      return response.data as PromoCodeValidation;
     } catch (error) {
-      const err = error as {
-        response?: { data?: { detail?: string }; status?: number };
-        message?: string;
-      };
-      console.error("Validate promo code error:", error);
-
-      if (err.response?.data?.detail) {
-        throw new APIError(
-          err.response.data.detail,
-          err.response.status || 500,
-        );
-      }
-
-      throw new APIError(
-        err.message || "Failed to validate promo code.",
-        err.response?.status || 500,
-      );
+      if (error instanceof APIError) throw error;
+      extractError(error, "Failed to validate promo code.");
     }
   }
 
-  // ============ ORDERS ============
+  // ── Customer: Orders ───────────────────────────────────────────────────────
 
-  // Get customer orders
-
-  async getOrders(): Promise<any[]> {
+  async getOrders(): Promise<Order[]> {
     try {
       const response = await api.get("/customer/orders");
-      return response.data;
+      return response.data as Order[];
     } catch (error) {
-      const err = error as {
-        response?: { data?: { detail?: string }; status?: number };
-        message?: string;
-      };
-      console.error("Get orders error:", error);
-
-      if (err.response?.data?.detail) {
-        throw new APIError(
-          err.response.data.detail,
-          err.response.status || 500,
-        );
-      }
-
-      throw new APIError(
-        err.message || "Failed to get orders.",
-        err.response?.status || 500,
-      );
+      if (error instanceof APIError) throw error;
+      extractError(error, "Failed to get orders.");
     }
   }
 
-  // Get specific order
-
-  async getOrder(orderId: string): Promise<any> {
+  async getOrder(orderId: string): Promise<Order> {
     try {
       const response = await api.get(`/customer/orders/${orderId}`);
-      return response.data;
+      return response.data as Order;
     } catch (error) {
-      const err = error as {
-        response?: { data?: { detail?: string }; status?: number };
-        message?: string;
-      };
-      console.error("Get order error:", error);
-
-      if (err.response?.data?.detail) {
-        throw new APIError(
-          err.response.data.detail,
-          err.response.status || 500,
-        );
-      }
-
-      throw new APIError(
-        err.message || "Failed to get order.",
-        err.response?.status || 500,
-      );
+      if (error instanceof APIError) throw error;
+      extractError(error, "Failed to get order.");
     }
   }
 
-  // Get order tracking
-
-  async getOrderTracking(orderId: string): Promise<any[]> {
+  async getOrderTracking(orderId: string): Promise<OrderTracking[]> {
     try {
       const response = await api.get(`/customer/orders/${orderId}/tracking`);
-      return response.data;
+      return response.data as OrderTracking[];
     } catch (error) {
-      const err = error as {
-        response?: { data?: { detail?: string }; status?: number };
-        message?: string;
-      };
-      console.error("Get order tracking error:", error);
-
-      if (err.response?.data?.detail) {
-        throw new APIError(
-          err.response.data.detail,
-          err.response.status || 500,
-        );
-      }
-
-      throw new APIError(
-        err.message || "Failed to get order tracking.",
-        err.response?.status || 500,
-      );
+      if (error instanceof APIError) throw error;
+      extractError(error, "Failed to get order tracking.");
     }
   }
 
-  // ============ PAYMENTS ============
+  // ── Customer: Payments ─────────────────────────────────────────────────────
 
-  // Initialize payment
-
-  async initializePayment(paymentData: any): Promise<any> {
+  async initializePayment(paymentData: PaymentData): Promise<PaymentResponse> {
     try {
       const response = await api.post(
         "/customer/payments/initialize",
         paymentData,
       );
-      return response.data;
+      return response.data as PaymentResponse;
     } catch (error) {
-      const err = error as {
-        response?: { data?: { detail?: string }; status?: number };
-        message?: string;
-      };
-      console.error("Initialize payment error:", error);
-
-      if (err.response?.data?.detail) {
-        throw new APIError(
-          err.response.data.detail,
-          err.response.status || 500,
-        );
-      }
-
-      throw new APIError(
-        err.message || "Failed to initialize payment.",
-        err.response?.status || 500,
-      );
+      if (error instanceof APIError) throw error;
+      extractError(error, "Failed to initialize payment.");
     }
   }
 
-  // Verify payment
-
-  async verifyPayment(reference: string): Promise<any> {
+  async verifyPayment(reference: string): Promise<PaymentVerification> {
     try {
       const response = await api.get(`/customer/payments/verify/${reference}`);
-      return response.data;
+      return response.data as PaymentVerification;
     } catch (error) {
-      const err = error as {
-        response?: { data?: { detail?: string }; status?: number };
-        message?: string;
-      };
-      console.error("Verify payment error:", error);
-
-      if (err.response?.data?.detail) {
-        throw new APIError(
-          err.response.data.detail,
-          err.response.status || 500,
-        );
-      }
-
-      throw new APIError(
-        err.message || "Failed to verify payment.",
-        err.response?.status || 500,
-      );
+      if (error instanceof APIError) throw error;
+      extractError(error, "Failed to verify payment.");
     }
   }
-
-  // Get payment history
 
   async getPaymentHistory(
     limit: number = 20,
     offset: number = 0,
-  ): Promise<any[]> {
+  ): Promise<PaymentHistory[]> {
     try {
       const response = await api.get(
         `/customer/payments/history?limit=${limit}&offset=${offset}`,
       );
-      return response.data;
+      return response.data as PaymentHistory[];
     } catch (error) {
-      const err = error as {
-        response?: { data?: { detail?: string }; status?: number };
-        message?: string;
-      };
-      console.error("Get payment history error:", error);
-
-      if (err.response?.data?.detail) {
-        throw new APIError(
-          err.response.data.detail,
-          err.response.status || 500,
-        );
-      }
-
-      throw new APIError(
-        err.message || "Failed to get payment history.",
-        err.response?.status || 500,
-      );
+      if (error instanceof APIError) throw error;
+      extractError(error, "Failed to get payment history.");
     }
   }
-
-  // Get vendor payment history
 
   async getVendorPaymentHistory(
     vendorId: string,
     limit: number = 20,
     offset: number = 0,
-  ): Promise<any[]> {
+  ): Promise<PaymentHistory[]> {
     try {
       const response = await api.get(
         `/customer/vendors/${vendorId}/payments?limit=${limit}&offset=${offset}`,
       );
-      return response.data;
+      return response.data as PaymentHistory[];
     } catch (error) {
-      const err = error as {
-        response?: { data?: { detail?: string }; status?: number };
-        message?: string;
-      };
-      console.error("Get vendor payment history error:", error);
-
-      if (err.response?.data?.detail) {
-        throw new APIError(
-          err.response.data.detail,
-          err.response.status || 500,
-        );
-      }
-
-      throw new APIError(
-        err.message || "Failed to get vendor payment history.",
-        err.response?.status || 500,
-      );
+      if (error instanceof APIError) throw error;
+      extractError(error, "Failed to get vendor payment history.");
     }
   }
 }
 
-// Export a single instance
-export const backendAuthService = new BackendAuthService();
+// ─── Singleton Export ─────────────────────────────────────────────────────────
 
+export const backendAuthService = new BackendAuthService();
 export default BackendAuthService;
