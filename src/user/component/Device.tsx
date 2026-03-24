@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Smartphone, ShieldCheck } from "lucide-react";
 import { Navbar } from "../../component/Navbar";
-//
+import api from "../../services/api";
 
 interface DeviceItem {
   id: string;
@@ -11,8 +11,6 @@ interface DeviceItem {
 }
 
 const Device: React.FC = () => {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [, setIsVisible] = useState(false);
   const [devices, setDevices] = useState<DeviceItem[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -20,25 +18,13 @@ const Device: React.FC = () => {
     const fetchSessions = async () => {
       try {
         setLoading(true);
-        const {
-          data: { user },
-        } = await supabase.auth.getUser();
-        if (!user) return;
-
-        const { data, error } = await supabase
-          .from("user_sessions")
-          .select("*")
-          .eq("user_id", user.id)
-          .order("last_active", { ascending: false });
-
-        if (!error && data) {
-          setDevices(data);
-        }
+        const res = await api.get("/auth/sessions");
+        const data = res.data as DeviceItem[];
+        setDevices(Array.isArray(data) ? data : []);
       } catch (err) {
         console.error("Error fetching sessions:", err);
       } finally {
         setLoading(false);
-        setIsVisible(true);
       }
     };
 
@@ -49,7 +35,6 @@ const Device: React.FC = () => {
     const date = new Date(dateString);
     const now = new Date();
     const diffInMinutes = Math.floor((now.getTime() - date.getTime()) / 60000);
-
     if (diffInMinutes < 5) return "NOW";
     return date.toLocaleString("en-US", {
       weekday: "short",
@@ -70,16 +55,14 @@ const Device: React.FC = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-green-50">
       <Navbar />
-      {/* ... Header ... */}
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <h1 className="text-3xl font-bold text-green-800 mb-6">
-          Devices & Sessions
+          Devices &amp; Sessions
         </h1>
 
         <div className="space-y-4">
           {devices.length > 0 ? (
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             devices.map((device) => (
               <div
                 key={device.id}
@@ -124,7 +107,6 @@ const Device: React.FC = () => {
           )}
         </div>
 
-        {/* Security Tip */}
         <div className="mt-10 bg-blue-600 text-white p-6 rounded-3xl shadow-xl flex gap-4 items-center">
           <ShieldCheck size={40} />
           <p className="text-sm">

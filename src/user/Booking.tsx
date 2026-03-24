@@ -10,7 +10,7 @@ import {
   RefreshCw,
   ChevronRight,
   MessageSquare,
-  Phone
+  Phone,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Navbar } from "../component/Navbar";
@@ -70,27 +70,12 @@ const Booking: React.FC = () => {
     const fetchUserOrders = async () => {
       try {
         setLoading(true);
-        
+
         // Use backendAuthService to get orders
         const ordersData = await backendAuthService.getOrders();
 
-        const formattedOrders = ordersData.map(
-          (order: {
-            id: string;
-            restaurant_name: string;
-            items_count: number;
-            total_amount: number;
-            scheduled_time: string;
-            status: string;
-            image_url: string;
-            vendor_id?: string;
-            vendor?: {
-              business_name: string;
-              business_address: string;
-              business_phone: string;
-              logo_url?: string;
-            };
-          }) => ({
+        const formattedOrders = (ordersData as unknown as Order[]).map(
+          (order) => ({
             id: order.id,
             restaurant_name: order.restaurant_name,
             items_count: order.items_count || 0,
@@ -104,7 +89,7 @@ const Booking: React.FC = () => {
               | "preparing",
             image_url: order.image_url,
             vendor_id: order.vendor_id,
-            vendor: order.vendor
+            vendor: order.vendor,
           }),
         );
 
@@ -146,7 +131,7 @@ const Booking: React.FC = () => {
       const updates = await backendAuthService.getOrderTracking(order.id);
       if (updates) setTrackingUpdates(updates);
     } catch (error) {
-      console.error('Failed to get tracking updates:', error);
+      console.error("Failed to get tracking updates:", error);
     }
   };
 
@@ -428,20 +413,30 @@ const Booking: React.FC = () => {
                       <div className="flex gap-4">
                         <div className="w-16 h-16 bg-gray-50 rounded-2xl flex items-center justify-center text-2xl shadow-inner overflow-hidden border border-gray-100">
                           {selectedOrder.vendor.logo_url ? (
-                            <img src={selectedOrder.vendor.logo_url} alt="Vendor" className="w-full h-full object-cover" />
+                            <img
+                              src={selectedOrder.vendor.logo_url}
+                              alt="Vendor"
+                              className="w-full h-full object-cover"
+                            />
                           ) : (
-                            <span role="img" aria-label="shop">🏪</span>
+                            <span role="img" aria-label="shop">
+                              🏪
+                            </span>
                           )}
                         </div>
                         <div>
-                          <p className="text-[10px] font-black uppercase  tracking-widest text-gray-400 mb-1">Merchant</p>
+                          <p className="text-[10px] font-black uppercase  tracking-widest text-gray-400 mb-1">
+                            Merchant
+                          </p>
                           <h3 className="text-xl font-black  tracking-tighter uppercase">
                             {selectedOrder.vendor.business_name}
                           </h3>
                         </div>
                       </div>
-                      <button 
-                        onClick={() => handleMessageMerchant(selectedOrder.vendor_id)}
+                      <button
+                        onClick={() =>
+                          handleMessageMerchant(selectedOrder.vendor_id)
+                        }
                         className="w-14 h-14 bg-green-500 text-white rounded-full flex items-center justify-center shadow-lg shadow-green-500/30 hover:scale-110 transition-all active:scale-95"
                       >
                         <MessageSquare className="w-6 h-6" />
@@ -454,8 +449,13 @@ const Booking: React.FC = () => {
                           <MapPin className="w-5 h-5" />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-[8px] font-black uppercase  text-gray-400">Address</p>
-                          <p className="text-xs font-bold truncate">{selectedOrder.vendor.business_address || "No address provided"}</p>
+                          <p className="text-[8px] font-black uppercase  text-gray-400">
+                            Address
+                          </p>
+                          <p className="text-xs font-bold truncate">
+                            {selectedOrder.vendor.business_address ||
+                              "No address provided"}
+                          </p>
                         </div>
                       </div>
                       <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-2xl border border-gray-100">
@@ -463,8 +463,13 @@ const Booking: React.FC = () => {
                           <Phone className="w-5 h-5" />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-[8px] font-black uppercase  text-gray-400">Phone</p>
-                          <p className="text-xs font-bold truncate">{selectedOrder.vendor.business_phone || "No phone provided"}</p>
+                          <p className="text-[8px] font-black uppercase  text-gray-400">
+                            Phone
+                          </p>
+                          <p className="text-xs font-bold truncate">
+                            {selectedOrder.vendor.business_phone ||
+                              "No phone provided"}
+                          </p>
                         </div>
                       </div>
                     </div>

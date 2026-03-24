@@ -8,7 +8,7 @@ import {
   ChevronRight,
   ShieldCheck,
   Bell,
-  Sparkles
+  Sparkles,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Navbar } from "../component/Navbar";
@@ -83,7 +83,8 @@ const Profile: React.FC = () => {
       try {
         setLoading(true);
         const profile = await authService.getCurrentUserProfile();
-        setUserProfile(profile);
+        // After
+        setUserProfile(profile as UserProfile);
       } catch (error) {
         console.error("Failed to fetch user profile:", error);
       } finally {
@@ -103,31 +104,36 @@ const Profile: React.FC = () => {
     }
   };
 
-  const fullName = `${userProfile.firstname || ""} ${userProfile.lastname || ""}`.trim();
-  const initials = (userProfile.firstname?.[0] || "U") + (userProfile.lastname?.[0] || "S");
+  const fullName =
+    `${userProfile.firstname || ""} ${userProfile.lastname || ""}`.trim();
+  const initials =
+    (userProfile.firstname?.[0] || "U") + (userProfile.lastname?.[0] || "S");
 
   return (
     <div className="min-h-screen bg-white transition-colors duration-300 font-inter">
       <Navbar />
-      
+
       <AnimatePresence mode="wait">
         {loading ? (
-          <motion.div 
+          <motion.div
             key="loading"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="max-w-3xl mx-auto px-6 py-12 space-y-8"
           >
-             <div className="h-64 w-full bg-gray-50 rounded-[3rem] animate-pulse" />
-             <div className="space-y-4">
-               {[1, 2, 3, 4].map(i => (
-                 <div key={i} className="h-20 w-full bg-gray-50 rounded-2xl animate-pulse" />
-               ))}
-             </div>
+            <div className="h-64 w-full bg-gray-50 rounded-[3rem] animate-pulse" />
+            <div className="space-y-4">
+              {[1, 2, 3, 4].map((i) => (
+                <div
+                  key={i}
+                  className="h-20 w-full bg-gray-50 rounded-2xl animate-pulse"
+                />
+              ))}
+            </div>
           </motion.div>
         ) : (
-          <motion.div 
+          <motion.div
             key="content"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -140,15 +146,17 @@ const Profile: React.FC = () => {
                 <div className="absolute top-0 right-0 p-8 opacity-10">
                   <Sparkles className="w-24 h-24 text-green-500" />
                 </div>
-                
-                <motion.div 
+
+                <motion.div
                   initial={{ scale: 0.8, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}
                   whileHover={{ scale: 1.05 }}
                   className="relative inline-block mb-8"
                 >
                   <div className="w-36 h-36 rounded-[2.5rem] bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center shadow-2xl shadow-green-500/30 transform -rotate-3 hover:rotate-0 transition-transform duration-500">
-                    <span className="text-5xl font-black text-white  tracking-tighter uppercase">{initials}</span>
+                    <span className="text-5xl font-black text-white  tracking-tighter uppercase">
+                      {initials}
+                    </span>
                   </div>
                   <div className="absolute -bottom-2 -right-2 w-10 h-10 bg-white rounded-2xl flex items-center justify-center shadow-xl border-4 border-gray-50">
                     <ShieldCheck className="w-5 h-5 text-green-500" />
@@ -161,7 +169,7 @@ const Profile: React.FC = () => {
                 <p className="text-gray-400 font-bold uppercase  tracking-widest text-[10px] mb-6">
                   {userProfile.email || "premium@pickitpickeat.com"}
                 </p>
-                
+
                 <div className="flex items-center justify-center gap-6">
                   <div className="px-6 py-2 bg-green-500/10 rounded-full border border-green-500/20 text-green-600 font-black  text-xs uppercase tracking-widest">
                     Verified Global Member
@@ -172,31 +180,35 @@ const Profile: React.FC = () => {
 
             {/* Menu Sections */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
-               {menuItems.map((item, index) => (
-                 <motion.div
-                   key={index}
-                   initial={{ opacity: 0, x: index % 2 === 0 ? -20 : 20 }}
-                   animate={{ opacity: 1, x: 0 }}
-                   transition={{ delay: index * 0.1 }}
-                 >
-                   <Link to={item.secs} className="block group">
-                     <div className="bg-white p-6 rounded-[2rem] border border-gray-50 hover:border-green-500/30 shadow-xl hover:shadow-2xl transition-all h-full flex items-center gap-6 relative overflow-hidden">
-                       <div className="w-16 h-16 bg-gray-50 rounded-2xl flex items-center justify-center text-green-600 shadow-inner group-hover:scale-110 group-hover:bg-green-600 group-hover:text-white transition-all duration-500">
-                         {item.icon}
-                       </div>
-                       <div>
-                         <h3 className="text-lg font-black  tracking-tighter uppercase text-gray-800 leading-none mb-1">{item.label}</h3>
-                         <p className="text-[10px] text-gray-400 font-bold uppercase  tracking-widest leading-tight">{item.description}</p>
-                       </div>
-                       <ChevronRight className="absolute right-6 w-5 h-5 text-gray-300 group-hover:text-green-500 group-hover:translate-x-2 transition-all" />
-                     </div>
-                   </Link>
-                 </motion.div>
-               ))}
+              {menuItems.map((item, index) => (
+                <motion.div
+                  key={index}
+                  initial={{ opacity: 0, x: index % 2 === 0 ? -20 : 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: index * 0.1 }}
+                >
+                  <Link to={item.secs} className="block group">
+                    <div className="bg-white p-6 rounded-[2rem] border border-gray-50 hover:border-green-500/30 shadow-xl hover:shadow-2xl transition-all h-full flex items-center gap-6 relative overflow-hidden">
+                      <div className="w-16 h-16 bg-gray-50 rounded-2xl flex items-center justify-center text-green-600 shadow-inner group-hover:scale-110 group-hover:bg-green-600 group-hover:text-white transition-all duration-500">
+                        {item.icon}
+                      </div>
+                      <div>
+                        <h3 className="text-lg font-black  tracking-tighter uppercase text-gray-800 leading-none mb-1">
+                          {item.label}
+                        </h3>
+                        <p className="text-[10px] text-gray-400 font-bold uppercase  tracking-widest leading-tight">
+                          {item.description}
+                        </p>
+                      </div>
+                      <ChevronRight className="absolute right-6 w-5 h-5 text-gray-300 group-hover:text-green-500 group-hover:translate-x-2 transition-all" />
+                    </div>
+                  </Link>
+                </motion.div>
+              ))}
             </div>
 
             {/* Logout Section */}
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.8 }}
