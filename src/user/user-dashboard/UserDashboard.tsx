@@ -256,7 +256,7 @@ export default function UserDashboard() {
                 <motion.div
                   initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="bg-gradient-to-r from-green-500 to-emerald-600 rounded-2xl p-3.5 flex items-center justify-between"
+                  className="bg-gradient-to-r from-green-500 to-emerald-600 rounded-2xl p-3.5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3"
                 >
                   <div className="flex items-center gap-3">
                     <div className="w-9 h-9 bg-white/20 rounded-xl flex items-center justify-center flex-shrink-0">
@@ -264,14 +264,14 @@ export default function UserDashboard() {
                     </div>
                     <div>
                       <p className="font-black text-sm text-white tracking-tight">
-                        {offers[0].discount}% OFF Today!
+                        {offers[0]?.discount || 15}% OFF Today!
                       </p>
-                      <p className="text-white/75 text-xs">{offers[0].name}</p>
+                      <p className="text-white/75 text-xs">{offers[0]?.name}</p>
                     </div>
                   </div>
                   <button
                     onClick={() => navigate("/market")}
-                    className="bg-white text-green-600 font-black text-xs px-3.5 py-2 rounded-xl hover:bg-green-50 transition-colors flex-shrink-0"
+                    className="bg-white text-green-600 font-black text-xs px-3.5 py-2 rounded-xl hover:bg-green-50 transition-colors flex-shrink-0 whitespace-nowrap"
                   >
                     Order Now
                   </button>
@@ -284,7 +284,7 @@ export default function UserDashboard() {
               <motion.div
                 initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="rounded-3xl overflow-hidden shadow-xl border border-gray-100"
+                className="rounded-3xl overflow-hidden shadow-xl border border-gray-100 h-56 sm:h-80 lg:h-[42vh]"
               >
                 <HeroFoodCarousel />
               </motion.div>
@@ -413,7 +413,7 @@ export default function UserDashboard() {
                                   ₦{food.price.toLocaleString()}
                                 </p>
                               </div>
-                              {food.discount > 0 && (
+                              {food.discount && food.discount > 0 && (
                                 <div className="absolute top-2 right-2 bg-green-500 text-white text-[10px] font-black px-2 py-0.5 rounded-lg">
                                   -{food.discount}%
                                 </div>
