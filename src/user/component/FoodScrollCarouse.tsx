@@ -6,6 +6,34 @@ import {
   type MenuItem,
 } from "../../services/backendAuthService";
 
+const BACKEND_BASE_URL = "https://pickeatpickitbe.onrender.com";
+
+const FOOD_FALLBACKS = [
+  "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=500&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?w=500&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=500&auto=format&fit=crop",
+];
+
+const isValidUrl = (url: string) => {
+  if (!url) return false;
+  return (
+    url.startsWith("http://") ||
+    url.startsWith("https://") ||
+    url.startsWith("data:")
+  );
+};
+
+const constructImageUrl = (url: string, fallbackIndex: number = 0): string => {
+  if (!url) return FOOD_FALLBACKS[fallbackIndex % FOOD_FALLBACKS.length];
+  if (isValidUrl(url)) return url;
+  // If it's a relative path, construct the full URL
+  if (url.startsWith("/")) {
+    return `${BACKEND_BASE_URL}${url}`;
+  }
+  // Otherwise, assume it's missing the leading slash
+  return `${BACKEND_BASE_URL}/${url}`;
+};
+
 export default function FoodScrollCarousel() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [showLeftArrow, setShowLeftArrow] = useState(false);
@@ -103,15 +131,21 @@ export default function FoodScrollCarousel() {
               >
                 <div className="bg-white rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:scale-105 h-full flex flex-col">
                   <div className="relative overflow-hidden h-48 bg-gray-200 flex items-center justify-center">
-                    {item.image_url?.startsWith("http") ? (
-                      <img
-                        src={item.image_url}
-                        alt={item.name}
-                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                      />
-                    ) : (
-                      <span className="text-6xl">🥘</span>
-                    )}
+                    <img
+                      src={constructImageUrl(
+                        item.image_url,
+                        Math.random() * FOOD_FALLBACKS.length,
+                      )}
+                      alt={item.name}
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                      onError={(e: React.SyntheticEvent<HTMLImageElement>) => {
+                        console.error("Failed to load image:", item.image_url);
+                        e.currentTarget.src =
+                          FOOD_FALLBACKS[
+                            Math.floor(Math.random() * FOOD_FALLBACKS.length)
+                          ];
+                      }}
+                    />
 
                     {item.discount > 0 && (
                       <div className="absolute top-4 right-4 bg-red-500 text-white px-3 py-1 rounded-full font-bold text-sm shadow-lg">
@@ -172,7 +206,7 @@ export default function FoodScrollCarousel() {
                       </div>
                     </div>
 
-                    <Link to="/market" className="w-full">
+                    <Link to={`/market?item=${item.id}`} className="w-full">
                       <button className="w-full bg-gradient-to-r from-green-600 to-emerald-600 text-white font-bold py-3 rounded-lg transition-all hover:shadow-lg active:scale-95">
                         View Details
                       </button>

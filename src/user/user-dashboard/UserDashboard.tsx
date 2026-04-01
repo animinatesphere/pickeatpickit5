@@ -41,11 +41,32 @@ const FOOD_FALLBACKS = [
   "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=500&auto=format&fit=crop",
 ];
 
-const isValidUrl = (url: string) =>
-  url?.startsWith("http://") || url?.startsWith("https://");
+const BACKEND_BASE_URL = "https://pickeatpickitbe.onrender.com";
 
-const getFoodImage = (url: string, index: number) =>
-  isValidUrl(url) ? url : FOOD_FALLBACKS[index % FOOD_FALLBACKS.length];
+const isValidUrl = (url: string) => {
+  if (!url) return false;
+  return (
+    url.startsWith("http://") ||
+    url.startsWith("https://") ||
+    url.startsWith("data:")
+  );
+};
+
+const constructImageUrl = (url: string): string => {
+  if (!url) return FOOD_FALLBACKS[0];
+  if (isValidUrl(url)) return url;
+  // If it's a relative path, construct the full URL
+  if (url.startsWith("/")) {
+    return `${BACKEND_BASE_URL}${url}`;
+  }
+  // Otherwise, assume it's missing the leading slash
+  return `${BACKEND_BASE_URL}/${url}`;
+};
+
+const getFoodImage = (url: string, index: number) => {
+  const imageUrl = constructImageUrl(url);
+  return imageUrl || FOOD_FALLBACKS[index % FOOD_FALLBACKS.length];
+};
 
 export default function UserDashboard() {
   const navigate = useNavigate();
@@ -97,7 +118,15 @@ export default function UserDashboard() {
           }
         }
         try {
-          setFoods(await backendAuthService.getMenuItems(10));
+          const foodsData = await backendAuthService.getMenuItems(10);
+          console.log("Featured Foods API Response:", foodsData);
+          console.log(
+            "First food image_url:",
+            foodsData[0]?.image_url,
+            "Name:",
+            foodsData[0]?.name,
+          );
+          setFoods(foodsData);
         } catch {
           /* silent */
         }
@@ -107,7 +136,15 @@ export default function UserDashboard() {
           /* silent */
         }
         try {
-          setOffers(await backendAuthService.getOffers(4));
+          const offersData = await backendAuthService.getOffers(4);
+          console.log("Special Offers API Response:", offersData);
+          console.log(
+            "First offer image_url:",
+            offersData[0]?.image_url,
+            "Name:",
+            offersData[0]?.name,
+          );
+          setOffers(offersData);
         } catch {
           /* silent */
         }
@@ -179,7 +216,7 @@ export default function UserDashboard() {
               </div>
             </div>
             <div className="px-4 sm:px-6 py-6 max-w-7xl mx-auto w-full space-y-5">
-              <div className="w-full h-[42vh] rounded-3xl bg-gray-100 animate-pulse" />
+              <div className="w-full h-72 sm:h-96 md:h-[60vh] lg:h-[90vh] rounded-3xl bg-gray-100 animate-pulse" />
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 {[1, 2, 3, 4].map((i) => (
                   <div
@@ -284,7 +321,7 @@ export default function UserDashboard() {
               <motion.div
                 initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="rounded-3xl overflow-hidden shadow-xl border border-gray-100 h-56 sm:h-80 lg:h-[42vh]"
+                className="rounded-3xl overflow-hidden shadow-xl border border-gray-100 h-72 sm:h-96 md:h-[60vh] lg:h-[90vh] xl:h-[120vh] 2xl:h-[140vh]"
               >
                 <HeroFoodCarousel />
               </motion.div>
@@ -402,6 +439,10 @@ export default function UserDashboard() {
                                 alt={food.name}
                                 className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                                 onError={(e) => {
+                                  console.error(
+                                    "Failed to load food image:",
+                                    food.image_url,
+                                  );
                                   (e.target as HTMLImageElement).src =
                                     FOOD_FALLBACKS[
                                       index % FOOD_FALLBACKS.length
@@ -476,13 +517,17 @@ export default function UserDashboard() {
                         whileHover={{ scale: 1.015 }}
                         transition={{ duration: 0.2 }}
                         className="relative h-48 rounded-2xl overflow-hidden cursor-pointer border border-gray-100 group shadow-md"
-                        onClick={() => navigate("/market")}
+                        onClick={() => navigate(`/market?item=${offer.id}`)}
                       >
                         <img
                           src={getFoodImage(offer.image_url, index)}
                           className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                           alt={offer.name}
                           onError={(e) => {
+                            console.error(
+                              "Failed to load offer image:",
+                              offer.image_url,
+                            );
                             (e.target as HTMLImageElement).src =
                               FOOD_FALLBACKS[index % FOOD_FALLBACKS.length];
                           }}
@@ -549,9 +594,31 @@ export default function UserDashboard() {
                           <div className="w-12 h-12 rounded-2xl bg-gray-50 border border-gray-100 flex items-center justify-center overflow-hidden flex-shrink-0">
                             {vendor.logo_url && isValidUrl(vendor.logo_url) ? (
                               <img
-                                src={vendor.logo_url}
+                                src={constructImageUrl(vendor.logo_url)}
                                 className="w-full h-full object-cover"
                                 alt="logo"
+                                onError={(e) => {
+                                  console.error(
+                                    "Failed to load vendor logo:",
+                                    vendor.logo_url,
+                                  );
+                                  (e.target as HTMLImageElement).style.display =
+                                    "none";
+                                }}
+                              />
+                            ) : vendor.logo_url ? (
+                              <img
+                                src={constructImageUrl(vendor.logo_url)}
+                                className="w-full h-full object-cover"
+                                alt="logo"
+                                onError={(e) => {
+                                  console.error(
+                                    "Failed to load vendor logo:",
+                                    vendor.logo_url,
+                                  );
+                                  (e.target as HTMLImageElement).style.display =
+                                    "none";
+                                }}
                               />
                             ) : (
                               <span className="text-xl">🏪</span>

@@ -94,6 +94,12 @@ export default function Market() {
         console.log("Fetching menu items from Market...");
         const data = await backendAuthService.getMenuItems(100);
         console.log("Menu items received:", data);
+        console.log(
+          "First item image_url:",
+          data[0]?.image_url,
+          "Name:",
+          data[0]?.name,
+        );
 
         if (!data || data.length === 0) {
           console.warn("No menu items returned from API.");
@@ -343,9 +349,17 @@ export default function Market() {
           >
             <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/40 to-transparent z-10" />
             <img
-              src="https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=1600&q=80"
+              src={
+                items[0]?.image_url ||
+                "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=1600&q=80"
+              }
               className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
               alt="Hero"
+              onError={(e: React.SyntheticEvent<HTMLImageElement>) => {
+                // Fallback if image fails to load
+                e.currentTarget.src =
+                  "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=1600&q=80";
+              }}
             />
             <div className="absolute inset-0 z-20 flex flex-col justify-center px-12">
               <div className="flex items-center gap-3 text-green-400 font-bold uppercase  tracking-widest text-xs mb-4">
