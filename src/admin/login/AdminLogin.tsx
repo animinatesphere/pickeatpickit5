@@ -42,6 +42,9 @@ export default function AdminLogin() {
 
         // Store token
         localStorage.setItem("authToken", token);
+        if (response.data.refresh_token) {
+          localStorage.setItem("refreshToken", response.data.refresh_token);
+        }
         localStorage.setItem(
           "userData",
           JSON.stringify({

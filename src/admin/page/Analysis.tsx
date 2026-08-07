@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { useState, useEffect, useCallback } from "react";
 import {
   BarChart,
   Bar,
@@ -35,7 +36,7 @@ const Analysis = () => {
   const [popularItems, setPopularItems] = useState<any[]>([]);
   const [revenue, setRevenue] = useState(0);
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     setLoading(true);
     try {
       const [revRes, usersRes, itemsRes, totalsRes] = await Promise.all([
@@ -46,53 +47,42 @@ const Analysis = () => {
       ]);
 
       if (!revRes.error && revRes.data) {
-        // Group by day for the chart
-        const grouped: Record<string, number> = {};
-        const hours: Record<number, number> = {};
+        const points = revRes.data.data_points || [];
+        setChartData(points.map((point: any) => ({
+          day: point.label,
+          value: Number(point.revenue || 0),
+          count: Number(point.count || 0),
+        })));
 
-        revRes.data.forEach((o: any) => {
-          const date = new Date(o.created_at);
-          const day = date.getDate().toString();
-          grouped[day] = (grouped[day] || 0) + (o.total_amount || 0);
-
-          const hour = date.getHours();
-          hours[hour] = (hours[hour] || 0) + 1;
-        });
-        
-        const formattedChart = Object.entries(grouped).map(([day, value]) => ({
-          day,
-          value
-        })).sort((a, b) => parseInt(a.day) - parseInt(b.day));
-        
-        setChartData(formattedChart);
-
-        // Calculate peak hour
-        const sortedHours = Object.entries(hours).sort((a, b) => b[1] - a[1]);
-        if (sortedHours.length > 0) {
-          const topHour = parseInt(sortedHours[0][0]);
+        if (activeTab === "D" && points.length > 0) {
+          const topHour = Number([...points].sort((a: any, b: any) => b.count - a.count)[0].label);
           const endHour = (topHour + 1) % 24;
           const formatHour = (h: number) => h === 0 ? "12AM" : h < 12 ? `${h}AM` : h === 12 ? "12PM" : `${h - 12}PM`;
           setPeakHours(`${formatHour(topHour)} - ${formatHour(endHour)}`);
         }
       }
 
-      setTopUsers(usersRes.data || []);
+      setTopUsers((usersRes.data || []).map((user: any) => ({
+        ...user,
+        name: `${user.firstname || ""} ${user.lastname || ""}`.trim() || user.email,
+        orders: user.order_count,
+      })));
       setPopularItems(itemsRes.data || []);
-      setRevenue(totalsRes.totalEarnings);
+      setRevenue(Number(totalsRes.platform_revenue || 0));
       
       if (itemsRes.data && itemsRes.data.length > 0) {
         setTopCategory((itemsRes.data[0] as any).category || "General");
       }
-    } catch (err) {
+    } catch {
       // Failed to fetch analytics
     } finally {
       setLoading(false);
     }
-  };
+  }, [activeTab]);
 
   useEffect(() => {
     fetchData();
-  }, [activeTab]);
+  }, [fetchData]);
 
   if (loading) {
     return (

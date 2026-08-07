@@ -55,7 +55,7 @@ const fetchOrderDetail = (orderId: string) =>
   api.get(`/admin/orders/${orderId}`);
 
 const updateOrderStatus = (orderId: string, status: string) =>
-  api.patch(`/admin/orders/${orderId}/status`, null, { params: { status } });
+  api.patch(`/orders/${orderId}`, { status });
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const capitalise = (s: string) =>

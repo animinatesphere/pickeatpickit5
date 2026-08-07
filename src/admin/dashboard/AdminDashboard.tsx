@@ -1,575 +1,185 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useState, useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
+  BarChart3,
+  CheckSquare,
+  ChevronRight,
+  CircleDollarSign,
   LayoutDashboard,
-  ShoppingCart,
-  Users,
-  DollarSign,
-  // BarChart3,
-  FileText,
-  Folder,
-  HelpCircle,
-  X,
+  LogOut,
   Menu,
-  Bell,
-  CheckCircle,
-  Clock,
-  Loader2,
+  ReceiptText,
+  Settings2,
+  ShieldCheck,
+  ShoppingBag,
+  Store,
+  Truck,
+  Users,
+  X,
 } from "lucide-react";
 import {
-  LineChart,
+  CartesianGrid,
   Line,
+  LineChart,
+  ResponsiveContainer,
+  Tooltip,
   XAxis,
   YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
 } from "recharts";
-import UserManagement from "../page/UserManagement";
-import Analysis from "../page/Analysis";
-import Transaction from "../page/Transaction";
-import Content from "../page/Content";
-import OrderManagement from "../page/OrderManagent";
-import Restrict from "../page/Restrict";
-import Help from "../page/Help";
 import api from "../../services/api";
+import OrderManagement from "../page/OrderManagent";
+import UserManagement from "../page/UserManagement";
+import Transaction from "../page/Transaction";
+import Analysis from "../page/Analysis";
+import Approvals from "../page/Approvals";
+import Partners from "../page/Partners";
+import AdminAccounts from "../page/AdminAccounts";
+import SystemManagement from "../page/SystemManagement";
 
-type MenuItem = { id: string; label: string; icon: React.ReactNode };
+type Section =
+  | "overview"
+  | "approvals"
+  | "orders"
+  | "customers"
+  | "vendors"
+  | "riders"
+  | "finance"
+  | "analytics"
+  | "system"
+  | "admins";
 
-// ── API calls using backend endpoints ────────────────────────────────────────
-const fetchAdminStats = () => api.get("/admin/stats");
-const fetchRevenue = (period: string) =>
-  api.get("/admin/analytics/revenue", { params: { period } });
+type NavItem = { id: Section; label: string; icon: React.ReactNode };
+type RevenuePoint = { label: string; revenue: number };
 
-// ── Dashboard ─────────────────────────────────────────────────────────────────
-const AdminDashboard: React.FC = () => {
-  const [isOpen, setIsOpen] = useState(true);
-  const [activeMenu, setActiveMenu] = useState("dashboard");
-  const [stats, setStats] = useState<any>(null);
-  const [chartData, setChartData] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [period, setPeriod] = useState("M");
+const navItems: NavItem[] = [
+  { id: "overview", label: "Overview", icon: <LayoutDashboard size={19} /> },
+  { id: "approvals", label: "Approvals", icon: <CheckSquare size={19} /> },
+  { id: "orders", label: "Orders", icon: <ShoppingBag size={19} /> },
+  { id: "customers", label: "Customers", icon: <Users size={19} /> },
+  { id: "vendors", label: "Vendors", icon: <Store size={19} /> },
+  { id: "riders", label: "Riders", icon: <Truck size={19} /> },
+  { id: "finance", label: "Finance", icon: <CircleDollarSign size={19} /> },
+  { id: "analytics", label: "Analytics", icon: <BarChart3 size={19} /> },
+  { id: "system", label: "System", icon: <Settings2 size={19} /> },
+  { id: "admins", label: "Admin accounts", icon: <ShieldCheck size={19} /> },
+];
 
-  const loadStats = async (p = period) => {
-    setLoading(true);
-    try {
-      const [statsRes, revRes] = await Promise.allSettled([
-        fetchAdminStats(),
-        fetchRevenue(p),
-      ]);
-
-      // ── Stats ──────────────────────────────────────────────────────────────
-      if (statsRes.status === "fulfilled") {
-        setStats(statsRes.value.data);
-      }
-
-      // ── Revenue chart ──────────────────────────────────────────────────────
-      if (revRes.status === "fulfilled" && revRes.value.data) {
-        const raw: any[] = Array.isArray(revRes.value.data)
-          ? revRes.value.data
-          : revRes.value.data.data || [];
-
-        const grouped: Record<string, number> = {};
-        raw.forEach((o: any) => {
-          const key =
-            p === "D"
-              ? new Date(o.created_at).toLocaleTimeString([], {
-                  hour: "2-digit",
-                })
-              : p === "Y"
-                ? new Date(o.created_at).toLocaleString("default", {
-                    month: "short",
-                  })
-                : new Date(o.created_at).getDate().toString().padStart(2, "0");
-          grouped[key] =
-            (grouped[key] || 0) +
-            (Number(o.amount) || Number(o.total_amount) || 0);
-        });
-
-        const formatted = Object.entries(grouped)
-          .map(([day, value]) => ({ day, value }))
-          .sort((a, b) => parseInt(a.day) - parseInt(b.day));
-        setChartData(formatted);
-      }
-    } catch (e) {
-      console.error("Failed to load admin stats:", e);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    loadStats();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+export default function AdminDashboard() {
+  const navigate = useNavigate();
+  const [section, setSection] = useState<Section>("overview");
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const user = useMemo(() => {
+    try { return JSON.parse(localStorage.getItem("userData") || "{}"); } catch { return {}; }
   }, []);
 
-  const handlePeriodChange = (p: string) => {
-    setPeriod(p);
-    loadStats(p);
+  const logout = () => {
+    localStorage.removeItem("authToken");
+    localStorage.removeItem("userData");
+    localStorage.removeItem("refreshToken");
+    navigate("/admin-login", { replace: true });
   };
 
-  // ── Menu items ───────────────────────────────────────────────────────────────
-  const menuItems: MenuItem[] = [
-    {
-      id: "dashboard",
-      label: "Dashboard",
-      icon: <LayoutDashboard size={20} />,
-    },
-    {
-      id: "orders",
-      label: "Order management",
-      icon: <ShoppingCart size={20} />,
-    },
-    { id: "users", label: "Users management", icon: <Users size={20} /> },
-    {
-      id: "earnings",
-      label: "Earnings & Transaction",
-      icon: <DollarSign size={20} />,
-    },
-    // {
-    //   id: "reports",
-    //   label: "Reports & Analytics",
-    //   icon: <BarChart3 size={20} />,
-    // },
-    { id: "pages", label: "Pages & Restriction", icon: <FileText size={20} /> },
-    { id: "content", label: "Content Management", icon: <Folder size={20} /> },
-    { id: "help", label: "Help & Support", icon: <HelpCircle size={20} /> },
-  ];
-
-  // ── Dashboard content ────────────────────────────────────────────────────────
-  const DashboardContent: React.FC = () => {
-    if (loading)
-      return (
-        <div className="h-96 flex items-center justify-center">
-          <Loader2 className="w-12 h-12 text-green-600 animate-spin" />
-        </div>
-      );
-
-    return (
-      <div className="space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-gray-800 tracking-tighter uppercase">
-            Dashboard
-          </h1>
-          <Bell
-            className="text-gray-600 cursor-pointer hover:text-gray-800 transition-colors"
-            size={24}
-          />
-        </div>
-
-        {/* Orders progress ring */}
-        <div className="bg-white rounded-[2rem] shadow-xl p-8 border border-transparent">
-          <div className="flex items-center justify-between mb-8">
-            <h2 className="text-green-600 font-black tracking-tighter uppercase">
-              Today's Progress
-            </h2>
-            <span className="text-gray-400 text-xs font-bold uppercase tracking-widest">
-              {new Date().toLocaleDateString("en-GB", {
-                day: "2-digit",
-                month: "short",
-                year: "numeric",
-              })}
-            </span>
-          </div>
-          <div className="grid md:grid-cols-2 gap-12">
-            {/* Ring */}
-            <div className="flex items-center justify-center">
-              <div className="relative w-48 h-48">
-                <svg className="w-full h-full transform -rotate-90">
-                  <circle
-                    cx="96"
-                    cy="96"
-                    r="80"
-                    stroke="currentColor"
-                    strokeWidth="16"
-                    fill="none"
-                    className="text-gray-100"
-                  />
-                  <circle
-                    cx="96"
-                    cy="96"
-                    r="80"
-                    stroke="currentColor"
-                    strokeWidth="16"
-                    fill="none"
-                    strokeDasharray="502.4"
-                    strokeDashoffset={
-                      502.4 -
-                      502.4 *
-                        (Math.min(
-                          stats?.completed_orders ||
-                            stats?.completedOrders ||
-                            0,
-                          100,
-                        ) /
-                          100)
-                    }
-                    strokeLinecap="round"
-                    className="text-blue-600"
-                  />
-                </svg>
-                <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <span className="text-3xl font-black text-blue-600 tracking-tighter">
-                    {stats?.completed_orders || stats?.completedOrders || 0}
-                  </span>
-                  <span className="text-gray-400 text-[10px] font-bold uppercase tracking-widest">
-                    Completed
-                  </span>
-                </div>
-              </div>
-            </div>
-            {/* Stats list */}
-            <div className="space-y-5">
-              {[
-                {
-                  label: "Active Orders",
-                  value: stats?.active_orders || stats?.activeOrders || 0,
-                  color: "bg-blue-400",
-                },
-                {
-                  label: "Completed Orders",
-                  value: stats?.completed_orders || stats?.completedOrders || 0,
-                  color: "bg-blue-600",
-                },
-                {
-                  label: "Canceled Orders",
-                  value: stats?.canceled_orders || stats?.canceledOrders || 0,
-                  color: "bg-blue-200",
-                },
-              ].map((s) => (
-                <div
-                  key={s.label}
-                  className="flex items-center justify-between p-3 rounded-2xl hover:bg-gray-50 transition-all"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className={`w-3 h-3 ${s.color} rounded-full`} />
-                    <span className="text-gray-600 font-bold text-xs uppercase tracking-widest">
-                      {s.label}
-                    </span>
-                  </div>
-                  <span className="font-black text-gray-800">
-                    {s.value} Orders
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Today's earnings */}
-        <div className="bg-white rounded-[2rem] shadow-xl p-8 border border-transparent">
-          <span className="text-gray-400 text-[10px] font-bold uppercase tracking-widest mb-2 block">
-            Today's Earnings
-          </span>
-          <div className="flex items-center justify-between">
-            <h3 className="text-4xl font-black text-gray-800 tracking-tighter">
-              ₦{" "}
-              {(
-                stats?.today_earnings ||
-                stats?.todayEarnings ||
-                0
-              ).toLocaleString()}
-            </h3>
-            <div className="bg-green-100 p-2 rounded-xl">
-              <span className="text-green-600 text-lg font-black">↑</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Pending approvals */}
-        <div
-          onClick={() => setActiveMenu("users")}
-          className="bg-white rounded-[2rem] shadow-xl p-8 border border-transparent hover:border-green-500 group cursor-pointer transition-all"
-        >
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-6">
-              <div className="bg-gray-50 p-4 rounded-2xl shadow-inner group-hover:rotate-6 transition-transform">
-                <Clock className="text-gray-600" size={24} />
-              </div>
-              <div>
-                <h3 className="text-gray-400 text-[10px] font-bold uppercase tracking-widest mb-1">
-                  Pending Approvals
-                </h3>
-                <span className="text-4xl font-black text-green-600 tracking-tighter">
-                  {stats?.pending_approvals || stats?.pendingApprovals || 0}
-                </span>
-              </div>
-            </div>
-            <CheckCircle
-              size={24}
-              className="text-green-600 group-hover:translate-x-1 transition-transform"
-            />
-          </div>
-        </div>
-
-        {/* Revenue chart */}
-        <div className="bg-white rounded-[2.5rem] shadow-xl p-8 border border-transparent">
-          <div className="flex items-center justify-between mb-8">
-            <h3 className="text-xl font-black text-gray-800 tracking-tighter uppercase">
-              Revenue
-            </h3>
-            <div className="flex gap-2 bg-gray-50 p-1.5 rounded-2xl border border-gray-100">
-              {(["D", "W", "M", "Y"] as const).map((t) => (
-                <button
-                  key={t}
-                  onClick={() => handlePeriodChange(t)}
-                  className={`px-5 py-2 rounded-xl text-xs font-bold uppercase tracking-widest transition-all ${
-                    period === t
-                      ? "bg-green-600 text-white shadow-lg"
-                      : "text-gray-400 hover:text-gray-800"
-                  }`}
-                >
-                  {t}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em] mb-6">
-            {new Date().toLocaleString("default", { month: "long" })}{" "}
-            {new Date().getFullYear()}
-          </div>
-          {chartData.length === 0 ? (
-            <div className="h-40 flex items-center justify-center text-gray-300 text-sm font-bold uppercase tracking-widest">
-              No revenue data for this period
-            </div>
-          ) : (
-            <ResponsiveContainer width="100%" height={250}>
-              <LineChart data={chartData}>
-                <CartesianGrid
-                  strokeDasharray="3 3"
-                  stroke="#f0f0f0"
-                  vertical={false}
-                />
-                <XAxis
-                  dataKey="day"
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{ fill: "#9ca3af", fontSize: 10, fontWeight: 700 }}
-                />
-                <YAxis
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{ fill: "#9ca3af", fontSize: 10, fontWeight: 700 }}
-                  tickFormatter={(v) =>
-                    `₦${v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v}`
-                  }
-                />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: "rgba(255,255,255,0.95)",
-                    border: "none",
-                    borderRadius: "20px",
-                    boxShadow: "0 20px 50px rgba(0,0,0,0.1)",
-                    fontWeight: "bold",
-                  }}
-                  formatter={(v: any) => [
-                    `₦${Number(v).toLocaleString()}`,
-                    "Revenue",
-                  ]}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="value"
-                  stroke="#22C55E"
-                  strokeWidth={4}
-                  dot={{
-                    fill: "#22C55E",
-                    strokeWidth: 2,
-                    r: 4,
-                    stroke: "#fff",
-                  }}
-                  activeDot={{ r: 8, strokeWidth: 0 }}
-                  animationDuration={1500}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          )}
-        </div>
-
-        {/* System users */}
-        <div className="bg-white rounded-[2.5rem] shadow-xl p-8 border border-transparent">
-          <div className="flex items-center gap-2 mb-6">
-            <h3 className="text-xl font-black text-green-600 tracking-tighter uppercase">
-              System Users
-            </h3>
-            <HelpCircle className="text-gray-300" size={16} />
-          </div>
-          <div className="text-5xl font-black text-gray-800 tracking-tighter mb-4">
-            {stats?.user_counts?.total || stats?.userCounts?.total || 0}
-            <span className="text-sm font-bold text-gray-400 uppercase tracking-widest ml-2">
-              Total
-            </span>
-          </div>
-          <div className="w-full bg-gray-100 rounded-full h-4 overflow-hidden p-1 border border-gray-200 shadow-inner mb-8">
-            <div
-              className="bg-gradient-to-r from-green-500 to-green-600 h-full rounded-full transition-all duration-1000 shadow-[0_0_15px_rgba(34,197,94,0.3)]"
-              style={{ width: "100%" }}
-            />
-          </div>
-          <div className="grid grid-cols-3 gap-4">
-            {[
-              {
-                label: "Clients",
-                value:
-                  stats?.user_counts?.customers ||
-                  stats?.userCounts?.clients ||
-                  0,
-                color: "bg-green-600",
-              },
-              {
-                label: "Vendors",
-                value:
-                  stats?.user_counts?.vendors ||
-                  stats?.userCounts?.vendors ||
-                  0,
-                color: "bg-blue-600",
-              },
-              {
-                label: "Riders",
-                value:
-                  stats?.user_counts?.riders || stats?.userCounts?.riders || 0,
-                color: "bg-orange-600",
-              },
-            ].map((item) => (
-              <div
-                key={item.label}
-                className="flex flex-col gap-1 bg-gray-50 p-4 rounded-xl border border-gray-100"
-              >
-                <div className="flex items-center gap-2">
-                  <div className={`w-3 h-1 ${item.color} rounded-full`} />
-                  <span className="text-gray-600 text-[10px] font-bold uppercase tracking-widest">
-                    {item.label}
-                  </span>
-                </div>
-                <span className="text-xl font-black text-gray-800">
-                  {item.value}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    );
+  const select = (value: Section) => {
+    setSection(value);
+    setDrawerOpen(false);
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  // ── Routing ──────────────────────────────────────────────────────────────────
-  const renderContent = () => {
-    switch (activeMenu) {
-      case "dashboard":
-        return <DashboardContent />;
-      case "orders":
-        return <OrderManagement />;
-      case "users":
-        return <UserManagement />;
-      case "earnings":
-        return <Transaction />;
-      case "reports":
-        return <Analysis />;
-      case "pages":
-        return <Restrict />;
-      case "content":
-        return <Content />;
-      case "help":
-        return <Help />;
-      default:
-        return <DashboardContent />;
-    }
-  };
+  const content = {
+    overview: <Overview onNavigate={select} />,
+    approvals: <Approvals />,
+    orders: <OrderManagement />,
+    customers: <UserManagement />,
+    vendors: <Partners kind="vendor" />,
+    riders: <Partners kind="rider" />,
+    finance: <Transaction />,
+    analytics: <Analysis />,
+    system: <SystemManagement />,
+    admins: <AdminAccounts />,
+  }[section];
 
   return (
-    <div className="flex h-screen bg-gray-50 overflow-hidden">
-      {/* ── Sidebar ─────────────────────────────────────────────────────────── */}
-      <div
-        className={`${isOpen ? "w-64" : "w-24"} bg-white border-r border-gray-100 shadow-2xl transition-all duration-500 flex flex-col z-50`}
-      >
-        {/* Logo */}
-        <div className="h-20 flex items-center justify-between px-6 border-b border-gray-50">
-          {isOpen ? (
-            <>
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-green-600 rounded-xl flex items-center justify-center shadow-lg shadow-green-500/30">
-                  <span className="text-white font-black text-xl tracking-tighter">
-                    M
-                  </span>
-                </div>
-                <span className="font-black text-gray-800 tracking-tighter uppercase whitespace-nowrap">
-                  Dashboard
-                </span>
-              </div>
-              <button
-                onClick={() => setIsOpen(false)}
-                className="text-gray-400 hover:text-green-600 transition-all p-2 hover:bg-green-50 rounded-xl"
-              >
-                <X size={20} />
-              </button>
-            </>
-          ) : (
-            <button
-              onClick={() => setIsOpen(true)}
-              className="text-gray-400 hover:text-green-600 transition-all mx-auto p-3 hover:bg-green-50 rounded-xl"
-            >
-              <Menu size={24} />
-            </button>
-          )}
+    <div className="min-h-screen bg-slate-50 text-slate-900">
+      {drawerOpen && <button className="fixed inset-0 z-40 bg-slate-950/50 lg:hidden" onClick={() => setDrawerOpen(false)} aria-label="Close navigation overlay" />}
+
+      <aside className={`fixed inset-y-0 left-0 z-50 flex w-72 flex-col bg-slate-950 text-white shadow-2xl transition-transform duration-300 lg:translate-x-0 ${drawerOpen ? "translate-x-0" : "-translate-x-full"}`}>
+        <div className="flex h-20 items-center justify-between border-b border-white/10 px-5">
+          <div className="flex items-center gap-3"><div className="grid h-11 w-11 place-items-center rounded-2xl bg-green-500 font-black text-slate-950">PE</div><div><p className="font-black tracking-tight">PEPI Admin</p><p className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">Control centre</p></div></div>
+          <button onClick={() => setDrawerOpen(false)} className="rounded-xl p-2 text-slate-400 hover:bg-white/10 lg:hidden"><X size={20} /></button>
         </div>
 
-        {/* Nav items */}
-        <nav className="flex-1 overflow-y-auto py-8 px-3 space-y-2">
-          {menuItems.map((item) => (
-            <button
-              key={item.id}
-              onClick={() => setActiveMenu(item.id)}
-              className={`w-full flex items-center gap-4 px-4 py-4 rounded-2xl transition-all duration-300 group ${
-                activeMenu === item.id
-                  ? "bg-green-600 text-white shadow-xl shadow-green-500/30"
-                  : "text-gray-500 hover:bg-gray-50 hover:text-green-600"
-              }`}
-            >
-              <span
-                className={`flex-shrink-0 group-hover:scale-110 transition-transform ${activeMenu === item.id ? "rotate-3" : ""}`}
-              >
-                {item.icon}
-              </span>
-              {isOpen && (
-                <span className="text-xs font-black uppercase tracking-widest whitespace-nowrap overflow-hidden">
-                  {item.label}
-                </span>
-              )}
+        <nav className="flex-1 space-y-1 overflow-y-auto p-3">
+          {navItems.map((item) => (
+            <button key={item.id} onClick={() => select(item.id)} className={`flex w-full items-center gap-3 rounded-2xl px-4 py-3.5 text-left text-sm font-bold transition ${section === item.id ? "bg-green-500 text-slate-950 shadow-lg shadow-green-500/20" : "text-slate-300 hover:bg-white/10 hover:text-white"}`}>
+              {item.icon}<span className="flex-1">{item.label}</span>{section === item.id && <ChevronRight size={16} />}
             </button>
           ))}
         </nav>
 
-        {/* Footer */}
-        <div className="mt-auto px-3 py-6 border-t border-gray-50">
-          <div
-            className={`flex items-center gap-4 px-4 py-2 transition-all duration-300 ${!isOpen && "justify-center"}`}
-          >
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-green-500 to-green-600 flex items-center justify-center text-white font-black shadow-lg flex-shrink-0">
-              AD
-            </div>
-            {isOpen && (
-              <div className="flex flex-col">
-                <span className="text-xs font-black text-gray-800 uppercase tracking-tighter">
-                  PickEatPickit
-                </span>
-                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-                  Super Admin
-                </span>
-              </div>
-            )}
-          </div>
+        <div className="border-t border-white/10 p-4">
+          <div className="mb-3 flex items-center gap-3 px-2"><div className="grid h-10 w-10 place-items-center rounded-xl bg-white/10 text-xs font-black">{`${user.firstname?.[0] || "A"}${user.lastname?.[0] || "D"}`}</div><div className="min-w-0"><p className="truncate text-sm font-bold">{`${user.firstname || ""} ${user.lastname || ""}`.trim() || "Administrator"}</p><p className="truncate text-xs text-slate-400">{user.email}</p></div></div>
+          <button onClick={logout} className="flex w-full items-center justify-center gap-2 rounded-2xl border border-red-400/20 bg-red-500/10 px-4 py-3 text-xs font-black uppercase tracking-wide text-red-300 hover:bg-red-500 hover:text-white"><LogOut size={16} /> Log out</button>
         </div>
-      </div>
+      </aside>
 
-      {/* ── Main content ─────────────────────────────────────────────────────── */}
-      <div className="flex-1 overflow-y-auto">
-        <div className="max-w-7xl mx-auto p-4 md:p-6 lg:p-8">
-          {renderContent()}
-        </div>
+      <div className="lg:pl-72">
+        <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-slate-200/80 bg-white/90 px-4 backdrop-blur-xl sm:px-6 lg:px-8">
+          <div className="flex items-center gap-3"><button onClick={() => setDrawerOpen(true)} className="rounded-xl bg-slate-100 p-2.5 text-slate-700 lg:hidden" aria-label="Open navigation"><Menu size={20} /></button><div><p className="text-[10px] font-black uppercase tracking-[0.18em] text-green-600">PEPI</p><h1 className="text-sm font-black capitalize text-slate-900 sm:text-base">{navItems.find((item) => item.id === section)?.label}</h1></div></div>
+          <button onClick={logout} className="flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-xs font-black text-slate-600 hover:border-red-200 hover:bg-red-50 hover:text-red-600"><LogOut size={15} /><span className="hidden sm:inline">Log out</span></button>
+        </header>
+        <main className="mx-auto w-full max-w-[1500px] p-4 sm:p-6 lg:p-8">{content}</main>
       </div>
     </div>
   );
-};
+}
 
-export default AdminDashboard;
+function Overview({ onNavigate }: { onNavigate: (section: Section) => void }) {
+  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState<Record<string, number>>({});
+  const [balance, setBalance] = useState<Record<string, number>>({});
+  const [revenue, setRevenue] = useState<RevenuePoint[]>([]);
+  const [pending, setPending] = useState({ vendors: 0, riders: 0, payouts: 0 });
+
+  useEffect(() => {
+    const load = async () => {
+      const [statsResult, balanceResult, revenueResult, vendorsResult, ridersResult, payoutsResult] = await Promise.allSettled([
+        api.get("/admin/stats"), api.get("/admin/balance"), api.get("/admin/analytics/revenue", { params: { period: "M" } }), api.get("/admin/vendors/pending"), api.get("/admin/riders/pending"), api.get("/admin/payouts", { params: { status: "pending" } }),
+      ]);
+      if (statsResult.status === "fulfilled") setStats(statsResult.value.data);
+      if (balanceResult.status === "fulfilled") setBalance(balanceResult.value.data);
+      if (revenueResult.status === "fulfilled") setRevenue((revenueResult.value.data.data_points || []).map((point: { label: string; revenue: number | string }) => ({ label: point.label, revenue: Number(point.revenue) })));
+      setPending({
+        vendors: vendorsResult.status === "fulfilled" ? vendorsResult.value.data.length : 0,
+        riders: ridersResult.status === "fulfilled" ? ridersResult.value.data.length : 0,
+        payouts: payoutsResult.status === "fulfilled" ? payoutsResult.value.data.length : 0,
+      });
+      setLoading(false);
+    };
+    load();
+  }, []);
+
+  if (loading) return <div className="grid min-h-[60vh] place-items-center"><div className="h-10 w-10 animate-spin rounded-full border-4 border-green-600 border-t-transparent" /></div>;
+
+  const cards = [
+    ["Users", stats.users || 0, Users, "bg-blue-50 text-blue-700"],
+    ["Vendors", stats.vendors || 0, Store, "bg-violet-50 text-violet-700"],
+    ["Riders", stats.riders || 0, Truck, "bg-orange-50 text-orange-700"],
+    ["Orders", stats.orders || 0, ReceiptText, "bg-green-50 text-green-700"],
+  ] as const;
+
+  return (
+    <section className="space-y-6">
+      <div><p className="text-xs font-black uppercase tracking-[0.2em] text-green-600">Live platform data</p><h1 className="mt-1 text-2xl font-black tracking-tight text-slate-900 sm:text-3xl">Operations overview</h1><p className="mt-1 text-sm text-slate-500">Accounts, orders, approvals, and platform finances.</p></div>
+
+      <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">{cards.map(([label, value, Icon, tone]) => <article key={label} className="rounded-3xl border border-slate-100 bg-white p-4 shadow-sm sm:p-5"><div className={`mb-4 grid h-10 w-10 place-items-center rounded-2xl ${tone}`}><Icon size={20} /></div><p className="text-2xl font-black tracking-tight text-slate-900 sm:text-3xl">{Number(value).toLocaleString()}</p><p className="mt-1 text-xs font-bold uppercase tracking-wide text-slate-400">{label}</p></article>)}</div>
+
+      <div className="grid gap-4 lg:grid-cols-3">
+        <article className="rounded-3xl bg-slate-950 p-5 text-white lg:col-span-2 sm:p-6"><div className="flex items-start justify-between"><div><p className="text-xs font-black uppercase tracking-wide text-green-400">Platform revenue</p><p className="mt-2 text-3xl font-black">₦{Number(balance.platform_revenue || stats.total_revenue || 0).toLocaleString()}</p></div><CircleDollarSign className="text-green-400" size={28} /></div><div className="mt-6 h-52">{revenue.length ? <ResponsiveContainer width="100%" height="100%"><LineChart data={revenue}><CartesianGrid stroke="#334155" strokeDasharray="3 3" vertical={false} /><XAxis dataKey="label" stroke="#94a3b8" fontSize={10} /><YAxis stroke="#94a3b8" fontSize={10} tickFormatter={(value) => `${Number(value) / 1000}k`} /><Tooltip formatter={(value) => [`₦${Number(value).toLocaleString()}`, "Revenue"]} /><Line type="monotone" dataKey="revenue" stroke="#22c55e" strokeWidth={3} dot={false} /></LineChart></ResponsiveContainer> : <div className="grid h-full place-items-center text-sm text-slate-500">No completed-order revenue this month</div>}</div></article>
+
+        <article className="rounded-3xl border border-slate-100 bg-white p-5 shadow-sm"><p className="text-xs font-black uppercase tracking-wide text-slate-400">System balance</p><div className="mt-5 space-y-4">{[["Customer wallets", balance.total_customer_balance], ["Vendor wallets", balance.total_vendor_balance], ["Rider wallets", balance.total_rider_balance], ["Total liabilities", balance.total_liabilities]].map(([label, value]) => <div key={String(label)} className="flex items-center justify-between gap-3"><span className="text-sm text-slate-500">{label}</span><span className="font-black text-slate-900">₦{Number(value || 0).toLocaleString()}</span></div>)}</div><button onClick={() => onNavigate("finance")} className="mt-6 w-full rounded-2xl bg-slate-100 py-3 text-xs font-black uppercase text-slate-700">Open finance</button></article>
+      </div>
+
+      <button onClick={() => onNavigate("approvals")} className="flex w-full items-center gap-4 rounded-3xl border border-amber-200 bg-amber-50 p-5 text-left"><div className="rounded-2xl bg-amber-100 p-3 text-amber-700"><CheckSquare size={22} /></div><div className="min-w-0 flex-1"><p className="font-black text-amber-950">Pending approvals</p><p className="text-sm text-amber-700">{pending.vendors} vendors · {pending.riders} riders · {pending.payouts} payouts</p></div><ChevronRight className="text-amber-700" /></button>
+    </section>
+  );
+}

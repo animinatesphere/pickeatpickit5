@@ -39,8 +39,6 @@ type ViewType = "list" | "profile";
 
 // ── API helpers (all backend, no Supabase) ────────────────────────────────────
 const fetchAllUsers = () => api.get("/admin/users");
-const fetchPendingVendors = () => api.get("/admin/vendors/pending");
-const fetchPendingRiders = () => api.get("/admin/riders/pending");
 const approveVendor = (id: string, status: string) =>
   api.patch(`/admin/vendors/${id}/status`, null, { params: { status } });
 const approveRider = (id: string, status: string) =>
@@ -69,24 +67,12 @@ const UserManagement = () => {
   const fetchUsers = async () => {
     setLoading(true);
     try {
-      // Fetch all three in parallel
-      const [usersRes, vendorsRes, ridersRes] = await Promise.allSettled([
-        fetchAllUsers(),
-        fetchPendingVendors(),
-        fetchPendingRiders(),
-      ]);
+      const usersRes = await fetchAllUsers();
 
       // Main users list (customers)
-      const customers: any[] =
-        usersRes.status === "fulfilled" ? usersRes.value.data || [] : [];
-
-      // Pending vendors (supplement main list)
-      const pendingVendors: any[] =
-        vendorsRes.status === "fulfilled" ? vendorsRes.value.data || [] : [];
-
-      // Pending riders
-      const pendingRiders: any[] =
-        ridersRes.status === "fulfilled" ? ridersRes.value.data || [] : [];
+      const customers: any[] = (usersRes.data || []).filter(
+        (user: any) => (user.role || "customer") === "customer",
+      );
 
       // Format customers — backend shape: { id, email, firstname, lastname, phone, address, city, state, zip }
       const formattedCustomers: User[] = customers.map((u: any) => ({
@@ -110,62 +96,7 @@ const UserManagement = () => {
         status: u.is_verified ? "verified" : "unverified",
       }));
 
-      // Format vendors
-      const formattedVendors: User[] = pendingVendors.map((u: any) => ({
-        id: u.id,
-        name:
-          u.business_name ||
-          `${u.firstname || ""} ${u.lastname || ""}`.trim() ||
-          "Vendor",
-        type: "Vendor",
-        dateJoined: u.created_at
-          ? new Date(u.created_at).toLocaleDateString()
-          : "—",
-        isSuspended: false,
-        fullName:
-          u.full_name || `${u.firstname || ""} ${u.lastname || ""}`.trim(),
-        email: u.email || u.business_email || "—",
-        phone: u.phone || u.business_phone || "—",
-        address: u.business_address || "—",
-        zip: "",
-        city: u.lga || "",
-        state: u.state || "",
-        status: u.status || "pending",
-      }));
-
-      // Format riders
-      const formattedRiders: User[] = pendingRiders.map((u: any) => ({
-        id: u.id,
-        name: `${u.firstname || ""} ${u.lastname || ""}`.trim() || "Rider",
-        type: "Rider",
-        dateJoined: u.created_at
-          ? new Date(u.created_at).toLocaleDateString()
-          : "—",
-        isSuspended: false,
-        fullName: `${u.firstname || ""} ${u.lastname || ""}`.trim(),
-        email: u.email || "—",
-        phone: u.phone || "—",
-        address: "—",
-        zip: "",
-        city: "",
-        state: "",
-        status: u.status || "pending",
-      }));
-
-      // Merge — deduplicate by id
-      const seen = new Set<string>();
-      const merged: User[] = [];
-      for (const u of [
-        ...formattedCustomers,
-        ...formattedVendors,
-        ...formattedRiders,
-      ]) {
-        if (!seen.has(u.id)) {
-          seen.add(u.id);
-          merged.push(u);
-        }
-      }
-      setUsers(merged);
+      setUsers(formattedCustomers);
     } catch (err) {
       console.error("Failed to fetch users:", err);
       toast.error("Failed to load users");
@@ -199,7 +130,7 @@ const UserManagement = () => {
   const handleApproveRider = async (id: string) => {
     setActionLoading(true);
     try {
-      await approveRider(id, "active");
+      await approveRider(id, "accepted");
       toast.success("Rider approved successfully!", "Rider Approved");
       closeModal();
       fetchUsers();
@@ -214,7 +145,7 @@ const UserManagement = () => {
   const handleApproveVendor = async (id: string) => {
     setActionLoading(true);
     try {
-      await approveVendor(id, "active");
+      await approveVendor(id, "approved");
       toast.success("Vendor approved successfully!", "Vendor Approved");
       closeModal();
       fetchUsers();
@@ -231,13 +162,13 @@ const UserManagement = () => {
     setActionLoading(true);
     try {
       await deleteUser(selectedUser.id, selectedUser.type);
-      toast.success("User deactivated", "Done");
+      toast.success("User deleted", "Done");
       closeModal();
       setCurrentView("list");
       fetchUsers();
     } catch (err) {
       console.error(err);
-      toast.error("Failed to deactivate user");
+      toast.error("Failed to delete user");
     } finally {
       setActionLoading(false);
     }
@@ -381,7 +312,7 @@ const UserManagement = () => {
                           ? handleSaveField()
                           : setEditingField("name")
                       }
-                      className="text-green-600 text-xs font-bold ml-3 uppercase tracking-widest"
+                      className="hidden"
                     >
                       {editingField === "name" ? "Save" : "Edit"}
                     </button>
@@ -428,7 +359,7 @@ const UserManagement = () => {
                           ? handleSaveField()
                           : setEditingField("phone")
                       }
-                      className="text-green-600 text-xs font-bold ml-3 uppercase tracking-widest"
+                      className="hidden"
                     >
                       {editingField === "phone" ? "Save" : "Edit"}
                     </button>
@@ -469,7 +400,7 @@ const UserManagement = () => {
                       ? handleSaveField()
                       : setEditingField("address")
                   }
-                  className="text-green-600 text-xs font-bold mt-3 uppercase tracking-widest"
+                  className="hidden"
                 >
                   {editingField === "address" ? "Save Address" : "Edit Address"}
                 </button>
@@ -490,7 +421,7 @@ const UserManagement = () => {
                 onClick={() => setModalType("delete")}
                 className="w-full py-5 text-red-500 font-bold border-2 border-red-100 rounded-3xl hover:bg-red-50 transition-all uppercase tracking-widest text-xs"
               >
-                Deactivate Account
+                Delete Account
               </button>
             </div>
           </div>
@@ -525,7 +456,7 @@ const UserManagement = () => {
 
           {/* Tabs */}
           <div className="px-4 py-3 flex gap-3 overflow-x-auto bg-white border-b border-gray-100">
-            {(["all", "client", "vendor", "rider"] as const).map((tab) => (
+            {(["all", "client"] as const).map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
@@ -669,7 +600,7 @@ const UserManagement = () => {
                     onClick={() => setModalType("delete")}
                     className="w-full py-4 text-red-500 font-bold hover:bg-red-50 rounded-2xl transition-all uppercase tracking-widest text-xs"
                   >
-                    Deactivate Account
+                    Delete Account
                   </button>
                 </div>
               </div>
@@ -693,7 +624,7 @@ const UserManagement = () => {
                   Are you sure?
                 </h2>
                 <p className="text-gray-400 text-sm mb-8">
-                  This will deactivate{" "}
+                  This will permanently delete{" "}
                   <span className="font-bold text-gray-600">
                     {selectedUser.name}
                   </span>

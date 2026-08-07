@@ -1,19 +1,83 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 // src/services/api.ts
 // All calls go to the FastAPI backend. No Supabase.
-import axios from "axios";
+import axios, { type AxiosError } from "axios";
 
-const API_BASE_URL = "https://pickeatpickitbe.onrender.com/api";
+const API_BASE_URL = "http://localhost:8000/api"; // For local development
+// const API_BASE_URL = "https://pickeatpickitbe.onrender.com/api";
 
 const api = axios.create({
   baseURL: API_BASE_URL,
   headers: { "Content-Type": "application/json" },
 });
 
+type AdminRefreshResponse = {
+  access_token: string;
+  refresh_token: string;
+  user: {
+    id: string;
+    email: string;
+    role?: string;
+    firstname?: string | null;
+    lastname?: string | null;
+  };
+};
+
+type RetryableRequestConfig = NonNullable<AxiosError["config"]> & {
+  _retry?: boolean;
+};
+
+let adminSessionRefreshPromise: Promise<string | null> | null = null;
+
+export const clearAdminSession = () => {
+  localStorage.removeItem("authToken");
+  localStorage.removeItem("refreshToken");
+  localStorage.removeItem("userData");
+};
+
+export const confirmAdminSession = (): Promise<string | null> => {
+  if (adminSessionRefreshPromise) return adminSessionRefreshPromise;
+
+  const refreshToken = localStorage.getItem("refreshToken");
+  if (!refreshToken) return Promise.resolve(null);
+
+  adminSessionRefreshPromise = axios
+    .post<AdminRefreshResponse>(`${API_BASE_URL}/auth/refresh`, {
+      refresh_token: refreshToken,
+    })
+    .then(({ data }) => {
+      if (!data.access_token || data.user?.role !== "admin") {
+        clearAdminSession();
+        throw new Error("Refreshed session does not have admin access");
+      }
+      localStorage.setItem("authToken", data.access_token);
+      localStorage.setItem("refreshToken", data.refresh_token || refreshToken);
+      localStorage.setItem("userData", JSON.stringify(data.user));
+      return data.access_token;
+    })
+    .catch((error: unknown) => {
+      if (
+        axios.isAxiosError(error) &&
+        (error.response?.status === 401 || error.response?.status === 422)
+      ) {
+        clearAdminSession();
+      }
+      throw error;
+    })
+    .finally(() => {
+      adminSessionRefreshPromise = null;
+    });
+
+  return adminSessionRefreshPromise;
+};
+
 // ─── Auth interceptors ────────────────────────────────────────────────────────
 
 api.interceptors.request.use(
-  (config) => {
+  async (config) => {
+    if (adminSessionRefreshPromise && !config.url?.includes("/auth/refresh")) {
+      await adminSessionRefreshPromise;
+    }
     const token = localStorage.getItem("authToken");
     if (token) config.headers.Authorization = `Bearer ${token}`;
     return config;
@@ -23,10 +87,29 @@ api.interceptors.request.use(
 
 api.interceptors.response.use(
   (response) => response,
-  (error: { response?: { status?: number } }) => {
-    if (error.response?.status === 401) {
-      localStorage.removeItem("authToken");
-      localStorage.removeItem("userData");
+  async (error: unknown) => {
+    if (!axios.isAxiosError(error)) return Promise.reject(error);
+
+    const originalRequest = error.config as RetryableRequestConfig | undefined;
+    const isLoginRequest = originalRequest?.url?.includes("/auth/login");
+    if (error.response?.status === 401 && originalRequest && !originalRequest._retry && !isLoginRequest) {
+      originalRequest._retry = true;
+      try {
+        const token = await confirmAdminSession();
+        if (!token) throw new Error("No refresh token available");
+        originalRequest.headers.Authorization = `Bearer ${token}`;
+        return api(originalRequest);
+      } catch (refreshError) {
+        // Invalid refresh credentials clear storage inside confirmAdminSession.
+        // Keep a still-usable local session on temporary network/server failure.
+        if (!localStorage.getItem("authToken") || !localStorage.getItem("refreshToken")) {
+          clearAdminSession();
+          if (window.location.pathname.startsWith("/admin-dashboard")) {
+            window.location.assign("/admin-login");
+          }
+        }
+        return Promise.reject(refreshError);
+      }
     }
     return Promise.reject(error);
   },
@@ -78,7 +161,7 @@ export interface MessagePayload {
 // ─── Admin ────────────────────────────────────────────────────────────────────
 
 export const getAdminStats = async () => {
-  const res = await api.get("/admin/dashboard-stats");
+  const res = await api.get("/admin/stats");
   return res.data;
 };
 
@@ -87,10 +170,11 @@ export const getAllSystemUsers = async () => {
   return res.data;
 };
 
-export const getPendingVendors = async () => {
-  const res = await api.get("/admin/vendors/pending");
-  return res.data;
-};
+export const getPendingVendors = () => api.get("/admin/vendors/pending");
+export const getAdminVendorDetails = (vendorId: string) =>
+  api.get(`/admin/vendors/${vendorId}`);
+export const getAdminRiderDetails = (riderId: string) =>
+  api.get(`/admin/riders/${riderId}`);
 
 export const updateVendorStatus = async (vendorId: string, status: string) =>
   api.patch(`/admin/vendors/${vendorId}/status`, null, { params: { status } });
@@ -121,17 +205,17 @@ export const getAdminOrderDetails = async (orderId: string | number) => {
 };
 
 export const getRevenueAnalytics = async (period: string) => {
-  const res = await api.get("/admin/revenue", { params: { period } });
+  const res = await api.get("/admin/analytics/revenue", { params: { period } });
   return { data: res.data, error: null };
 };
 
 export const getTopUsers = async (limit = 5) => {
-  const res = await api.get("/admin/top-users", { params: { limit } });
+  const res = await api.get("/admin/analytics/top-users", { params: { limit } });
   return { data: res.data, error: null };
 };
 
 export const getPopularItems = async (limit = 3) => {
-  const res = await api.get("/admin/popular-items", { params: { limit } });
+  const res = await api.get("/admin/analytics/popular-items", { params: { limit } });
   return { data: res.data, error: null };
 };
 
@@ -154,17 +238,107 @@ export const updatePayoutStatus = async (
 };
 
 export const getPlatformTotals = async () => {
-  const res = await api.get("/admin/platform-totals");
-  return res.data as { totalEarnings: number; totalPendingPayouts: number };
+  const res = await api.get("/admin/balance");
+  return res.data;
 };
 
 export const deleteUserFromSystem = async (
   id: string | number,
-  type: string,
+  _type?: string,
 ) => {
-  const res = await api.delete(`/admin/users/${id}`, { params: { type } });
+  const res = await api.delete(`/admin/users/${id}`);
   return { error: res.status >= 400 ? new Error("Delete failed") : null };
 };
+
+export const getAdminAccounts = () => api.get("/admin/accounts");
+export const createAdminAccount = (payload: Record<string, unknown>) =>
+  api.post("/admin/accounts", payload);
+export const updateAdminAccount = (
+  id: string,
+  payload: Record<string, unknown>,
+) => api.put(`/admin/accounts/${id}`, payload);
+export const deleteAdminAccount = (id: string) =>
+  api.delete(`/admin/accounts/${id}`);
+
+export const getSystemBalance = () => api.get("/admin/balance");
+export const getPendingRiders = () => api.get("/admin/riders/pending");
+export const getPendingNameChanges = () =>
+  api.get("/admin/vendors/pending-name-changes");
+export const updateAdminRiderStatus = (riderId: string, status: string) =>
+  api.patch(`/admin/riders/${riderId}/status`, null, { params: { status } });
+export const approveVendorName = (vendorId: string) =>
+  api.patch(`/admin/vendors/${vendorId}/approve-name`);
+export const rejectVendorName = (vendorId: string) =>
+  api.patch(`/admin/vendors/${vendorId}/reject-name`);
+export const updateVendorLogo = (vendorId: string, logo_url: string) =>
+  api.patch(`/admin/vendors/${vendorId}/logo`, { logo_url });
+export const deleteVendorLogo = (vendorId: string) =>
+  api.delete(`/admin/vendors/${vendorId}/logo`);
+export const updateMenuItemImage = (menuItemId: string, image_url: string) =>
+  api.patch(`/admin/menu-items/${menuItemId}/image`, { image_url });
+export const deleteMenuItemImage = (menuItemId: string) =>
+  api.delete(`/admin/menu-items/${menuItemId}/image`);
+export const getAdminVendorMenuItems = (vendorId: string) =>
+  api.get(`/admin/vendors/${vendorId}/menu-items`);
+export const updateAdminMenuItem = (
+  menuItemId: string,
+  payload: Record<string, unknown>,
+) => api.put(`/admin/menu-items/${menuItemId}`, payload);
+export const deleteAdminMenuItem = (menuItemId: string) =>
+  api.delete(`/admin/menu-items/${menuItemId}`);
+export const uploadAdminVendorLogo = (vendorId: string, file: File) => {
+  const formData = new FormData();
+  formData.append("file", file);
+  return api.post(`/admin/vendors/${vendorId}/logo/upload`, formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+};
+export const uploadAdminMenuItemImage = (menuItemId: string, file: File) => {
+  const formData = new FormData();
+  formData.append("file", file);
+  return api.post(`/admin/menu-items/${menuItemId}/image/upload`, formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+};
+
+export const getSystemSettings = () => api.get("/system/settings");
+export const createSystemSetting = (payload: Record<string, unknown>) =>
+  api.post("/system/settings", payload);
+export const updateSystemSetting = (
+  key: string,
+  payload: Record<string, unknown>,
+) => api.patch(`/system/settings/${encodeURIComponent(key)}`, payload);
+export const deleteSystemSetting = (key: string) =>
+  api.delete(`/system/settings/${encodeURIComponent(key)}`);
+
+export const getPromoCodes = () => api.get("/system/promo-codes");
+export const createPromoCode = (payload: Record<string, unknown>) =>
+  api.post("/system/promo-codes", payload);
+export const updatePromoCode = (
+  id: string,
+  payload: Record<string, unknown>,
+) => api.patch(`/system/promo-codes/${id}`, payload);
+export const deletePromoCode = (id: string) =>
+  api.delete(`/system/promo-codes/${id}`);
+
+export const getDiscoveryFilters = () => api.get("/system/filters");
+export const createDiscoveryFilter = (payload: Record<string, unknown>) =>
+  api.post("/system/filters", payload);
+export const updateDiscoveryFilter = (
+  id: string,
+  payload: Record<string, unknown>,
+) => api.patch(`/system/filters/${id}`, payload);
+export const deleteDiscoveryFilter = (id: string) =>
+  api.delete(`/system/filters/${id}`);
+
+export const createRiderGame = (payload: Record<string, unknown>) =>
+  api.post("/games/", payload);
+export const getAdminRiderGames = () => api.get("/games/");
+export const updateRiderGame = (
+  id: string,
+  payload: Record<string, unknown>,
+) => api.patch(`/games/${id}`, payload);
+export const deleteRiderGame = (id: string) => api.delete(`/games/${id}`);
 
 // ─── Auth ─────────────────────────────────────────────────────────────────────
 

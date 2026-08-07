@@ -55,6 +55,7 @@ import RiderSupport from "./ride/pages/RiderSupport";
 import SettingsScreen from "./ride/pages/SettingsScreen";
 import AdminDashboard from "./admin/dashboard/AdminDashboard";
 import AdminLogin from "./admin/login/AdminLogin";
+import AdminRoute from "./admin/AdminRoute";
 import VendorChat from "./vendor/pages/VendorChat";
 import ForgotPassword from "./auth/ForgotPassword";
 import Device from "./user/component/Device";
@@ -159,7 +160,14 @@ const AppRoutes = () => {
 
       {/* Admin section */}
       <Route path="/admin-login" element={<AdminLogin />} />
-      <Route path="/admin-dashboard" element={<AdminDashboard />} />
+      <Route
+        path="/admin-dashboard"
+        element={
+          <AdminRoute>
+            <AdminDashboard />
+          </AdminRoute>
+        }
+      />
 
       {/* Footer Pages */}
       <Route path="/about" element={<About />} />

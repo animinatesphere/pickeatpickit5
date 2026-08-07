@@ -40,7 +40,7 @@ interface Payout {
 }
 
 type TabType = "transactions" | "payouts";
-type PayoutTab = "all" | "pending" | "approved" | "rejected";
+type PayoutTab = "all" | "pending" | "approved" | "rejected" | "completed";
 
 // ── API helpers ───────────────────────────────────────────────────────────────
 const fetchTransactions = (limit = 50) =>
@@ -52,7 +52,7 @@ const fetchPayouts = (status?: string) =>
   });
 
 const updatePayoutStatus = (payoutId: string, status: string) =>
-  api.patch(`/admin/payouts/${payoutId}/status`, null, { params: { status } });
+  api.patch(`/admin/payouts/${payoutId}`, { status });
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const statusColor = (s: string) => {
@@ -132,7 +132,7 @@ export default function Transaction() {
   // ── Update payout status ────────────────────────────────────────────────────
   const handleUpdatePayout = async (
     payoutId: string,
-    status: "approved" | "rejected",
+    status: "approved" | "rejected" | "completed",
   ) => {
     setActionLoading(payoutId);
     try {
@@ -276,7 +276,7 @@ export default function Transaction() {
         {/* ── Payout sub-tabs ─────────────────────────────────────────────────── */}
         {activeTab === "payouts" && (
           <div className="flex gap-2 overflow-x-auto no-scrollbar">
-            {(["all", "pending", "approved", "rejected"] as PayoutTab[]).map(
+            {(["all", "pending", "approved", "rejected", "completed"] as PayoutTab[]).map(
               (tab) => (
                 <button
                   key={tab}
@@ -511,6 +511,19 @@ export default function Transaction() {
                   Approve Payout
                 </button>
               </div>
+            ) : selectedPayout.status === "approved" ? (
+              <button
+                onClick={() => handleUpdatePayout(selectedPayout.id, "completed")}
+                disabled={actionLoading === selectedPayout.id}
+                className="flex w-full items-center justify-center gap-2 rounded-2xl bg-green-600 py-4 text-xs font-black uppercase tracking-widest text-white disabled:opacity-60"
+              >
+                {actionLoading === selectedPayout.id ? (
+                  <Loader2 size={14} className="animate-spin" />
+                ) : (
+                  <CheckCircle size={16} />
+                )}
+                Mark payment completed
+              </button>
             ) : (
               <div className="text-center">
                 <span
