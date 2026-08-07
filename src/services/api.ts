@@ -3,8 +3,8 @@
 // All calls go to the FastAPI backend. No Supabase.
 import axios, { type AxiosError } from "axios";
 
-// const API_BASE_URL = "http://localhost:8000/api"; // For local development
-const API_BASE_URL = "https://pickeatpickitbe.onrender.com/api";
+const API_BASE_URL = "http://localhost:8000/api"; // For local development
+// const API_BASE_URL = "https://pickeatpickitbe.onrender.com/api";
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -259,6 +259,15 @@ export const updateAdminAccount = (
 ) => api.put(`/admin/accounts/${id}`, payload);
 export const deleteAdminAccount = (id: string) =>
   api.delete(`/admin/accounts/${id}`);
+export const resetAdminAccountPassword = (id: string) =>
+  api.post(`/admin/accounts/${id}/reset-password`);
+export const getMyAdminAccount = () => api.get("/admin/account/me");
+export const updateMyAdminAccount = (payload: Record<string, unknown>) =>
+  api.patch("/admin/account/me", payload);
+export const changeMyAdminPassword = (payload: {
+  old_password: string;
+  new_password: string;
+}) => api.post("/admin/account/me/change-password", payload);
 
 export const getSystemBalance = () => api.get("/admin/balance");
 export const getPendingRiders = () => api.get("/admin/riders/pending");

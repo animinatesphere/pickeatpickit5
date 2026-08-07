@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
-import { Loader2, Pencil, Plus, ShieldCheck, Trash2, X } from "lucide-react";
+import { KeyRound, Loader2, Pencil, Plus, ShieldCheck, Trash2, X } from "lucide-react";
 import {
   createAdminAccount,
   deleteAdminAccount,
   getAdminAccounts,
+  resetAdminAccountPassword,
   updateAdminAccount,
 } from "../../services/api";
 import { useToast } from "../../context/ToastContext";
@@ -87,6 +88,19 @@ export default function AdminAccounts() {
     }
   };
 
+  const resetPassword = async (admin: Admin) => {
+    if (!window.confirm(`Reset ${admin.email}'s password and email them a temporary password?`)) return;
+    setBusy(true);
+    try {
+      const response = await resetAdminAccountPassword(admin.id);
+      success(response.data?.message || "Temporary password sent to admin email");
+    } catch (error) {
+      showError(errorMessage(error));
+    } finally {
+      setBusy(false);
+    }
+  };
+
   return (
     <section className="space-y-5">
       <div className="flex items-start justify-between gap-3">
@@ -99,7 +113,7 @@ export default function AdminAccounts() {
           {admins.map((admin) => (
             <article key={admin.id} className="rounded-3xl border border-slate-100 bg-white p-5 shadow-sm">
               <div className="flex gap-3"><div className="rounded-2xl bg-green-50 p-3 text-green-700"><ShieldCheck size={22} /></div><div className="min-w-0 flex-1"><h2 className="truncate font-black text-slate-900">{`${admin.firstname || ""} ${admin.lastname || ""}`.trim() || "Administrator"}</h2><p className="truncate text-sm text-slate-500">{admin.email}</p><p className="mt-2 text-xs text-slate-400">Added {new Date(admin.created_at).toLocaleDateString()}</p></div></div>
-              <div className="mt-5 grid grid-cols-2 gap-2"><button onClick={() => open(admin)} className="flex items-center justify-center gap-2 rounded-xl bg-slate-100 py-2.5 text-xs font-black text-slate-700"><Pencil size={14} /> Edit</button><button disabled={admin.id === currentId || busy} onClick={() => remove(admin)} className="flex items-center justify-center gap-2 rounded-xl bg-red-50 py-2.5 text-xs font-black text-red-600 disabled:cursor-not-allowed disabled:opacity-40"><Trash2 size={14} /> Delete</button></div>
+              <div className="mt-5 grid grid-cols-2 gap-2"><button disabled={busy} onClick={() => open(admin)} className="flex items-center justify-center gap-2 rounded-xl bg-slate-100 py-2.5 text-xs font-black text-slate-700 disabled:opacity-40"><Pencil size={14} /> Edit</button><button disabled={admin.id === currentId || busy} onClick={() => remove(admin)} className="flex items-center justify-center gap-2 rounded-xl bg-red-50 py-2.5 text-xs font-black text-red-600 disabled:cursor-not-allowed disabled:opacity-40"><Trash2 size={14} /> Delete</button><button disabled={admin.id === currentId || busy} onClick={() => resetPassword(admin)} className="col-span-2 flex items-center justify-center gap-2 rounded-xl bg-amber-50 py-2.5 text-xs font-black text-amber-700 disabled:cursor-not-allowed disabled:opacity-40"><KeyRound size={14} /> Email temporary password</button></div>
             </article>
           ))}
         </div>

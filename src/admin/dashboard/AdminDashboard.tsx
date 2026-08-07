@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   BarChart3,
@@ -14,6 +14,7 @@ import {
   ShoppingBag,
   Store,
   Truck,
+  UserRoundCog,
   Users,
   X,
 } from "lucide-react";
@@ -35,6 +36,7 @@ import Approvals from "../page/Approvals";
 import Partners from "../page/Partners";
 import AdminAccounts from "../page/AdminAccounts";
 import SystemManagement from "../page/SystemManagement";
+import AccountSettings, { type AdminProfile } from "../page/AccountSettings";
 
 type Section =
   | "overview"
@@ -46,7 +48,8 @@ type Section =
   | "finance"
   | "analytics"
   | "system"
-  | "admins";
+  | "admins"
+  | "account";
 
 type NavItem = { id: Section; label: string; icon: React.ReactNode };
 type RevenuePoint = { label: string; revenue: number };
@@ -62,15 +65,16 @@ const navItems: NavItem[] = [
   { id: "analytics", label: "Analytics", icon: <BarChart3 size={19} /> },
   { id: "system", label: "System", icon: <Settings2 size={19} /> },
   { id: "admins", label: "Admin accounts", icon: <ShieldCheck size={19} /> },
+  { id: "account", label: "Account Settings", icon: <UserRoundCog size={19} /> },
 ];
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
   const [section, setSection] = useState<Section>("overview");
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const user = useMemo(() => {
-    try { return JSON.parse(localStorage.getItem("userData") || "{}"); } catch { return {}; }
-  }, []);
+  const [user, setUser] = useState<AdminProfile>(() => {
+    try { return JSON.parse(localStorage.getItem("userData") || "{}"); } catch { return {} as AdminProfile; }
+  });
 
   const logout = () => {
     localStorage.removeItem("authToken");
@@ -96,6 +100,7 @@ export default function AdminDashboard() {
     analytics: <Analysis />,
     system: <SystemManagement />,
     admins: <AdminAccounts />,
+    account: <AccountSettings onUserUpdated={setUser} />,
   }[section];
 
   return (
