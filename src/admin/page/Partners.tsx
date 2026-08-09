@@ -19,9 +19,11 @@ import api, {
   updateAdminRiderStatus,
   updateMenuItemImage,
   updateVendorLogo,
+  updateVendorCommission,
   updateVendorStatus,
 } from "../../services/api";
 import { useToast } from "../../context/ToastContext";
+import ApprovalDetail from "./ApprovalDetail";
 
 type Partner = Record<string, any>;
 
@@ -43,12 +45,14 @@ export default function Partners({ kind }: { kind: "vendor" | "rider" }) {
   const plural = kind === "vendor" ? "vendors" : "riders";
   const [rows, setRows] = useState<Partner[]>([]);
   const [selected, setSelected] = useState<Partner | null>(null);
+  const [detailId, setDetailId] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState("all");
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [logoUrl, setLogoUrl] = useState("");
   const [menuItems, setMenuItems] = useState<Partner[]>([]);
+  const [commission, setCommission] = useState("");
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -80,6 +84,7 @@ export default function Partners({ kind }: { kind: "vendor" | "rider" }) {
   const openDetails = async (row: Partner) => {
     setSelected(row);
     setLogoUrl(row.logo_url || "");
+    setCommission(row.commission_percentage == null ? "" : String(row.commission_percentage));
     try {
       const [response, menuResponse] = await Promise.all([
         api.get(`/admin/${plural}/${row.id}`),
@@ -89,10 +94,25 @@ export default function Partners({ kind }: { kind: "vendor" | "rider" }) {
       ]);
       setSelected(response.data);
       setLogoUrl(response.data.logo_url || "");
+      setCommission(response.data.commission_percentage == null ? "" : String(response.data.commission_percentage));
       setMenuItems(Array.isArray(menuResponse.data) ? menuResponse.data : []);
     } catch (error) {
       showError(message(error));
     }
+  };
+
+  const saveCommission = async () => {
+    if (!selected || kind !== "vendor") return;
+    const value = commission.trim() === "" ? null : Number(commission);
+    if (value !== null && (Number.isNaN(value) || value < 0 || value > 100)) return showError("Commission must be between 0 and 100");
+    setBusy(true);
+    try {
+      const response = await updateVendorCommission(selected.id, value);
+      setSelected(response.data);
+      setCommission(response.data.commission_percentage == null ? "" : String(response.data.commission_percentage));
+      success(value === null ? "Vendor restored to global commission" : `Vendor commission set to ${value}%`);
+      await load();
+    } catch (error) { showError(message(error)); } finally { setBusy(false); }
   };
 
   const updateStatus = async (value: string) => {
@@ -146,6 +166,18 @@ export default function Partners({ kind }: { kind: "vendor" | "rider" }) {
   const statuses = kind === "vendor"
     ? ["all", "pending", "approved", "suspended"]
     : ["all", "pending", "accepted", "rejected"];
+
+  if (detailId) {
+    return (
+      <ApprovalDetail
+        kind={kind}
+        id={detailId}
+        onBack={() => setDetailId(null)}
+        onChanged={load}
+        backLabel={`Back to ${plural}`}
+      />
+    );
+  }
 
   return (
     <section className="space-y-5">
@@ -219,8 +251,17 @@ export default function Partners({ kind }: { kind: "vendor" | "rider" }) {
 
             {kind === "rider" && selected.license_image && <a href={selected.license_image} target="_blank" rel="noreferrer" className="mt-4 flex items-center justify-center gap-2 rounded-2xl bg-blue-50 px-4 py-3 text-sm font-black text-blue-700">View driver licence <ExternalLink size={15} /></a>}
 
+            <button
+              type="button"
+              onClick={() => { setDetailId(selected.id); setSelected(null); }}
+              className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-slate-950 px-4 py-3 text-sm font-black text-white"
+            >
+              View details <ExternalLink size={15} />
+            </button>
+
             {kind === "vendor" && (
               <>
+                <div className="mt-5 rounded-2xl border border-slate-200 p-4"><label className="text-xs font-black uppercase tracking-wide text-slate-500">Individual commission %</label><p className="mt-1 text-xs text-slate-400">Leave blank to use global commission.</p><div className="mt-2 flex gap-2"><input type="number" min="0" max="100" step="0.01" value={commission} onChange={(event) => setCommission(event.target.value)} placeholder="Global" className="min-w-0 flex-1 rounded-xl bg-slate-50 px-3 py-3 text-sm outline-none focus:ring-2 focus:ring-green-500" /><button onClick={saveCommission} disabled={busy} className="rounded-xl bg-green-600 px-4 text-xs font-black text-white disabled:opacity-50">Save</button></div></div>
                 <div className="mt-5 rounded-2xl border border-slate-200 p-4">
                   <label className="text-xs font-black uppercase tracking-wide text-slate-500">Logo URL</label>
                   <div className="mt-2 flex gap-2"><input value={logoUrl} onChange={(event) => setLogoUrl(event.target.value)} placeholder="https://..." className="min-w-0 flex-1 rounded-xl bg-slate-50 px-3 py-3 text-sm outline-none focus:ring-2 focus:ring-green-500" /><button onClick={saveLogo} disabled={busy} className="rounded-xl bg-slate-900 px-4 text-xs font-black text-white disabled:opacity-50">Save</button></div>

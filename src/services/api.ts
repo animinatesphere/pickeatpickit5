@@ -3,8 +3,8 @@
 // All calls go to the FastAPI backend. No Supabase.
 import axios, { type AxiosError } from "axios";
 
-// const API_BASE_URL = "http://localhost:8000/api"; // For local development
-const API_BASE_URL = "https://pickeatpickitbe.onrender.com/api";
+const API_BASE_URL = "http://localhost:8000/api"; // For local development
+// const API_BASE_URL = "https://pickeatpickitbe.onrender.com/api";
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -91,7 +91,7 @@ api.interceptors.response.use(
     if (!axios.isAxiosError(error)) return Promise.reject(error);
 
     const originalRequest = error.config as RetryableRequestConfig | undefined;
-    const isLoginRequest = originalRequest?.url?.includes("/auth/login");
+    const isLoginRequest = originalRequest?.url?.includes("/auth/login") || originalRequest?.url?.includes("/auth/admin/login") || originalRequest?.url?.includes("/auth/admin-2fa/verify");
     if (error.response?.status === 401 && originalRequest && !originalRequest._retry && !isLoginRequest) {
       originalRequest._retry = true;
       try {
@@ -251,6 +251,7 @@ export const deleteUserFromSystem = async (
 };
 
 export const getAdminAccounts = () => api.get("/admin/accounts");
+export const getAdminCandidates = (search = "") => api.get("/admin/accounts/candidates", { params: { search } });
 export const createAdminAccount = (payload: Record<string, unknown>) =>
   api.post("/admin/accounts", payload);
 export const updateAdminAccount = (
@@ -268,6 +269,11 @@ export const changeMyAdminPassword = (payload: {
   old_password: string;
   new_password: string;
 }) => api.post("/admin/account/me/change-password", payload);
+export const getMyAdminTwoFactor = () => api.get("/admin/account/me/2fa");
+export const setupMyAdminTwoFactor = (method: "totp" | "email") => api.post("/admin/account/me/2fa/setup", { method });
+export const confirmMyAdminTwoFactor = (payload: { method: "totp" | "email"; code: string; challenge_id?: string }) => api.post("/admin/account/me/2fa/confirm", payload);
+export const disableMyAdminTwoFactor = (password: string) => api.delete("/admin/account/me/2fa", { data: { password } });
+export const updateVendorCommission = (vendorId: string, commission_percentage: number | null) => api.patch(`/admin/vendors/${vendorId}/commission`, { commission_percentage });
 
 export const getSystemBalance = () => api.get("/admin/balance");
 export const getPendingRiders = () => api.get("/admin/riders/pending");
@@ -343,6 +349,8 @@ export const deleteDiscoveryFilter = (id: string) =>
 export const createRiderGame = (payload: Record<string, unknown>) =>
   api.post("/games/", payload);
 export const getAdminRiderGames = () => api.get("/games/");
+export const getAdminGameLeaderboard = (params: Record<string, unknown>) => api.get("/games/admin/leaderboard", { params });
+export const getAdminGameParticipant = (riderId: string, params: Record<string, unknown>) => api.get(`/games/admin/participants/${riderId}`, { params });
 export const updateRiderGame = (
   id: string,
   payload: Record<string, unknown>,

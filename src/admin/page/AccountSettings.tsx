@@ -1,9 +1,14 @@
 import { useCallback, useEffect, useState } from "react";
-import { Eye, EyeOff, KeyRound, Loader2, Mail, Phone, Save, ShieldCheck, UserRound } from "lucide-react";
+import { Eye, EyeOff, KeyRound, Loader2, Mail, Phone, Save, ShieldCheck, Smartphone, UserRound } from "lucide-react";
+import { QRCodeSVG } from "qrcode.react";
 import {
   changeMyAdminPassword,
   getMyAdminAccount,
   updateMyAdminAccount,
+  getMyAdminTwoFactor,
+  setupMyAdminTwoFactor,
+  confirmMyAdminTwoFactor,
+  disableMyAdminTwoFactor,
 } from "../../services/api";
 import { useToast } from "../../context/ToastContext";
 
@@ -14,6 +19,11 @@ export type AdminProfile = {
   lastname?: string | null;
   phone?: string | null;
   role?: string | null;
+  admin_role?: "admin" | "super_admin" | null;
+  admin_permissions?: string[];
+  permissions?: string[];
+  admin_2fa_enabled?: boolean;
+  admin_2fa_method?: string | null;
   is_verified?: boolean;
   created_at?: string;
 };
@@ -38,13 +48,20 @@ export default function AccountSettings({ onUserUpdated }: Props) {
   const [savingProfile, setSavingProfile] = useState(false);
   const [savingPassword, setSavingPassword] = useState(false);
   const [showPasswords, setShowPasswords] = useState(false);
+  const [twoFactor, setTwoFactor] = useState<{ enabled: boolean; method: string | null }>({ enabled: false, method: null });
+  const [setup, setSetup] = useState<{ method: "totp" | "email"; secret?: string; otpauth_uri?: string; challenge_id?: string } | null>(null);
+  const [factorCode, setFactorCode] = useState("");
+  const [factorPassword, setFactorPassword] = useState("");
+  const [factorBusy, setFactorBusy] = useState(false);
+  const [factorAction, setFactorAction] = useState<"totp" | "email" | "confirm" | "disable" | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const response = await getMyAdminAccount();
+      const [response, factorResponse] = await Promise.all([getMyAdminAccount(), getMyAdminTwoFactor()]);
       const data = response.data as AdminProfile;
       setAccount(data);
+      setTwoFactor(factorResponse.data);
       setProfile({
         firstname: data.firstname || "",
         lastname: data.lastname || "",
@@ -81,6 +98,28 @@ export default function AccountSettings({ onUserUpdated }: Props) {
     } finally {
       setSavingProfile(false);
     }
+  };
+
+  const beginTwoFactor = async (method: "totp" | "email") => {
+    setFactorBusy(true);
+    setFactorAction(method);
+    try { const response = await setupMyAdminTwoFactor(method); setSetup(response.data); setFactorCode(""); success(method === "email" ? "Confirmation code sent" : "Authenticator setup created"); }
+    catch (error) { showError(errorMessage(error)); } finally { setFactorBusy(false); setFactorAction(null); }
+  };
+
+  const confirmTwoFactor = async () => {
+    if (!setup) return;
+    setFactorBusy(true);
+    setFactorAction("confirm");
+    try { const response = await confirmMyAdminTwoFactor({ method: setup.method, code: factorCode, challenge_id: setup.challenge_id }); setTwoFactor(response.data); setSetup(null); setFactorCode(""); success("Two-factor authentication enabled"); }
+    catch (error) { showError(errorMessage(error)); } finally { setFactorBusy(false); setFactorAction(null); }
+  };
+
+  const disableTwoFactor = async () => {
+    setFactorBusy(true);
+    setFactorAction("disable");
+    try { const response = await disableMyAdminTwoFactor(factorPassword); setTwoFactor(response.data); setFactorPassword(""); success("Two-factor authentication disabled"); }
+    catch (error) { showError(errorMessage(error)); } finally { setFactorBusy(false); setFactorAction(null); }
   };
 
   const savePassword = async (event: React.FormEvent) => {
@@ -162,7 +201,7 @@ export default function AccountSettings({ onUserUpdated }: Props) {
           <button disabled={savingPassword} className="mt-6 flex w-full items-center justify-center gap-2 rounded-2xl bg-slate-950 py-3.5 text-xs font-black uppercase tracking-wide text-white disabled:opacity-50">{savingPassword ? <Loader2 className="animate-spin" size={17} /> : <KeyRound size={17} />} Update password</button>
         </form>
       </div>
+      <article className="rounded-3xl border border-slate-100 bg-white p-5 shadow-sm sm:p-6"><div className="flex items-center gap-3"><div className="rounded-2xl bg-blue-50 p-3 text-blue-700"><Smartphone size={20} /></div><div><h2 className="font-black text-slate-900">Two-factor authentication</h2><p className="text-xs text-slate-500">Status: <span className="font-black">{twoFactor.enabled ? `Enabled via ${twoFactor.method === "totp" ? "authenticator app" : "email OTP"}` : "Disabled"}</span></p></div></div>{!twoFactor.enabled && !setup && <div className="mt-5 grid gap-3 sm:grid-cols-2"><button type="button" disabled={factorBusy} onClick={() => beginTwoFactor("totp")} className="flex items-center justify-center gap-2 rounded-2xl bg-slate-950 py-3 text-xs font-black uppercase text-white disabled:cursor-wait disabled:opacity-60">{factorAction === "totp" && <Loader2 className="animate-spin" size={16} />} Use authenticator app</button><button type="button" disabled={factorBusy} onClick={() => beginTwoFactor("email")} className="flex items-center justify-center gap-2 rounded-2xl bg-blue-600 py-3 text-xs font-black uppercase text-white disabled:cursor-wait disabled:opacity-60">{factorAction === "email" && <Loader2 className="animate-spin" size={16} />} Use email OTP</button></div>}{setup && <div className="mt-5 rounded-2xl bg-slate-50 p-4">{setup.method === "totp" && <><p className="text-sm font-bold text-slate-700">Scan QR code with Google Authenticator, Microsoft Authenticator, Authy, or compatible app.</p>{setup.otpauth_uri && <div className="mt-4 flex justify-center"><div className="rounded-2xl bg-white p-4 shadow-sm"><QRCodeSVG value={setup.otpauth_uri} size={200} level="M" marginSize={1} title="Scan to set up two-factor authentication" /></div></div>}<p className="mt-4 text-xs font-bold text-slate-500">Cannot scan? Enter setup key manually:</p><p className="mt-2 break-all rounded-xl bg-white p-3 font-mono text-sm font-black text-slate-900">{setup.secret}</p><details className="mt-2 text-xs text-slate-500"><summary className="cursor-pointer font-bold">Show setup URI</summary><p className="mt-2 break-all">{setup.otpauth_uri}</p></details></>}{setup.method === "email" && <p className="text-sm font-bold text-slate-700">Enter code sent to your admin email.</p>}<div className="mt-4 flex gap-2"><input inputMode="numeric" maxLength={6} value={factorCode} onChange={(e) => setFactorCode(e.target.value.replace(/\D/g, ""))} placeholder="6-digit code" className="min-w-0 flex-1 rounded-xl bg-white px-4 py-3 text-center font-black tracking-widest outline-none focus:ring-2 focus:ring-blue-500" /><button type="button" disabled={factorBusy || factorCode.length !== 6} onClick={confirmTwoFactor} className="flex items-center justify-center gap-2 rounded-xl bg-green-600 px-5 text-xs font-black text-white disabled:cursor-wait disabled:opacity-50">{factorAction === "confirm" && <Loader2 className="animate-spin" size={16} />} Confirm</button></div></div>}{twoFactor.enabled && <div className="mt-5 flex gap-2"><input type="password" value={factorPassword} onChange={(e) => setFactorPassword(e.target.value)} placeholder="Current password" className="min-w-0 flex-1 rounded-xl bg-slate-50 px-4 py-3 outline-none focus:ring-2 focus:ring-red-500" /><button type="button" disabled={factorBusy || !factorPassword} onClick={disableTwoFactor} className="flex items-center justify-center gap-2 rounded-xl bg-red-50 px-5 text-xs font-black text-red-600 disabled:cursor-wait disabled:opacity-50">{factorAction === "disable" && <Loader2 className="animate-spin" size={16} />} Disable 2FA</button></div>}</article>
     </section>
   );
 }
-

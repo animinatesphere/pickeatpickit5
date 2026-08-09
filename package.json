@@ -16,6 +16,7 @@
     "axios": "^1.13.6",
     "framer-motion": "^12.29.3",
     "lucide-react": "^0.545.0",
+    "qrcode.react": "^4.2.0",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
     "react-is": "^19.2.4",

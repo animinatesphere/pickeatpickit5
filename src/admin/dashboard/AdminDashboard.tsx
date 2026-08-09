@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   BarChart3,
+  Bell,
   CheckSquare,
   ChevronRight,
   CircleDollarSign,
@@ -51,20 +52,20 @@ type Section =
   | "admins"
   | "account";
 
-type NavItem = { id: Section; label: string; icon: React.ReactNode };
+type NavItem = { id: Section; label: string; icon: React.ReactNode; permission?: string };
 type RevenuePoint = { label: string; revenue: number };
 
 const navItems: NavItem[] = [
-  { id: "overview", label: "Overview", icon: <LayoutDashboard size={19} /> },
-  { id: "approvals", label: "Approvals", icon: <CheckSquare size={19} /> },
-  { id: "orders", label: "Orders", icon: <ShoppingBag size={19} /> },
-  { id: "customers", label: "Customers", icon: <Users size={19} /> },
-  { id: "vendors", label: "Vendors", icon: <Store size={19} /> },
-  { id: "riders", label: "Riders", icon: <Truck size={19} /> },
-  { id: "finance", label: "Finance", icon: <CircleDollarSign size={19} /> },
-  { id: "analytics", label: "Analytics", icon: <BarChart3 size={19} /> },
-  { id: "system", label: "System", icon: <Settings2 size={19} /> },
-  { id: "admins", label: "Admin accounts", icon: <ShieldCheck size={19} /> },
+  { id: "overview", label: "Overview", icon: <LayoutDashboard size={19} />, permission: "overview.view" },
+  { id: "approvals", label: "Approvals", icon: <CheckSquare size={19} />, permission: "approvals.manage" },
+  { id: "orders", label: "Orders", icon: <ShoppingBag size={19} />, permission: "orders.manage" },
+  { id: "customers", label: "Customers", icon: <Users size={19} />, permission: "customers.manage" },
+  { id: "vendors", label: "Vendors", icon: <Store size={19} />, permission: "vendors.manage" },
+  { id: "riders", label: "Riders", icon: <Truck size={19} />, permission: "riders.manage" },
+  { id: "finance", label: "Finance", icon: <CircleDollarSign size={19} />, permission: "finance.manage" },
+  { id: "analytics", label: "Analytics", icon: <BarChart3 size={19} />, permission: "analytics.view" },
+  { id: "system", label: "System", icon: <Settings2 size={19} />, permission: "system.manage" },
+  { id: "admins", label: "Admin accounts", icon: <ShieldCheck size={19} />, permission: "admins.manage" },
   { id: "account", label: "Account Settings", icon: <UserRoundCog size={19} /> },
 ];
 
@@ -72,9 +73,16 @@ export default function AdminDashboard() {
   const navigate = useNavigate();
   const [section, setSection] = useState<Section>("overview");
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [pendingPayoutCount, setPendingPayoutCount] = useState(0);
   const [user, setUser] = useState<AdminProfile>(() => {
     try { return JSON.parse(localStorage.getItem("userData") || "{}"); } catch { return {} as AdminProfile; }
   });
+  const granted = user.permissions || user.admin_permissions || [];
+  const visibleNav = useMemo(() => navItems.filter((item) => !item.permission || user.admin_role === "super_admin" || (item.id !== "admins" && granted.includes(item.permission))), [granted, user.admin_role]);
+
+  useEffect(() => {
+    if (!visibleNav.some((item) => item.id === section)) setSection(visibleNav[0]?.id || "account");
+  }, [section, visibleNav]);
 
   const logout = () => {
     localStorage.removeItem("authToken");
@@ -88,6 +96,21 @@ export default function AdminDashboard() {
     setDrawerOpen(false);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
+
+  useEffect(() => {
+    let active = true;
+    const refresh = async () => {
+      try {
+        const response = await api.get("/admin/payouts", { params: { status: "pending" } });
+        if (active) setPendingPayoutCount(Array.isArray(response.data) ? response.data.length : 0);
+      } catch {
+        // Header notification should not block admin navigation.
+      }
+    };
+    refresh();
+    const timer = window.setInterval(refresh, 30000);
+    return () => { active = false; window.clearInterval(timer); };
+  }, [section]);
 
   const content = {
     overview: <Overview onNavigate={select} />,
@@ -114,7 +137,7 @@ export default function AdminDashboard() {
         </div>
 
         <nav className="flex-1 space-y-1 overflow-y-auto p-3">
-          {navItems.map((item) => (
+          {visibleNav.map((item) => (
             <button key={item.id} onClick={() => select(item.id)} className={`flex w-full items-center gap-3 rounded-2xl px-4 py-3.5 text-left text-sm font-bold transition ${section === item.id ? "bg-green-500 text-slate-950 shadow-lg shadow-green-500/20" : "text-slate-300 hover:bg-white/10 hover:text-white"}`}>
               {item.icon}<span className="flex-1">{item.label}</span>{section === item.id && <ChevronRight size={16} />}
             </button>
@@ -129,8 +152,8 @@ export default function AdminDashboard() {
 
       <div className="lg:pl-72">
         <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-slate-200/80 bg-white/90 px-4 backdrop-blur-xl sm:px-6 lg:px-8">
-          <div className="flex items-center gap-3"><button onClick={() => setDrawerOpen(true)} className="rounded-xl bg-slate-100 p-2.5 text-slate-700 lg:hidden" aria-label="Open navigation"><Menu size={20} /></button><div><p className="text-[10px] font-black uppercase tracking-[0.18em] text-green-600">PEPI</p><h1 className="text-sm font-black capitalize text-slate-900 sm:text-base">{navItems.find((item) => item.id === section)?.label}</h1></div></div>
-          <button onClick={logout} className="flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-xs font-black text-slate-600 hover:border-red-200 hover:bg-red-50 hover:text-red-600"><LogOut size={15} /><span className="hidden sm:inline">Log out</span></button>
+          <div className="flex items-center gap-3"><button onClick={() => setDrawerOpen(true)} className="rounded-xl bg-slate-100 p-2.5 text-slate-700 lg:hidden" aria-label="Open navigation"><Menu size={20} /></button><div><p className="text-[10px] font-black uppercase tracking-[0.18em] text-green-600">PEPI</p><h1 className="text-sm font-black capitalize text-slate-900 sm:text-base">{visibleNav.find((item) => item.id === section)?.label}</h1></div></div>
+          <div className="flex items-center gap-2"><button onClick={() => select("finance")} className="relative rounded-xl border border-slate-200 p-2.5 text-slate-600 hover:border-amber-200 hover:bg-amber-50 hover:text-amber-700" aria-label="Pending payout approvals"><Bell size={17} />{pendingPayoutCount > 0 && <span className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-red-500 px-1 text-[10px] font-black text-white">{pendingPayoutCount}</span>}</button><button onClick={logout} className="flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-xs font-black text-slate-600 hover:border-red-200 hover:bg-red-50 hover:text-red-600"><LogOut size={15} /><span className="hidden sm:inline">Log out</span></button></div>
         </header>
         <main className="mx-auto w-full max-w-[1500px] p-4 sm:p-6 lg:p-8">{content}</main>
       </div>

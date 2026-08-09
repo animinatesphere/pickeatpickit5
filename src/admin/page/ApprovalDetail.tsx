@@ -63,11 +63,12 @@ const mealDefaults = {
   allow_schedule_send: true,
 };
 
-export default function ApprovalDetail({ kind, id, onBack, onChanged }: {
+export default function ApprovalDetail({ kind, id, onBack, onChanged, backLabel = "Back to approvals" }: {
   kind: Kind;
   id: string;
   onBack: () => void;
   onChanged: () => Promise<void> | void;
+  backLabel?: string;
 }) {
   const { success, error: showError } = useToast();
   const [record, setRecord] = useState<Row | null>(null);
@@ -165,7 +166,7 @@ export default function ApprovalDetail({ kind, id, onBack, onChanged }: {
 
   return (
     <section className="space-y-5">
-      <button onClick={onBack} className="flex items-center gap-2 rounded-xl bg-white px-4 py-2.5 text-sm font-bold text-slate-600 shadow-sm"><ArrowLeft size={17} /> Back to approvals</button>
+      <button onClick={onBack} className="flex items-center gap-2 rounded-xl bg-white px-4 py-2.5 text-sm font-bold text-slate-600 shadow-sm"><ArrowLeft size={17} /> {backLabel}</button>
 
       <div className="rounded-3xl bg-slate-950 p-5 text-white sm:p-7">
         <div className="flex flex-col gap-5 sm:flex-row sm:items-center">

@@ -37,10 +37,14 @@ interface Payout {
   status: string;
   created_at: string;
   updated_at: string;
+  bank_code?: string;
+  transfer_reference?: string;
+  transfer_code?: string;
+  failure_reason?: string;
 }
 
 type TabType = "transactions" | "payouts";
-type PayoutTab = "all" | "pending" | "approved" | "rejected" | "completed";
+type PayoutTab = "all" | "pending" | "processing" | "rejected" | "failed" | "completed";
 
 // ── API helpers ───────────────────────────────────────────────────────────────
 const fetchTransactions = (limit = 50) =>
@@ -54,13 +58,20 @@ const fetchPayouts = (status?: string) =>
 const updatePayoutStatus = (payoutId: string, status: string) =>
   api.patch(`/admin/payouts/${payoutId}`, { status });
 
+const fetchPayoutConfig = () => api.get("/admin/payout-config");
+const savePayoutConfig = (payload: { vendor_threshold: number; rider_threshold: number; vendor_auto_approve: boolean; rider_auto_approve: boolean }) =>
+  api.patch("/admin/payout-config", payload);
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const statusColor = (s: string) => {
   switch (s?.toLowerCase()) {
     case "success":
     case "completed":
     case "approved":
+    case "processing":
       return "text-green-600 bg-green-50 border-green-200";
+    case "otp_required":
+      return "text-orange-600 bg-orange-50 border-orange-200";
     case "pending":
       return "text-yellow-600 bg-yellow-50 border-yellow-200";
     case "failed":
@@ -92,6 +103,9 @@ export default function Transaction() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedPayout, setSelectedPayout] = useState<Payout | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [config, setConfig] = useState({ vendor_threshold: "50000", rider_threshold: "10000", vendor_auto_approve: false, rider_auto_approve: false });
+  const [savingConfig, setSavingConfig] = useState(false);
+  const [actionError, setActionError] = useState("");
 
   // ── Fetch ───────────────────────────────────────────────────────────────────
   const loadTransactions = async () => {
@@ -109,8 +123,17 @@ export default function Transaction() {
   const loadPayouts = async (status: PayoutTab = payoutTab) => {
     setLoading(true);
     try {
-      const res = await fetchPayouts(status === "all" ? undefined : status);
+      const [res, configRes] = await Promise.all([
+        fetchPayouts(status === "all" ? undefined : status),
+        fetchPayoutConfig(),
+      ]);
       setPayouts(Array.isArray(res.data) ? res.data : []);
+      setConfig({
+        vendor_threshold: String(configRes.data.vendor_threshold),
+        rider_threshold: String(configRes.data.rider_threshold),
+        vendor_auto_approve: Boolean(configRes.data.vendor_auto_approve),
+        rider_auto_approve: Boolean(configRes.data.rider_auto_approve),
+      });
     } catch (e) {
       console.error("Failed to load payouts:", e);
     } finally {
@@ -132,17 +155,38 @@ export default function Transaction() {
   // ── Update payout status ────────────────────────────────────────────────────
   const handleUpdatePayout = async (
     payoutId: string,
-    status: "approved" | "rejected" | "completed",
+    status: "approved" | "rejected",
   ) => {
     setActionLoading(payoutId);
+    setActionError("");
     try {
       await updatePayoutStatus(payoutId, status);
       setSelectedPayout(null);
       loadPayouts(payoutTab);
-    } catch (e) {
+    } catch (e: any) {
       console.error("Failed to update payout:", e);
+      setActionError(e?.response?.data?.detail || e?.message || "Payout action failed");
     } finally {
       setActionLoading(null);
+    }
+  };
+
+  const handleSaveConfig = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setSavingConfig(true);
+    setActionError("");
+    try {
+      await savePayoutConfig({
+        vendor_threshold: Number(config.vendor_threshold),
+        rider_threshold: Number(config.rider_threshold),
+        vendor_auto_approve: config.vendor_auto_approve,
+        rider_auto_approve: config.rider_auto_approve,
+      });
+      await loadPayouts(payoutTab);
+    } catch (e: any) {
+      setActionError(e?.response?.data?.detail || e?.message || "Could not save payout thresholds");
+    } finally {
+      setSavingConfig(false);
     }
   };
 
@@ -275,8 +319,22 @@ export default function Transaction() {
 
         {/* ── Payout sub-tabs ─────────────────────────────────────────────────── */}
         {activeTab === "payouts" && (
+          <>
+          <form onSubmit={handleSaveConfig} className="rounded-3xl border border-green-100 bg-green-50 p-5">
+            <div className="mb-4"><p className="text-xs font-black uppercase tracking-widest text-green-700">Minimum withdrawal thresholds</p><p className="mt-1 text-xs text-green-700/70">Vendors and riders can request withdrawal after meeting these minimums.</p></div>
+            <div className="grid gap-3 sm:grid-cols-[1fr_1fr_auto]">
+              <label className="text-xs font-bold text-gray-600">Vendor (₦)<input required min="1" type="number" value={config.vendor_threshold} onChange={(e) => setConfig({ ...config, vendor_threshold: e.target.value })} className="mt-1 w-full rounded-xl border border-green-200 bg-white px-3 py-3 outline-none focus:ring-2 focus:ring-green-500" /></label>
+              <label className="text-xs font-bold text-gray-600">Rider (₦)<input required min="1" type="number" value={config.rider_threshold} onChange={(e) => setConfig({ ...config, rider_threshold: e.target.value })} className="mt-1 w-full rounded-xl border border-green-200 bg-white px-3 py-3 outline-none focus:ring-2 focus:ring-green-500" /></label>
+              <button disabled={savingConfig} className="self-end rounded-xl bg-green-600 px-5 py-3 text-xs font-black uppercase text-white disabled:opacity-50">{savingConfig ? "Saving…" : "Save"}</button>
+            </div>
+            <div className="mt-4 grid gap-3 sm:grid-cols-2">
+              <label className="flex items-center justify-between rounded-2xl border border-green-200 bg-white p-4"><span><span className="block text-sm font-black text-gray-800">Vendor auto-approval</span><span className="mt-1 block text-xs text-gray-500">Send eligible vendor requests to Paystack immediately.</span></span><input type="checkbox" checked={config.vendor_auto_approve} onChange={(e) => setConfig({ ...config, vendor_auto_approve: e.target.checked })} className="h-5 w-5 shrink-0 accent-green-600" /></label>
+              <label className="flex items-center justify-between rounded-2xl border border-green-200 bg-white p-4"><span><span className="block text-sm font-black text-gray-800">Rider auto-approval</span><span className="mt-1 block text-xs text-gray-500">Send eligible rider requests to Paystack immediately.</span></span><input type="checkbox" checked={config.rider_auto_approve} onChange={(e) => setConfig({ ...config, rider_auto_approve: e.target.checked })} className="h-5 w-5 shrink-0 accent-green-600" /></label>
+            </div>
+          </form>
+          {actionError && <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700">{actionError}</div>}
           <div className="flex gap-2 overflow-x-auto no-scrollbar">
-            {(["all", "pending", "approved", "rejected", "completed"] as PayoutTab[]).map(
+            {(["all", "pending", "processing", "completed", "failed", "rejected"] as PayoutTab[]).map(
               (tab) => (
                 <button
                   key={tab}
@@ -292,6 +350,7 @@ export default function Transaction() {
               ),
             )}
           </div>
+          </>
         )}
 
         {/* ── Content ────────────────────────────────────────────────────────── */}
@@ -445,6 +504,8 @@ export default function Transaction() {
                   label: "Requested",
                   value: fmtDate(selectedPayout.created_at),
                 },
+                { label: "Transfer reference", value: selectedPayout.transfer_reference || "—" },
+                { label: "Paystack code", value: selectedPayout.transfer_code || "—" },
               ].map((r) => (
                 <div
                   key={r.label}
@@ -477,6 +538,7 @@ export default function Transaction() {
                   Current: {selectedPayout.status}
                 </span>
               </div>
+              {selectedPayout.failure_reason && <div className="rounded-2xl bg-red-50 p-3 text-sm font-bold text-red-700">{selectedPayout.failure_reason}</div>}
             </div>
 
             {/* Action buttons — only show if pending */}
@@ -511,27 +573,12 @@ export default function Transaction() {
                   Approve Payout
                 </button>
               </div>
-            ) : selectedPayout.status === "approved" ? (
-              <button
-                onClick={() => handleUpdatePayout(selectedPayout.id, "completed")}
-                disabled={actionLoading === selectedPayout.id}
-                className="flex w-full items-center justify-center gap-2 rounded-2xl bg-green-600 py-4 text-xs font-black uppercase tracking-widest text-white disabled:opacity-60"
-              >
-                {actionLoading === selectedPayout.id ? (
-                  <Loader2 size={14} className="animate-spin" />
-                ) : (
-                  <CheckCircle size={16} />
-                )}
-                Mark payment completed
-              </button>
             ) : (
               <div className="text-center">
                 <span
                   className={`text-sm font-black uppercase tracking-widest px-6 py-3 rounded-2xl border ${statusColor(selectedPayout.status)}`}
                 >
-                  {selectedPayout.status === "approved"
-                    ? "✓ Payout Approved"
-                    : "✗ Payout Rejected"}
+                  {selectedPayout.status}
                 </span>
               </div>
             )}

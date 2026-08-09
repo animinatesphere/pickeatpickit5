@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Lock, Mail, Eye, EyeOff } from "lucide-react";
+import { Lock, Mail, Eye, EyeOff, ShieldCheck } from "lucide-react";
 import logo from "../../assets/Logo SVG 1.png";
 import { useToast } from "../../context/ToastContext";
 import { useNavigate } from "react-router-dom";
@@ -13,51 +13,43 @@ export default function AdminLogin() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [challengeId, setChallengeId] = useState("");
+  const [twoFactorMethod, setTwoFactorMethod] = useState<"totp" | "email">("email");
+  const [code, setCode] = useState("");
+
+  const finishLogin = (data: any) => {
+    const token = data.access_token;
+    const payload = decodeJwtToken(token);
+    if (!payload || (payload.role !== "admin" && !payload.admin_role)) throw new Error("This account does not have admin access.");
+    localStorage.setItem("authToken", token);
+    if (data.refresh_token) localStorage.setItem("refreshToken", data.refresh_token);
+    localStorage.setItem("userData", JSON.stringify({ ...data.user, permissions: payload.permissions || [], admin_role: payload.admin_role }));
+    toast.success("Welcome back, Admin!", "Login Successful");
+    navigate("/admin-dashboard");
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !password) {
+    if (!challengeId && (!email || !password)) {
       toast.error("Please enter email and password", "Login Failed");
       return;
     }
 
     setIsLoading(true);
     try {
-      // POST /auth/login
-      const response = await api.post("/auth/login", { email, password });
+      const response = challengeId
+        ? await api.post("/auth/admin-2fa/verify", { challenge_id: challengeId, code })
+        : await api.post("/auth/admin/login", { email, password });
+
+      if (response.data?.requires_2fa) {
+        setChallengeId(response.data.challenge_id);
+        setTwoFactorMethod(response.data.method);
+        toast.success(response.data.method === "email" ? `Code sent to ${response.data.masked_email}` : "Enter code from your authenticator app");
+        return;
+      }
 
       if (response.data?.access_token) {
-        const token = response.data.access_token;
-        const payload = decodeJwtToken(token);
-
-        // Only allow admin role
-        if (payload?.role !== "admin") {
-          toast.error(
-            "This account does not have admin access.",
-            "Access Denied",
-          );
-          setIsLoading(false);
-          return;
-        }
-
-        // Store token
-        localStorage.setItem("authToken", token);
-        if (response.data.refresh_token) {
-          localStorage.setItem("refreshToken", response.data.refresh_token);
-        }
-        localStorage.setItem(
-          "userData",
-          JSON.stringify({
-            id: payload.user_id,
-            email: payload.email,
-            role: payload.role,
-            firstname: payload.firstname || "",
-            lastname: payload.lastname || "",
-          }),
-        );
-
-        toast.success("Welcome back, Admin!", "Login Successful");
-        navigate("/admin-dashboard");
+        finishLogin(response.data);
       } else {
         toast.error("Invalid response from server", "Login Failed");
       }
@@ -129,8 +121,9 @@ export default function AdminLogin() {
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-6">
+              {challengeId && <div className="rounded-2xl bg-orange-50 p-4 text-sm text-orange-800"><ShieldCheck className="mr-2 inline" size={18} />{twoFactorMethod === "totp" ? "Enter 6-digit code from your authenticator app." : "Enter 6-digit code sent to your email."}</div>}
               {/* Email */}
-              <div className="group">
+              {!challengeId && <div className="group">
                 <label className="block text-xs font-bold text-gray-700 mb-3 uppercase tracking-widest ml-1">
                   Email Address
                 </label>
@@ -147,10 +140,10 @@ export default function AdminLogin() {
                     required
                   />
                 </div>
-              </div>
+              </div>}
 
               {/* Password */}
-              <div className="group">
+              {!challengeId && <div className="group">
                 <label className="block text-xs font-bold text-gray-700 mb-3 uppercase tracking-widest ml-1">
                   Password
                 </label>
@@ -178,7 +171,8 @@ export default function AdminLogin() {
                     )}
                   </button>
                 </div>
-              </div>
+              </div>}
+              {challengeId && <div className="group"><label className="block text-xs font-bold text-gray-700 mb-3 uppercase tracking-widest ml-1">Verification code</label><input autoFocus inputMode="numeric" maxLength={6} value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))} className="w-full rounded-2xl border-2 border-gray-100 bg-gray-50/50 px-4 py-5 text-center text-2xl font-black tracking-[0.5em] outline-none focus:border-orange-500" required /><button type="button" onClick={() => { setChallengeId(""); setCode(""); }} className="mt-3 text-xs font-bold text-orange-600">Use another account</button></div>}
 
               {/* Submit */}
               <button
@@ -189,10 +183,10 @@ export default function AdminLogin() {
                 {isLoading ? (
                   <div className="flex items-center justify-center gap-3">
                     <div className="w-6 h-6 border-4 border-white border-t-transparent rounded-full animate-spin" />
-                    <span>Signing in...</span>
+                    <span>{challengeId ? "Verifying..." : "Signing in..."}</span>
                   </div>
                 ) : (
-                  "Login Now"
+                  challengeId ? "Verify and login" : "Login Now"
                 )}
               </button>
             </form>

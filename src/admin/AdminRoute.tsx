@@ -23,7 +23,7 @@ export default function AdminRoute({ children }: { children: ReactNode }) {
       const token = localStorage.getItem("authToken");
       const payload = token ? decodeJwtToken(token) : null;
       const expired = Boolean(payload?.exp && payload.exp * 1000 <= Date.now());
-      const valid = Boolean(token && payload?.role === "admin" && !expired);
+      const valid = Boolean(token && (payload?.role === "admin" || payload?.admin_role) && !expired);
 
       if (!valid) clearAdminSession();
       if (active) {

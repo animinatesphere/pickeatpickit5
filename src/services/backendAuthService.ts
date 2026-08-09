@@ -76,6 +76,8 @@ export interface JwtPayload {
   rider_id?: string;
   business_name?: string;
   exp: number;
+  admin_role?: "admin" | "super_admin";
+  permissions?: string[];
 }
 
 export interface MenuItem {
