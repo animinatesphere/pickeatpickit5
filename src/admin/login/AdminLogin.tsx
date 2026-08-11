@@ -17,7 +17,7 @@ export default function AdminLogin() {
   const [twoFactorMethod, setTwoFactorMethod] = useState<"totp" | "email">("email");
   const [code, setCode] = useState("");
 
-  const finishLogin = (data: any) => {
+  const finishLogin = (data: { access_token: string; refresh_token?: string; user?: Record<string, unknown> }) => {
     const token = data.access_token;
     const payload = decodeJwtToken(token);
     if (!payload || (payload.role !== "admin" && !payload.admin_role)) throw new Error("This account does not have admin access.");

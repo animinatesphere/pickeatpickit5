@@ -541,7 +541,7 @@ const Content: React.FC = () => {
               <select
                 value={bannerForm.status}
                 onChange={(e) =>
-                  setBannerForm({ ...bannerForm, status: e.target.value as any })
+                  setBannerForm({ ...bannerForm, status: e.target.value as Banner["status"] })
                 }
                 className="w-full px-5 py-4 bg-gray-50 border border-gray-200 rounded-2xl focus:ring-4 focus:ring-green-500/10 focus:border-green-500 outline-none transition-all duration-200 font-inter font-bold uppercase  tracking-widest text-xs appearance-none"
               >

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useEffect } from "react";
 import {
   ArrowLeft,
@@ -24,6 +25,9 @@ interface Transaction {
   status: string;
   payment_method: string;
   created_at: string;
+  description?: string;
+  payment_reference?: string;
+  txn_metadata?: Record<string, any>;
 }
 
 interface Payout {
@@ -55,8 +59,8 @@ const fetchPayouts = (status?: string) =>
     params: status && status !== "all" ? { status } : {},
   });
 
-const updatePayoutStatus = (payoutId: string, status: string) =>
-  api.patch(`/admin/payouts/${payoutId}`, { status });
+const updatePayoutStatus = (payoutId: string, status: string, approval_pin?: string) =>
+  api.patch(`/admin/payouts/${payoutId}`, { status, approval_pin });
 
 const fetchPayoutConfig = () => api.get("/admin/payout-config");
 const savePayoutConfig = (payload: { vendor_threshold: number; rider_threshold: number; vendor_auto_approve: boolean; rider_auto_approve: boolean }) =>
@@ -102,17 +106,25 @@ export default function Transaction() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedPayout, setSelectedPayout] = useState<Payout | null>(null);
+  const [selectedTransaction, setSelectedTransaction] = useState<any>(null);
+  const [pinSet, setPinSet] = useState<boolean | null>(null);
+  const [pin, setPin] = useState("");
+  const [confirmPin, setConfirmPin] = useState("");
+  const [showPinSetup, setShowPinSetup] = useState(false);
+  const [reversalReason, setReversalReason] = useState("");
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [config, setConfig] = useState({ vendor_threshold: "50000", rider_threshold: "10000", vendor_auto_approve: false, rider_auto_approve: false });
   const [savingConfig, setSavingConfig] = useState(false);
   const [actionError, setActionError] = useState("");
+  const [finance, setFinance] = useState<any>(null);
 
   // ── Fetch ───────────────────────────────────────────────────────────────────
   const loadTransactions = async () => {
     setLoading(true);
     try {
-      const res = await fetchTransactions();
+      const [res, summary] = await Promise.all([fetchTransactions(), api.get("/admin/finance/summary")]);
       setTransactions(Array.isArray(res.data) ? res.data : []);
+      setFinance(summary.data);
     } catch (e) {
       console.error("Failed to load transactions:", e);
     } finally {
@@ -127,6 +139,9 @@ export default function Transaction() {
         fetchPayouts(status === "all" ? undefined : status),
         fetchPayoutConfig(),
       ]);
+      const pinRes = await api.get("/admin/payout-pin");
+      setPinSet(Boolean(pinRes.data.is_set));
+      if (!pinRes.data.is_set) setShowPinSetup(true);
       setPayouts(Array.isArray(res.data) ? res.data : []);
       setConfig({
         vendor_threshold: String(configRes.data.vendor_threshold),
@@ -160,7 +175,9 @@ export default function Transaction() {
     setActionLoading(payoutId);
     setActionError("");
     try {
-      await updatePayoutStatus(payoutId, status);
+      const approvalPin = status === "approved" ? window.prompt("Enter your 4-digit payout approval PIN") || "" : undefined;
+      if (status === "approved" && !/^\d{4}$/.test(approvalPin || "")) throw new Error("Enter your 4-digit payout approval PIN");
+      await updatePayoutStatus(payoutId, status, approvalPin);
       setSelectedPayout(null);
       loadPayouts(payoutTab);
     } catch (e: any) {
@@ -169,6 +186,28 @@ export default function Transaction() {
     } finally {
       setActionLoading(null);
     }
+  };
+
+  const savePin = async () => {
+    if (!/^\d{4}$/.test(pin)) return setActionError("PIN must be exactly 4 digits");
+    if (pin !== confirmPin) return setActionError("PINs do not match");
+    setActionLoading("pin"); setActionError("");
+    try { await api.post("/admin/payout-pin", { pin }); setPinSet(true); setShowPinSetup(false); setPin(""); setConfirmPin(""); }
+    catch (e: any) { setActionError(e?.response?.data?.detail || e?.message || "Could not set PIN"); }
+    finally { setActionLoading(null); }
+  };
+
+  const openTransaction = async (transactionId: string) => {
+    try { const { data } = await api.get(`/admin/transactions/${transactionId}`); setSelectedTransaction(data); setReversalReason(""); }
+    catch (e: any) { setActionError(e?.response?.data?.detail || "Could not load transaction"); }
+  };
+
+  const reverseSelectedTransaction = async () => {
+    if (!selectedTransaction || reversalReason.trim().length < 3) return;
+    setActionLoading(selectedTransaction.transaction.id);
+    try { await api.post(`/admin/transactions/${selectedTransaction.transaction.id}/reverse`, { reason: reversalReason.trim() }); setSelectedTransaction(null); await loadTransactions(); }
+    catch (e: any) { setActionError(e?.response?.data?.detail || "Could not reverse transaction"); }
+    finally { setActionLoading(null); }
   };
 
   const handleSaveConfig = async (event: React.FormEvent) => {
@@ -297,6 +336,7 @@ export default function Transaction() {
             </p>
           </div>
         </div>
+        {finance && <section className="rounded-3xl bg-slate-950 p-5 text-white"><p className="text-xs font-black uppercase text-green-400">Vendor finances</p><div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">{[["Gross sales", finance.gross_sales], ["Commission", finance.platform_commission], ["Vendor net", finance.vendor_payouts], ["Refunds", finance.refunds]].map(([label, value]) => <div key={String(label)} className="rounded-2xl bg-white/10 p-3"><p className="text-lg font-black">{fmt(Number(value))}</p><p className="text-[9px] uppercase text-slate-400">{label}</p></div>)}</div><div className="mt-4 max-h-56 space-y-2 overflow-auto">{finance.vendor_finances.map((vendor: any) => <div key={vendor.vendor_id} className="grid grid-cols-4 gap-2 rounded-xl bg-white/5 p-3 text-xs"><span className="col-span-4 font-black sm:col-span-1">{vendor.business_name}</span><span>Gross {fmt(vendor.gross_sales)}</span><span>Fee {fmt(vendor.platform_commission)}</span><span>Net {fmt(vendor.net_sales)}</span></div>)}</div></section>}
 
         {/* ── Search ─────────────────────────────────────────────────────────── */}
         <div className="relative">
@@ -328,8 +368,7 @@ export default function Transaction() {
               <button disabled={savingConfig} className="self-end rounded-xl bg-green-600 px-5 py-3 text-xs font-black uppercase text-white disabled:opacity-50">{savingConfig ? "Saving…" : "Save"}</button>
             </div>
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
-              <label className="flex items-center justify-between rounded-2xl border border-green-200 bg-white p-4"><span><span className="block text-sm font-black text-gray-800">Vendor auto-approval</span><span className="mt-1 block text-xs text-gray-500">Send eligible vendor requests to Paystack immediately.</span></span><input type="checkbox" checked={config.vendor_auto_approve} onChange={(e) => setConfig({ ...config, vendor_auto_approve: e.target.checked })} className="h-5 w-5 shrink-0 accent-green-600" /></label>
-              <label className="flex items-center justify-between rounded-2xl border border-green-200 bg-white p-4"><span><span className="block text-sm font-black text-gray-800">Rider auto-approval</span><span className="mt-1 block text-xs text-gray-500">Send eligible rider requests to Paystack immediately.</span></span><input type="checkbox" checked={config.rider_auto_approve} onChange={(e) => setConfig({ ...config, rider_auto_approve: e.target.checked })} className="h-5 w-5 shrink-0 accent-green-600" /></label>
+              <div className="col-span-2 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm font-bold text-amber-900">Automatic payout approval is disabled. Every transfer requires an authorized admin’s 4-digit payout PIN.</div>
             </div>
           </form>
           {actionError && <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700">{actionError}</div>}
@@ -372,7 +411,8 @@ export default function Transaction() {
               filteredTransactions.map((tx) => (
                 <div
                   key={tx.id}
-                  className="bg-white rounded-[2rem] p-6 shadow-xl border border-gray-50 flex items-center justify-between group hover:border-green-200 transition-all"
+                  onClick={() => openTransaction(tx.id)}
+                  className="bg-white rounded-[2rem] p-6 shadow-xl border border-gray-50 flex items-center justify-between group hover:border-green-200 transition-all cursor-pointer"
                 >
                   <div className="flex items-center gap-4">
                     <div className="w-14 h-14 bg-green-50 rounded-2xl flex items-center justify-center flex-shrink-0 group-hover:rotate-6 transition-transform">
@@ -585,6 +625,8 @@ export default function Transaction() {
           </div>
         </div>
       )}
+      {showPinSetup && pinSet === false && <div className="fixed inset-0 z-[70] grid place-items-center bg-slate-950/70 p-4"><div className="w-full max-w-md rounded-3xl bg-white p-6"><h2 className="text-xl font-black">Set payout approval PIN</h2><p className="mt-1 text-sm text-slate-500">Required before any payout transfer. Use exactly 4 digits and keep it private.</p>{actionError && <p className="mt-3 rounded-xl bg-red-50 p-3 text-sm font-bold text-red-700">{actionError}</p>}<div className="mt-5 grid grid-cols-2 gap-3"><input autoFocus inputMode="numeric" maxLength={4} type="password" value={pin} onChange={(e) => setPin(e.target.value.replace(/\D/g, ""))} placeholder="4-digit PIN" className="rounded-xl bg-slate-100 p-3 outline-none focus:ring-2 focus:ring-green-500"/><input inputMode="numeric" maxLength={4} type="password" value={confirmPin} onChange={(e) => setConfirmPin(e.target.value.replace(/\D/g, ""))} placeholder="Confirm PIN" className="rounded-xl bg-slate-100 p-3 outline-none focus:ring-2 focus:ring-green-500"/></div><button disabled={actionLoading === "pin"} onClick={savePin} className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-green-600 py-3 font-black text-white disabled:opacity-50">{actionLoading === "pin" && <Loader2 size={16} className="animate-spin"/>} Save approval PIN</button></div></div>}
+      {selectedTransaction && <div className="fixed inset-0 z-[60] grid place-items-center bg-slate-950/70 p-4" onClick={() => setSelectedTransaction(null)}><div className="w-full max-w-lg rounded-3xl bg-white p-6" onClick={(e) => e.stopPropagation()}><div className="flex items-start justify-between"><div><h2 className="text-xl font-black">Transaction details</h2><p className="text-xs text-slate-400">{selectedTransaction.transaction.id}</p></div><button onClick={() => setSelectedTransaction(null)} className="rounded-xl bg-slate-100 p-2"><X size={18}/></button></div><div className="mt-5 grid grid-cols-2 gap-3 text-sm">{[["Customer", selectedTransaction.user?.name || "—"], ["Email", selectedTransaction.user?.email || "—"], ["Current balance", fmt(selectedTransaction.user?.balance)], ["Amount", fmt(selectedTransaction.transaction.amount)], ["Type", selectedTransaction.transaction.type], ["Status", selectedTransaction.transaction.status], ["Method", selectedTransaction.transaction.payment_method || "—"], ["Reference", selectedTransaction.transaction.payment_reference || "—"]].map(([label,value]) => <div key={label} className="rounded-xl bg-slate-50 p-3"><p className="text-[10px] font-black uppercase text-slate-400">{label}</p><p className="mt-1 break-all font-bold">{value}</p></div>)}</div>{selectedTransaction.transaction.description && <p className="mt-3 rounded-xl bg-slate-50 p-3 text-sm">{selectedTransaction.transaction.description}</p>}{selectedTransaction.transaction.status === "completed" && <div className="mt-5"><label className="text-xs font-black uppercase text-slate-500">Reversal reason<textarea value={reversalReason} onChange={(e) => setReversalReason(e.target.value)} className="mt-1 min-h-24 w-full rounded-xl bg-slate-100 p-3 text-sm normal-case outline-none focus:ring-2 focus:ring-red-500" placeholder="Why should this transaction be reversed?"/></label><p className="mb-3 text-xs text-amber-700">Credit reversal can move wallet below zero. Future top-ups automatically repay negative balance first.</p><button disabled={actionLoading === selectedTransaction.transaction.id || reversalReason.trim().length < 3} onClick={reverseSelectedTransaction} className="flex w-full items-center justify-center gap-2 rounded-xl bg-red-600 py-3 text-sm font-black text-white disabled:opacity-50">{actionLoading === selectedTransaction.transaction.id && <Loader2 size={16} className="animate-spin"/>} Reverse transaction</button></div>}</div></div>}
     </div>
   );
 }

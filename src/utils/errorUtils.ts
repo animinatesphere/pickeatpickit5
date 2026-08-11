@@ -1,5 +1,5 @@
-export const humanizeError = (error: any, context: string = ""): string => {
-  const rawMessage = error?.message || String(error);
+export const humanizeError = (error: unknown, context: string = ""): string => {
+  const rawMessage = error instanceof Error ? error.message : String(error);
   
   // Auth Errors
   if (rawMessage.includes("Invalid login credentials")) {

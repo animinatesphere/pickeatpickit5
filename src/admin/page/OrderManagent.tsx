@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useState, useEffect } from "react";
-import { Menu, Bell, ChevronRight, ArrowLeft, Loader2 } from "lucide-react";
+import React, { useState, useEffect, useCallback } from "react";
+import { Bell, ChevronRight, ArrowLeft, Loader2, X } from "lucide-react";
 import api from "../../services/api";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -9,10 +9,12 @@ type OrderStatus =
   | "Pending"
   | "Cancelled"
   | "Preparing"
+  | "Ready"
   | "Accepted"
   | "Picked_up";
-type StatusTab = "All" | "Pending" | "Completed" | "Cancelled";
+type StatusTab = "All" | "Pending" | "Accepted" | "Preparing" | "Ready" | "Picked_up" | "Completed" | "Cancelled" | "Failed";
 type Screen = "main" | "details" | "status-control";
+type AdminAction = { kind: "assign" | "status" | "refund" | "compensation" | "note" | "dispute" | "resolve"; value?: string; amount?: string; reason?: string; ticketId?: string };
 
 interface Order {
   id: string;
@@ -27,6 +29,8 @@ interface Order {
   created_at: string;
   order_items: any[];
   vendor: any;
+  cancellation_reason?: string;
+  failure_reason?: string;
 }
 
 interface OrderDetail {
@@ -45,17 +49,19 @@ interface OrderDetail {
   vendorName: string;
   vendorPhone: string;
   itemImage: string;
+  reason: string;
+  timeline: any[];
+  payment: any;
+  internalNotes: any[];
+  customerEmail: string;
+  riderName: string;
+  riderPhone: string;
+  supportTickets: any[];
 }
 
 // ── API helpers ───────────────────────────────────────────────────────────────
-const fetchAdminOrders = (limit = 50) =>
-  api.get("/admin/orders", { params: { limit } });
-
-const fetchOrderDetail = (orderId: string) =>
-  api.get(`/admin/orders/${orderId}`);
-
-const updateOrderStatus = (orderId: string, status: string) =>
-  api.patch(`/orders/${orderId}`, { status });
+const fetchAdminOrders = (params: { limit?: number; status?: string; period?: string; search?: string; payment_status?: string; date_from?: string; date_to?: string } = {}) =>
+  api.get("/admin/orders", { params: { limit: 100, ...params } });
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const capitalise = (s: string) =>
@@ -68,9 +74,12 @@ const statusColor = (s: string) => {
     case "pending":
       return "text-yellow-600";
     case "cancelled":
+    case "failed":
       return "text-red-600";
     case "preparing":
       return "text-blue-600";
+    case "ready":
+      return "text-cyan-600";
     case "accepted":
       return "text-indigo-600";
     case "picked_up":
@@ -87,9 +96,12 @@ const statusBg = (s: string) => {
     case "pending":
       return "bg-yellow-500";
     case "cancelled":
+    case "failed":
       return "bg-red-600";
     case "preparing":
       return "bg-blue-600";
+    case "ready":
+      return "bg-cyan-600";
     case "accepted":
       return "bg-indigo-600";
     case "picked_up":
@@ -100,20 +112,27 @@ const statusBg = (s: string) => {
 };
 
 // ── Component ─────────────────────────────────────────────────────────────────
-const OrderManagement: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<StatusTab>("All");
+const OrderManagement: React.FC<{ initialStatus?: string; initialPeriod?: string; initialSearch?: string }> = ({ initialStatus, initialPeriod, initialSearch }) => {
+  const [activeTab, setActiveTab] = useState<StatusTab>((initialStatus ? capitalise(initialStatus) : "All") as StatusTab);
   const [currentScreen, setCurrentScreen] = useState<Screen>("main");
   const [selectedOrder, setSelectedOrder] = useState<OrderDetail | null>(null);
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [detailLoading, setDetailLoading] = useState(false);
   const [updatingStatus, setUpdatingStatus] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState(initialSearch || "");
+  const [paymentStatus, setPaymentStatus] = useState("");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+  const [riders, setRiders] = useState<any[]>([]);
+  const [action, setAction] = useState<AdminAction | null>(null);
+  const [actionError, setActionError] = useState("");
 
   // ── Fetch orders ────────────────────────────────────────────────────────────
-  const fetchOrders = async () => {
+  const fetchOrders = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetchAdminOrders();
+      const res = await fetchAdminOrders({ status: initialStatus, period: initialPeriod, ...(searchQuery ? { search: searchQuery } : {}), ...(paymentStatus ? { payment_status: paymentStatus } : {}), ...(dateFrom ? { date_from: new Date(dateFrom).toISOString() } : {}), ...(dateTo ? { date_to: new Date(`${dateTo}T23:59:59`).toISOString() } : {}) });
       const raw: any[] = Array.isArray(res.data) ? res.data : [];
       const mapped: Order[] = raw.map((o) => ({
         id: o.id,
@@ -129,6 +148,8 @@ const OrderManagement: React.FC = () => {
         created_at: o.created_at,
         order_items: o.order_items || [],
         vendor: o.vendor || null,
+        cancellation_reason: o.cancellation_reason,
+        failure_reason: o.failure_reason,
       }));
       setOrders(mapped);
     } catch (e) {
@@ -136,21 +157,21 @@ const OrderManagement: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [initialStatus, initialPeriod, searchQuery, paymentStatus, dateFrom, dateTo]);
 
   useEffect(() => {
     fetchOrders();
-  }, []);
+  }, [fetchOrders]);
 
   // ── Open order detail ───────────────────────────────────────────────────────
   const handleCheckClick = async (orderId: string) => {
     setDetailLoading(true);
     try {
-      const res = await fetchOrderDetail(orderId);
-      const d: any = res.data;
+      const [res, riderResponse] = await Promise.all([api.get(`/admin/orders/${orderId}/command`), api.get("/admin/riders", { params: { status: "accepted", limit: 100 } })]);
+      const command: any = res.data; const d = command.order; setRiders(riderResponse.data || []);
 
       const detail: OrderDetail = {
-        id: d.id?.slice(0, 8).toUpperCase() || "—",
+        id: d.id,
         title: d.order_items?.[0]?.menu_item?.name || "Multiple Items",
         price: `₦${(d.total_amount || 0).toLocaleString()}`,
         quantity: `×${d.items_count || d.order_items?.length || 1}`,
@@ -169,6 +190,14 @@ const OrderManagement: React.FC = () => {
         vendorName: d.vendor?.business_name || "—",
         vendorPhone: d.vendor?.business_phone || "—",
         itemImage: d.order_items?.[0]?.menu_item?.image_url || "",
+        reason: d.cancellation_reason || d.failure_reason || "No reason recorded",
+        timeline: [...(command.payment_events || []).map((event: any) => ({ status: `Payment ${event.new_status}`, timestamp: event.created_at, actor_type: event.changed_by, notes: event.change_reason })), ...(command.timeline || [])].sort((a: any, b: any) => new Date(a.timestamp || a.created_at).getTime() - new Date(b.timestamp || b.created_at).getTime()),
+        payment: command.payment,
+        internalNotes: command.internal_notes || [],
+        customerEmail: d.user?.email || "",
+        riderName: d.rider ? `${d.rider.firstname || ""} ${d.rider.lastname || ""}`.trim() : "Unassigned",
+        riderPhone: d.rider?.phone || "",
+        supportTickets: command.support_tickets || [],
       };
 
       setSelectedOrder(detail);
@@ -180,17 +209,38 @@ const OrderManagement: React.FC = () => {
     }
   };
 
-  // ── Update order status ─────────────────────────────────────────────────────
-  const handleUpdateStatus = async (orderId: string, status: string) => {
-    setUpdatingStatus(orderId);
+  const runAdminAction = async () => {
+    if (!selectedOrder || !action) return;
+    const reason = action.reason?.trim() || "";
+    const amount = Number(action.amount);
+    if (["status", "refund", "compensation", "note", "dispute", "resolve"].includes(action.kind) && reason.length < 5) {
+      setActionError("Add a clear reason or note of at least 5 characters."); return;
+    }
+    if (["refund", "compensation"].includes(action.kind) && (!Number.isFinite(amount) || amount <= 0)) {
+      setActionError("Enter a valid amount greater than zero."); return;
+    }
+    if (action.kind === "assign" && !action.value) { setActionError("Choose a rider."); return; }
+    setActionError("");
+    setUpdatingStatus(selectedOrder.id);
     try {
-      await updateOrderStatus(orderId, status);
-      fetchOrders(); // Refresh
-    } catch (e) {
-      console.error("Failed to update order status:", e);
+      if (action.kind === "assign") await api.post(`/admin/orders/${selectedOrder.id}/assign-rider`, { rider_id: action.value, note: reason || "Manual admin assignment" });
+      if (action.kind === "status") await api.patch(`/orders/${selectedOrder.id}`, { status: action.value, ...(action.value === "cancelled" ? { cancellation_reason: reason } : {}), admin_override_reason: reason });
+      if (action.kind === "refund" || action.kind === "compensation") await api.post(`/admin/orders/${selectedOrder.id}/${action.kind}`, { amount, reason, idempotency_key: `${action.kind}:${selectedOrder.id}:${amount.toFixed(2)}:${reason}` });
+      if (action.kind === "note") await api.post(`/admin/orders/${selectedOrder.id}/notes`, { note: reason });
+      if (action.kind === "dispute") await api.post("/admin/issues", { subject_type: "order", subject_id: selectedOrder.id, category: "dispute", summary: reason, severity: "high" });
+      if (action.kind === "resolve") await api.patch(`/support/tickets/${action.ticketId}`, { status: "resolved", resolution: reason });
+      setAction(null);
+      await Promise.all([fetchOrders(), handleCheckClick(selectedOrder.id)]);
+    } catch (e: any) {
+      setActionError(e.response?.data?.detail || "Action failed. Nothing was changed.");
     } finally {
       setUpdatingStatus(null);
     }
+  };
+
+  const openOrderStatusAction = async (order: Order, next: string) => {
+    await handleCheckClick(order.id);
+    setAction({ kind: "status", value: next, reason: "" });
   };
 
   // ── Derived data ────────────────────────────────────────────────────────────
@@ -203,7 +253,7 @@ const OrderManagement: React.FC = () => {
 
   const statusOrders = orders
     .filter((o) =>
-      ["Pending", "Accepted", "Preparing", "Picked_up"].includes(o.status),
+      ["Pending", "Accepted", "Preparing", "Ready", "Picked_up"].includes(o.status),
     )
     .slice(0, 10);
 
@@ -222,9 +272,7 @@ const OrderManagement: React.FC = () => {
           {/* Header */}
           <div className="bg-green-600 text-white p-6 sticky top-0 z-40 shadow-xl">
             <div className="flex justify-between items-center mb-6">
-              <button className="hover:bg-white/20 p-2 rounded-xl transition-all">
-                <Menu size={24} />
-              </button>
+              <span className="rounded-xl bg-white/10 px-3 py-2 text-xs font-black">ALL ORDERS</span>
               <h1 className="text-xl font-bold tracking-tighter uppercase">
                 Order Management
               </h1>
@@ -236,7 +284,7 @@ const OrderManagement: React.FC = () => {
             {/* Tabs */}
             <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
               {(
-                ["All", "Pending", "Completed", "Cancelled"] as StatusTab[]
+                ["All", "Pending", "Accepted", "Preparing", "Ready", "Picked_up", "Completed", "Cancelled", "Failed"] as StatusTab[]
               ).map((tab) => (
                 <button
                   key={tab}
@@ -263,6 +311,7 @@ const OrderManagement: React.FC = () => {
           </div>
 
           <div className="p-6 space-y-4">
+            <div className="grid gap-2 rounded-2xl border border-slate-100 bg-white p-3 shadow-sm sm:grid-cols-2 lg:grid-cols-5"><input value={searchQuery} onChange={e => setSearchQuery(e.target.value)} onKeyDown={e => e.key === "Enter" && fetchOrders()} placeholder="Order, customer, vendor, rider, phone" className="rounded-xl bg-slate-50 p-3 text-sm outline-none focus:ring-2 focus:ring-green-500 sm:col-span-2"/><select value={paymentStatus} onChange={e => setPaymentStatus(e.target.value)} className="rounded-xl bg-slate-50 p-3 text-sm"><option value="">Any payment</option>{["pending","success","failed","refunded"].map(value => <option key={value}>{value}</option>)}</select><input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="rounded-xl bg-slate-50 p-3 text-sm"/><input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="rounded-xl bg-slate-50 p-3 text-sm"/><button onClick={fetchOrders} className="rounded-xl bg-slate-950 p-3 text-xs font-black text-white sm:col-span-2 lg:col-span-5">Search orders</button></div>
             {/* Control buttons */}
             <button
               onClick={() => setCurrentScreen("status-control")}
@@ -277,7 +326,7 @@ const OrderManagement: React.FC = () => {
               />
             </button>
 
-            <button className="w-full flex justify-between items-center p-5 bg-white rounded-[2rem] shadow-xl hover:shadow-2xl transition-all group">
+            <button onClick={() => setActiveTab("Cancelled")} className="w-full flex justify-between items-center p-5 bg-white rounded-[2rem] shadow-xl hover:shadow-2xl transition-all group">
               <div>
                 <span className="font-bold text-gray-800 tracking-tighter uppercase">
                   Order Disputes{" "}
@@ -505,6 +554,10 @@ const OrderManagement: React.FC = () => {
                 ))}
               </div>
 
+              {(["cancelled", "failed"].includes(selectedOrder.status.toLowerCase())) && (
+                <div className="rounded-2xl bg-red-50 p-4 text-sm text-red-800"><span className="font-black">Reason: </span>{selectedOrder.reason}</div>
+              )}
+
               {/* Total */}
               <div className="flex justify-between items-center pt-6 border-t-4 border-gray-100">
                 <span className="text-xl font-black text-gray-800 tracking-tighter uppercase">
@@ -552,6 +605,17 @@ const OrderManagement: React.FC = () => {
                 </div>
               </div>
             </div>
+
+            <div className="rounded-[2rem] bg-white p-5 shadow-xl"><h2 className="font-black">Order timeline</h2><div className="mt-4 space-y-3">{selectedOrder.timeline.length ? selectedOrder.timeline.map((event: any, index: number) => <div key={event.id || index} className="flex gap-3"><div className="mt-1 h-3 w-3 shrink-0 rounded-full bg-green-500"/><div><p className="text-sm font-black capitalize">{String(event.status).replaceAll("_", " ")}</p><p className="text-xs text-slate-400">{new Date(event.timestamp || event.created_at).toLocaleString()} · {event.actor_type || "system"}</p>{(event.message || event.notes) && <p className="mt-1 text-xs text-slate-600">{event.message || event.notes}</p>}{event.latitude && <p className="text-[10px] text-slate-400">{event.latitude}, {event.longitude}</p>}</div></div>) : <p className="text-sm text-slate-400">No timeline events recorded</p>}</div></div>
+
+            <div className="rounded-[2rem] bg-white p-5 shadow-xl"><div className="flex items-center justify-between"><div><h2 className="font-black">Admin actions</h2><p className="text-xs text-slate-400">Every manual action records its reason.</p></div>{updatingStatus && <Loader2 className="animate-spin text-green-600" size={18}/>}</div><div className="mt-4 grid gap-2 sm:grid-cols-2">
+              <select value={action?.kind === "assign" ? action.value || "" : ""} onChange={event => event.target.value && setAction({ kind: "assign", value: event.target.value, reason: "" })} className="rounded-xl bg-slate-50 p-3 text-sm font-black"><option value="">Assign / reassign rider</option>{riders.filter(rider => ["online", "available", "assigned"].includes(rider.operational_status)).map(rider => <option key={rider.id} value={rider.id}>{rider.firstname} {rider.lastname} · {rider.operational_status}</option>)}</select>
+              <select value={action?.kind === "status" ? action.value : selectedOrder.status.toLowerCase()} onChange={event => setAction({ kind: "status", value: event.target.value, reason: "" })} className="rounded-xl bg-slate-50 p-3 text-sm font-black">{["pending","accepted","preparing","ready","picked_up","completed","cancelled","failed"].map(value => <option key={value}>{value}</option>)}</select>
+              <a href={`tel:${selectedOrder.customerPhone}`} className="rounded-xl bg-blue-50 p-3 text-center text-xs font-black text-blue-800">Contact customer</a><a href={`tel:${selectedOrder.vendorPhone}`} className="rounded-xl bg-violet-50 p-3 text-center text-xs font-black text-violet-800">Contact vendor</a><a href={`tel:${selectedOrder.riderPhone}`} className="rounded-xl bg-orange-50 p-3 text-center text-xs font-black text-orange-800">Contact rider</a>
+              <button onClick={() => setAction({ kind: "refund", amount: "", reason: "" })} className="rounded-xl bg-red-50 p-3 text-xs font-black text-red-800">Issue refund</button><button onClick={() => setAction({ kind: "compensation", amount: "", reason: "" })} className="rounded-xl bg-green-50 p-3 text-xs font-black text-green-800">Add compensation</button><button onClick={() => setAction({ kind: "note", reason: "" })} className="rounded-xl bg-slate-100 p-3 text-xs font-black">Add internal note</button><button onClick={() => setAction({ kind: "dispute", reason: "" })} className="rounded-xl bg-amber-50 p-3 text-xs font-black text-amber-800">Open dispute</button>
+            </div>{action && <div className="mt-4 rounded-2xl border border-green-100 bg-green-50 p-4"><div className="flex items-center justify-between"><p className="text-xs font-black uppercase text-green-800">{action.kind.replaceAll("_", " ")}</p><button onClick={() => { setAction(null); setActionError(""); }}><X size={17}/></button></div>{["refund", "compensation"].includes(action.kind) && <input type="number" min="0.01" step="0.01" value={action.amount || ""} onChange={event => setAction(current => current ? { ...current, amount: event.target.value } : current)} placeholder="Amount" className="mt-3 w-full rounded-xl bg-white p-3 text-sm outline-none focus:ring-2 focus:ring-green-500"/>}<textarea value={action.reason || ""} onChange={event => setAction(current => current ? { ...current, reason: event.target.value } : current)} placeholder={action.kind === "note" ? "Internal note" : action.kind === "assign" ? "Assignment reason" : "Required reason"} className="mt-2 min-h-20 w-full rounded-xl bg-white p-3 text-sm outline-none focus:ring-2 focus:ring-green-500"/>{actionError && <p className="mt-2 text-xs font-bold text-red-600">{actionError}</p>}<button disabled={Boolean(updatingStatus)} onClick={runAdminAction} className="mt-3 w-full rounded-xl bg-green-700 py-3 text-xs font-black text-white disabled:opacity-50">Confirm action</button></div>}<div className="mt-4 space-y-2">{selectedOrder.internalNotes.map((note: any) => <p key={note.id} className="rounded-xl bg-slate-50 p-3 text-xs">{note.note} · {new Date(note.created_at).toLocaleString()}</p>)}</div></div>
+
+            {selectedOrder.supportTickets.length > 0 && <div className="rounded-[2rem] bg-amber-50 p-5 shadow-xl"><h2 className="font-black">Related support tickets</h2><div className="mt-3 space-y-2">{selectedOrder.supportTickets.map((ticket: any) => <div key={ticket.id} className="rounded-xl bg-white p-3"><p className="text-xs font-black">{ticket.ticket_number} · {ticket.category} · {ticket.status}</p><p className="text-sm">{ticket.subject}</p>{ticket.status !== "resolved" && ticket.status !== "closed" && <button onClick={() => setAction({ kind: "resolve", ticketId: ticket.id, reason: "" })} className="mt-2 rounded-lg bg-green-600 px-3 py-2 text-[10px] font-black text-white">Resolve here</button>}</div>)}</div></div>}
           </div>
         </div>
       )}
@@ -633,7 +697,7 @@ const OrderManagement: React.FC = () => {
                         {order.status === "Pending" && (
                           <button
                             onClick={() =>
-                              handleUpdateStatus(order.id, "accepted")
+                              openOrderStatusAction(order, "accepted")
                             }
                             disabled={updatingStatus === order.id}
                             className="px-4 py-2 bg-indigo-600 text-white text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-indigo-700 transition-all shadow-lg active:scale-95 disabled:opacity-60 flex items-center gap-1"
@@ -647,7 +711,7 @@ const OrderManagement: React.FC = () => {
                         {order.status === "Accepted" && (
                           <button
                             onClick={() =>
-                              handleUpdateStatus(order.id, "preparing")
+                              openOrderStatusAction(order, "preparing")
                             }
                             disabled={updatingStatus === order.id}
                             className="px-4 py-2 bg-blue-600 text-white text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-blue-700 transition-all shadow-lg active:scale-95 disabled:opacity-60"
@@ -658,18 +722,21 @@ const OrderManagement: React.FC = () => {
                         {order.status === "Preparing" && (
                           <button
                             onClick={() =>
-                              handleUpdateStatus(order.id, "picked_up")
+                              openOrderStatusAction(order, "ready")
                             }
                             disabled={updatingStatus === order.id}
                             className="px-4 py-2 bg-orange-500 text-white text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-orange-600 transition-all shadow-lg active:scale-95 disabled:opacity-60"
                           >
-                            Mark Picked Up
+                            Mark Ready
                           </button>
+                        )}
+                        {order.status === "Ready" && (
+                          <button onClick={() => openOrderStatusAction(order, "picked_up")} disabled={updatingStatus === order.id} className="px-4 py-2 bg-orange-500 text-white text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-orange-600 transition-all shadow-lg active:scale-95 disabled:opacity-60">Mark Picked Up</button>
                         )}
                         {order.status === "Picked_up" && (
                           <button
                             onClick={() =>
-                              handleUpdateStatus(order.id, "completed")
+                              openOrderStatusAction(order, "completed")
                             }
                             disabled={updatingStatus === order.id}
                             className="px-4 py-2 bg-green-600 text-white text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-green-700 transition-all shadow-lg active:scale-95 disabled:opacity-60"
@@ -679,7 +746,7 @@ const OrderManagement: React.FC = () => {
                         )}
                         <button
                           onClick={() =>
-                            handleUpdateStatus(order.id, "cancelled")
+                            openOrderStatusAction(order, "cancelled")
                           }
                           disabled={updatingStatus === order.id}
                           className="px-4 py-2 border-2 border-red-200 text-red-500 text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-red-50 transition-all active:scale-95 disabled:opacity-60"

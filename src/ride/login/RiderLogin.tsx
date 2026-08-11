@@ -35,9 +35,9 @@ export default function RiderLogin() {
           window.location.href = "/rider-dashboard";
         }, 1000);
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Login component error:", err);
-      setError(err.message || "Login failed. Please check your credentials.");
+      setError(err instanceof Error ? err.message : "Login failed. Please check your credentials.");
     }
     finally { setIsLoading(false); }
   };

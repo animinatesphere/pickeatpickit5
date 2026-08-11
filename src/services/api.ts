@@ -173,6 +173,8 @@ export const getAllSystemUsers = async () => {
 export const getPendingVendors = () => api.get("/admin/vendors/pending");
 export const getAdminVendorDetails = (vendorId: string) =>
   api.get(`/admin/vendors/${vendorId}`);
+export const updateAdminVendorDetails = (vendorId: string, payload: Record<string, unknown>) =>
+  api.patch(`/admin/vendors/${vendorId}`, payload);
 export const getAdminRiderDetails = (riderId: string) =>
   api.get(`/admin/riders/${riderId}`);
 
@@ -325,6 +327,10 @@ export const updateSystemSetting = (
 ) => api.patch(`/system/settings/${encodeURIComponent(key)}`, payload);
 export const deleteSystemSetting = (key: string) =>
   api.delete(`/system/settings/${encodeURIComponent(key)}`);
+export const getFeeConfigurations = () => api.get("/system/fees");
+export const createFeeConfiguration = (payload: Record<string, unknown>) => api.post("/system/fees", payload);
+export const updateFeeConfiguration = (id: string, payload: Record<string, unknown>) => api.patch(`/system/fees/${id}`, payload);
+export const deleteFeeConfiguration = (id: string) => api.delete(`/system/fees/${id}`);
 
 export const getPromoCodes = () => api.get("/system/promo-codes");
 export const createPromoCode = (payload: Record<string, unknown>) =>
@@ -351,6 +357,7 @@ export const createRiderGame = (payload: Record<string, unknown>) =>
 export const getAdminRiderGames = () => api.get("/games/");
 export const getAdminGameLeaderboard = (params: Record<string, unknown>) => api.get("/games/admin/leaderboard", { params });
 export const getAdminGameParticipant = (riderId: string, params: Record<string, unknown>) => api.get(`/games/admin/participants/${riderId}`, { params });
+export const rewardAdminGameParticipant = (participationId: string, payload: Record<string, unknown>) => api.post(`/games/admin/participations/${participationId}/reward`, payload);
 export const updateRiderGame = (
   id: string,
   payload: Record<string, unknown>,

@@ -70,7 +70,17 @@ export default function AdminAccounts() {
     setBusy(true);
     try {
       if (editing === "new") {
-        await createAdminAccount(form);
+        const payload = {
+          ...(form.user_id ? { user_id: form.user_id } : {}),
+          email: form.email.trim(),
+          ...(!form.user_id ? { password: form.password } : {}),
+          firstname: form.firstname.trim(),
+          lastname: form.lastname.trim(),
+          phone: form.phone.trim() || null,
+          admin_role: form.admin_role,
+          permissions: form.permissions,
+        };
+        await createAdminAccount(payload);
         success("Admin account created");
       } else if (editing) {
         const payload = { email: form.email, firstname: form.firstname, lastname: form.lastname, phone: form.phone || null, admin_role: form.admin_role, permissions: form.permissions };
@@ -136,7 +146,7 @@ export default function AdminAccounts() {
           <form onSubmit={save} onClick={(event) => event.stopPropagation()} className="max-h-[92vh] w-full overflow-y-auto rounded-t-[2rem] bg-white p-6 sm:max-w-lg sm:rounded-[2rem]">
             <div className="flex items-center justify-between"><div><p className="text-xs font-black uppercase tracking-wide text-green-600">{editing === "new" ? "Create" : "Update"}</p><h2 className="text-xl font-black text-slate-900">Admin account</h2></div><button type="button" onClick={() => setEditing(null)} className="rounded-xl bg-slate-100 p-2"><X size={19} /></button></div>
             <div className="mt-6 grid gap-3 sm:grid-cols-2">
-              {editing === "new" && <select value={form.user_id} onChange={(e) => { const found = candidates.find((item) => item.id === e.target.value); setForm(found ? { ...form, user_id: found.id, email: found.email, firstname: found.firstname || "", lastname: found.lastname || "", phone: found.phone || "", password: "" } : { ...empty }); }} className="rounded-xl bg-green-50 px-4 py-3 font-bold outline-none sm:col-span-2"><option value="">Create new user or select existing user</option>{candidates.map((item) => <option key={item.id} value={item.id}>{`${item.firstname || ""} ${item.lastname || ""}`.trim()} — {item.email}</option>)}</select>}
+              {editing === "new" && <><select value={form.user_id} onChange={(e) => { const found = candidates.find((item) => item.id === e.target.value); setForm(found ? { ...form, user_id: found.id, email: found.email, firstname: found.firstname || "", lastname: found.lastname || "", phone: found.phone || "", password: "" } : { ...empty }); }} className="rounded-xl bg-green-50 px-4 py-3 font-bold outline-none sm:col-span-2"><option value="">Create new user or select existing user</option>{candidates.map((item) => <option key={item.id} value={item.id}>{`${item.firstname || ""} ${item.lastname || ""}`.trim()} — {item.email} ({item.role || "customer"})</option>)}</select><p className="text-xs text-slate-500 sm:col-span-2">Select an existing vendor to add admin access without removing vendor login.</p></>}
               <input required value={form.firstname} onChange={(e) => setForm({ ...form, firstname: e.target.value })} placeholder="First name" className="rounded-xl bg-slate-50 px-4 py-3 outline-none focus:ring-2 focus:ring-green-500" />
               <input required value={form.lastname} onChange={(e) => setForm({ ...form, lastname: e.target.value })} placeholder="Last name" className="rounded-xl bg-slate-50 px-4 py-3 outline-none focus:ring-2 focus:ring-green-500" />
               <input required type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="Email" className="rounded-xl bg-slate-50 px-4 py-3 outline-none focus:ring-2 focus:ring-green-500 sm:col-span-2" />

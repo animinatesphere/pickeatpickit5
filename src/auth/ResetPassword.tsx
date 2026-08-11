@@ -25,23 +25,16 @@ const ResetPassword = () => {
   // Get the user type from URL params (for redirect after success)
   const userType = searchParams.get("type") || "vendor";
   const theme = THEMES[userType] || THEMES.vendor;
+  const loginPath = userType === "rider" ? "/rider-login" : userType === "user" ? "/login" : "/vendor-login";
 
   useEffect(() => {
     // Check if we have the necessary tokens in the URL
     const accessToken = searchParams.get("access_token");
     if (!accessToken) {
       toast.error("Invalid or expired reset link");
-      setTimeout(() => navigate(getLoginPath()), 2000);
+      setTimeout(() => navigate(loginPath), 2000);
     }
-  }, [searchParams, navigate, toast]);
-
-  const getLoginPath = () => {
-    switch (userType) {
-      case "rider": return "/rider-login";
-      case "user": return "/login";
-      default: return "/vendor-login";
-    }
-  };
+  }, [searchParams, navigate, toast, loginPath]);
 
   const validatePassword = (pwd: string): string | null => {
     if (pwd.length < 8) return "Min 8 characters required";
@@ -65,7 +58,7 @@ const ResetPassword = () => {
       await authService.resetPassword("", "", password);
       toast.success("Security updated successfully!");
       setResetSuccess(true);
-      setTimeout(() => navigate(getLoginPath()), 3000);
+      setTimeout(() => navigate(loginPath), 3000);
     } catch (error) {
       if (error instanceof APIError) toast.error(error.message);
       else toast.error("Reset failed. Try again.");
@@ -223,7 +216,7 @@ const ResetPassword = () => {
                        >
                           {isLoading ? "Synchronizing..." : "Update Credentials"}
                        </motion.button>
-                       <Link to={getLoginPath()} className="flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest text-gray-500 hover:text-white transition-colors">
+                       <Link to={loginPath} className="flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest text-gray-500 hover:text-white transition-colors">
                           <ArrowLeft className="w-3 h-3" /> Abort mission
                        </Link>
                     </motion.form>

@@ -53,8 +53,8 @@ const ForgotPassword = () => {
       const response = await authService.sendPasswordResetOTP(email);
       toast.success(response.message);
       setStep("otp");
-    } catch (error: any) {
-      toast.error(error.message || "Failed to send code");
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : "Failed to send code");
     } finally { setIsLoading(false); }
   };
 
@@ -65,7 +65,7 @@ const ForgotPassword = () => {
     try {
       await authService.verifyPasswordResetOTP(email, otp);
       setStep("password");
-    } catch (error: any) { toast.error(error.message || "Verification failed"); }
+    } catch (error: unknown) { toast.error(error instanceof Error ? error.message : "Verification failed"); }
     finally { setIsLoading(false); }
   };
 
@@ -77,7 +77,7 @@ const ForgotPassword = () => {
       await authService.resetPasswordWithOTP(password);
       setStep("success");
       setTimeout(() => navigate(getLoginPath()), 3000);
-    } catch (error: any) { toast.error(error.message || "Reset failed"); }
+    } catch (error: unknown) { toast.error(error instanceof Error ? error.message : "Reset failed"); }
     finally { setIsLoading(false); }
   };
 

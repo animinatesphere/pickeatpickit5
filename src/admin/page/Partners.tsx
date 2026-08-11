@@ -10,6 +10,7 @@ import {
   Search,
   ShieldBan,
   Truck,
+  Upload,
   X,
   XCircle,
 } from "lucide-react";
@@ -17,7 +18,6 @@ import api, {
   deleteVendorLogo,
   deleteMenuItemImage,
   updateAdminRiderStatus,
-  updateMenuItemImage,
   updateVendorLogo,
   updateVendorCommission,
   updateVendorStatus,
@@ -53,6 +53,10 @@ export default function Partners({ kind }: { kind: "vendor" | "rider" }) {
   const [logoUrl, setLogoUrl] = useState("");
   const [menuItems, setMenuItems] = useState<Partner[]>([]);
   const [commission, setCommission] = useState("");
+  const [performance, setPerformance] = useState<any>(null);
+  const [riderAdjustment, setRiderAdjustment] = useState({ kind: "credit", amount: "", reason: "" });
+  const [showRiderAdjustment, setShowRiderAdjustment] = useState(false);
+  const [documentName, setDocumentName] = useState("");
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -86,19 +90,34 @@ export default function Partners({ kind }: { kind: "vendor" | "rider" }) {
     setLogoUrl(row.logo_url || "");
     setCommission(row.commission_percentage == null ? "" : String(row.commission_percentage));
     try {
-      const [response, menuResponse] = await Promise.all([
+      const [response, menuResponse, performanceResponse] = await Promise.all([
         api.get(`/admin/${plural}/${row.id}`),
         kind === "vendor"
           ? api.get("/menu/", { params: { vendor_id: row.id } })
           : Promise.resolve({ data: [] }),
+        api.get(`/admin/${plural}/${row.id}/performance`),
       ]);
       setSelected(response.data);
       setLogoUrl(response.data.logo_url || "");
       setCommission(response.data.commission_percentage == null ? "" : String(response.data.commission_percentage));
       setMenuItems(Array.isArray(menuResponse.data) ? menuResponse.data : []);
+      setPerformance(performanceResponse.data);
     } catch (error) {
       showError(message(error));
     }
+  };
+
+  const updateOperations = async (values: Record<string, any>) => {
+    if (!selected || kind !== "vendor") return;
+    setBusy(true);
+    try { const { data } = await api.patch(`/admin/vendors/${selected.id}/operations`, values); setSelected(data); success("Vendor operations updated"); await load(); }
+    catch (error) { showError(message(error)); } finally { setBusy(false); }
+  };
+
+  const toggleMealFeatured = async (item: Partner) => {
+    setBusy(true);
+    try { const { data } = await api.patch(`/admin/menu-items/${item.id}/featured`, { is_featured: !item.is_featured }); setMenuItems(current => current.map(row => row.id === item.id ? data : row)); success(data.is_featured ? "Meal featured" : "Meal removed from featured"); }
+    catch (error) { showError(message(error)); } finally { setBusy(false); }
   };
 
   const saveCommission = async () => {
@@ -147,20 +166,33 @@ export default function Partners({ kind }: { kind: "vendor" | "rider" }) {
     }
   };
 
-  const changeMealImage = async (item: Partner, remove = false) => {
-    const url = remove ? "" : window.prompt("New meal image URL", item.image_url || "");
-    if (url === null) return;
+  const changeMealImage = async (item: Partner, file?: File, remove = false) => {
     setBusy(true);
     try {
-      if (remove || !url.trim()) await deleteMenuItemImage(item.id);
-      else await updateMenuItemImage(item.id, url.trim());
-      setMenuItems((current) => current.map((row) => row.id === item.id ? { ...row, image_url: remove ? null : url.trim() } : row));
+      let imageUrl: string | null = null;
+      if (remove) await deleteMenuItemImage(item.id);
+      else if (file) { const formData = new FormData(); formData.append("file", file); const { data } = await api.post(`/admin/menu-items/${item.id}/image/upload`, formData, { headers: { "Content-Type": "multipart/form-data" } }); imageUrl = data.image_url; }
+      else return;
+      setMenuItems((current) => current.map((row) => row.id === item.id ? { ...row, image_url: imageUrl } : row));
       success("Meal image updated");
     } catch (error) {
       showError(message(error));
     } finally {
       setBusy(false);
     }
+  };
+
+  const applyRiderAdjustment = async () => {
+    if (!selected) return;
+    const amount = Number(riderAdjustment.amount); const reason = riderAdjustment.reason.trim();
+    if (!Number.isFinite(amount) || amount <= 0 || reason.length < 3) return showError("Enter positive amount and reason");
+    setBusy(true); try { await api.post(`/admin/riders/${selected.id}/balance`, { amount, kind: riderAdjustment.kind, reason }); success("Rider balance updated"); setRiderAdjustment({ kind: "credit", amount: "", reason: "" }); setShowRiderAdjustment(false); await openDetails(selected); } catch (error) { showError(message(error)); } finally { setBusy(false); }
+  };
+
+  const uploadBusinessDocument = async (file: File) => {
+    if (!selected || documentName.trim().length < 2) return showError("Enter document name first");
+    const formData = new FormData(); formData.append("name", documentName.trim()); formData.append("file", file);
+    setBusy(true); try { const { data } = await api.post(`/admin/vendors/${selected.id}/documents/upload`, formData, { headers: { "Content-Type": "multipart/form-data" } }); setSelected(data); setDocumentName(""); success("Business document uploaded"); } catch (error) { showError(message(error)); } finally { setBusy(false); }
   };
 
   const statuses = kind === "vendor"
@@ -251,6 +283,8 @@ export default function Partners({ kind }: { kind: "vendor" | "rider" }) {
 
             {kind === "rider" && selected.license_image && <a href={selected.license_image} target="_blank" rel="noreferrer" className="mt-4 flex items-center justify-center gap-2 rounded-2xl bg-blue-50 px-4 py-3 text-sm font-black text-blue-700">View driver licence <ExternalLink size={15} /></a>}
 
+            {kind === "rider" && <><div className="mt-5 rounded-2xl border border-slate-200 p-4"><p className="text-xs font-black uppercase text-slate-500">Fleet status</p><select value={selected.operational_status || "offline"} onChange={async event => { try { const { data } = await api.patch(`/admin/riders/${selected.id}/operations`, { operational_status: event.target.value }); setSelected(data); success("Rider state updated"); } catch (error) { showError(message(error)); } }} className="mt-2 w-full rounded-xl bg-slate-50 p-3 text-sm font-black">{["offline","online","available","assigned","picking_up","delivering","paused","suspended"].map(value => <option key={value}>{value}</option>)}</select></div>{performance && <div className="mt-5 rounded-2xl border border-slate-200 p-4"><p className="text-xs font-black uppercase text-slate-500">Rider performance</p><div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">{[["Acceptance", `${performance.acceptance_rate}%`], ["Completion", `${performance.completion_rate}%`], ["Cancellation", `${performance.cancellation_rate}%`], ["Pickup", `${performance.average_pickup_minutes}m`], ["Delivery", `${performance.average_delivery_minutes}m`], ["Distance", `${performance.distance_travelled_km}km`], ["Earnings", `₦${Number(performance.earnings).toLocaleString()}`], ["Customer rating", performance.customer_rating], ["Vendor rating", performance.vendor_rating], ["Active hours", performance.active_hours]].map(([label, value]) => <div key={String(label)} className="rounded-xl bg-slate-50 p-2"><p className="font-black">{value}</p><p className="text-[9px] uppercase text-slate-400">{label}</p></div>)}</div><div className="mt-3 max-h-36 space-y-1 overflow-auto">{performance.delivery_history?.map((order: any) => <p key={order.id} className="rounded-lg bg-slate-50 p-2 text-xs">{order.restaurant_name} · {order.status} · {order.distance_km}km · ₦{Number(order.earnings).toLocaleString()}</p>)}</div></div>}<button onClick={() => setShowRiderAdjustment(value => !value)} className="mt-3 w-full rounded-xl bg-slate-100 p-3 text-xs font-black">Credit, bonus or penalty</button>{showRiderAdjustment && <div className="mt-2 grid gap-2 rounded-2xl bg-slate-50 p-3 sm:grid-cols-3"><select value={riderAdjustment.kind} onChange={event => setRiderAdjustment(current => ({ ...current, kind: event.target.value }))} className="rounded-xl bg-white p-3 text-sm"><option value="credit">Add credit</option><option value="bonus">Bonus</option><option value="penalty">Penalty</option></select><input type="number" min="0.01" step="0.01" value={riderAdjustment.amount} onChange={event => setRiderAdjustment(current => ({ ...current, amount: event.target.value }))} placeholder="Amount" className="rounded-xl bg-white p-3 text-sm"/><input value={riderAdjustment.reason} onChange={event => setRiderAdjustment(current => ({ ...current, reason: event.target.value }))} placeholder="Reason" className="rounded-xl bg-white p-3 text-sm sm:col-span-2"/><button disabled={busy} onClick={applyRiderAdjustment} className="rounded-xl bg-green-700 p-3 text-xs font-black text-white">Apply adjustment</button></div>}</>}
+
             <button
               type="button"
               onClick={() => { setDetailId(selected.id); setSelected(null); }}
@@ -261,6 +295,13 @@ export default function Partners({ kind }: { kind: "vendor" | "rider" }) {
 
             {kind === "vendor" && (
               <>
+                <div className="mt-5 grid grid-cols-2 gap-2">
+                  <button disabled={busy} onClick={() => updateOperations({ is_featured: !selected.is_featured })} className={`rounded-2xl p-3 text-xs font-black ${selected.is_featured ? "bg-green-600 text-white" : "bg-green-50 text-green-800"}`}>{selected.is_featured ? "Featured vendor ✓" : "Feature vendor"}</button>
+                  <button disabled={busy} onClick={() => updateOperations({ temporarily_closed: !selected.temporarily_closed })} className={`rounded-2xl p-3 text-xs font-black ${selected.temporarily_closed ? "bg-red-600 text-white" : "bg-amber-50 text-amber-800"}`}>{selected.temporarily_closed ? "Reopen vendor" : "Temporarily close"}</button>
+                </div>
+                <div className="mt-5 grid gap-3 rounded-2xl border border-slate-200 p-4 sm:grid-cols-3">{[["delivery_radius_km", "Delivery radius km"], ["minimum_order", "Minimum order"], ["default_preparation_minutes", "Prep minutes"]].map(([key, label]) => <label key={key}><span className="text-[10px] font-black uppercase text-slate-400">{label}</span><input type="number" defaultValue={selected[key] ?? ""} onBlur={(event) => event.target.value !== "" && updateOperations({ [key]: Number(event.target.value) })} className="mt-1 w-full rounded-xl bg-slate-50 p-3 text-sm outline-none focus:ring-2 focus:ring-green-500"/></label>)}{[["registration_number", "Registration number"], ["tax_id", "Tax ID"], ["license_url", "Licence URL"]].map(([key, label]) => <label key={key}><span className="text-[10px] font-black uppercase text-slate-400">{label}</span><input defaultValue={selected[key] ?? ""} onBlur={(event) => updateOperations({ [key]: event.target.value || null })} className="mt-1 w-full rounded-xl bg-slate-50 p-3 text-sm outline-none focus:ring-2 focus:ring-green-500"/></label>)}</div>
+                <div className="mt-2 grid gap-2 rounded-2xl bg-slate-50 p-3 sm:grid-cols-[1fr_auto]"><input value={documentName} onChange={event => setDocumentName(event.target.value)} placeholder="Document name" className="rounded-xl bg-white p-3 text-sm"/><label className="flex cursor-pointer items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 py-3 text-xs font-black text-white"><Upload size={15}/>Upload document<input type="file" className="hidden" disabled={busy} onChange={event => { const file = event.target.files?.[0]; if (file) uploadBusinessDocument(file); event.currentTarget.value = ""; }}/></label></div>
+                {performance && <div className="mt-5 rounded-2xl border border-slate-200 p-4"><p className="text-xs font-black uppercase text-slate-500">Vendor performance</p><div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">{[["Orders", performance.orders_received], ["Accepted", performance.orders_accepted], ["Rejected", performance.orders_rejected], ["Prep", `${performance.average_preparation_minutes}m`], ["Cancel rate", `${performance.cancellation_rate}%`], ["Rating", performance.customer_rating], ["Revenue", `₦${Number(performance.revenue).toLocaleString()}`], ["Avg order", `₦${Number(performance.average_order_value).toLocaleString()}`], ["Out of stock", `${performance.out_of_stock_rate}%`], ["Complaints", performance.complaints], ["Settlements", performance.settlements?.length || 0]].map(([label, value]) => <div key={String(label)} className="rounded-xl bg-slate-50 p-2"><p className="font-black">{value}</p><p className="text-[9px] uppercase text-slate-400">{label}</p></div>)}</div><div className="mt-4 grid gap-3 sm:grid-cols-3">{[["Recent orders", performance.latest_orders, (row: any) => `${row.status} · ₦${Number(row.total_amount).toLocaleString()}`], ["Reviews", performance.latest_reviews, (row: any) => `${row.rating}/5 · ${row.comment || "No comment"}`], ["Settlements", performance.settlements, (row: any) => `${row.status} · ₦${Number(row.amount).toLocaleString()}`]].map(([title, rows, format]: any) => <div key={title} className="rounded-xl bg-slate-50 p-3"><p className="text-[10px] font-black uppercase text-slate-400">{title}</p><div className="mt-2 max-h-32 space-y-1 overflow-auto">{(rows || []).map((row: any) => <p key={row.id} className="truncate text-xs text-slate-600">{format(row)}</p>)}</div></div>)}</div></div>}
                 <div className="mt-5 rounded-2xl border border-slate-200 p-4"><label className="text-xs font-black uppercase tracking-wide text-slate-500">Individual commission %</label><p className="mt-1 text-xs text-slate-400">Leave blank to use global commission.</p><div className="mt-2 flex gap-2"><input type="number" min="0" max="100" step="0.01" value={commission} onChange={(event) => setCommission(event.target.value)} placeholder="Global" className="min-w-0 flex-1 rounded-xl bg-slate-50 px-3 py-3 text-sm outline-none focus:ring-2 focus:ring-green-500" /><button onClick={saveCommission} disabled={busy} className="rounded-xl bg-green-600 px-4 text-xs font-black text-white disabled:opacity-50">Save</button></div></div>
                 <div className="mt-5 rounded-2xl border border-slate-200 p-4">
                   <label className="text-xs font-black uppercase tracking-wide text-slate-500">Logo URL</label>
@@ -269,7 +310,7 @@ export default function Partners({ kind }: { kind: "vendor" | "rider" }) {
                 <div className="mt-5 rounded-2xl border border-slate-200 p-4">
                   <div className="flex items-center justify-between"><div><p className="text-xs font-black uppercase tracking-wide text-slate-500">Meal images</p><p className="text-xs text-slate-400">{menuItems.length} menu items</p></div></div>
                   <div className="mt-3 max-h-64 space-y-2 overflow-y-auto">
-                    {menuItems.length === 0 ? <p className="py-5 text-center text-sm text-slate-400">No menu items found.</p> : menuItems.map((item) => <div key={item.id} className="flex items-center gap-3 rounded-xl bg-slate-50 p-2">{item.image_url ? <img src={item.image_url} alt="" className="h-11 w-11 rounded-lg object-cover" /> : <div className="h-11 w-11 rounded-lg bg-slate-200" />}<span className="min-w-0 flex-1 truncate text-sm font-bold text-slate-700">{item.name}</span><button disabled={busy} onClick={() => changeMealImage(item)} className="rounded-lg bg-white px-2 py-1.5 text-[10px] font-black text-slate-700">Change</button>{item.image_url && <button disabled={busy} onClick={() => changeMealImage(item, true)} className="rounded-lg bg-red-50 px-2 py-1.5 text-[10px] font-black text-red-600">Remove</button>}</div>)}
+                    {menuItems.length === 0 ? <p className="py-5 text-center text-sm text-slate-400">No menu items found.</p> : menuItems.map((item) => <div key={item.id} className="flex flex-wrap items-center gap-2 rounded-xl bg-slate-50 p-2">{item.image_url ? <img src={item.image_url} alt="" className="h-11 w-11 rounded-lg object-cover" /> : <div className="h-11 w-11 rounded-lg bg-slate-200" />}<span className="min-w-0 flex-1 truncate text-sm font-bold text-slate-700">{item.name}</span><button disabled={busy} onClick={() => toggleMealFeatured(item)} className={`rounded-lg px-2 py-1.5 text-[10px] font-black ${item.is_featured ? "bg-green-600 text-white" : "bg-green-50 text-green-700"}`}>{item.is_featured ? "Featured ✓" : "Feature"}</button><label className="cursor-pointer rounded-lg bg-white px-2 py-1.5 text-[10px] font-black text-slate-700">Upload image<input type="file" accept="image/*" className="hidden" disabled={busy} onChange={event => { const file = event.target.files?.[0]; if (file) changeMealImage(item, file); event.currentTarget.value = ""; }}/></label>{item.image_url && <button disabled={busy} onClick={() => changeMealImage(item, undefined, true)} className="rounded-lg bg-red-50 px-2 py-1.5 text-[10px] font-black text-red-600">Remove</button>}</div>)}
                   </div>
                 </div>
               </>
@@ -290,6 +331,7 @@ export default function Partners({ kind }: { kind: "vendor" | "rider" }) {
                 </>
               )}
             </div>
+            {kind === "rider" && <button onClick={async () => { try { const target = selected.operational_status === "suspended" ? "offline" : "suspended"; const { data } = await api.patch(`/admin/riders/${selected.id}/operations`, { operational_status: target }); setSelected(data); success(target === "suspended" ? "Rider suspended" : "Rider activated"); } catch (error) { showError(message(error)); } }} className="mt-2 w-full rounded-2xl border border-red-200 py-3 text-xs font-black uppercase text-red-600">{selected.operational_status === "suspended" ? "Activate rider" : "Suspend rider"}</button>}
           </div>
         </div>
       )}
