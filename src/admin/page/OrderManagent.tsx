@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useEffect, useCallback } from "react";
-import { Bell, ChevronRight, ArrowLeft, Loader2, X } from "lucide-react";
+import { ChevronRight, ArrowLeft, Loader2, X } from "lucide-react";
+import AdminNotificationBell from "../components/AdminNotificationBell";
 import api from "../../services/api";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -276,10 +277,7 @@ const OrderManagement: React.FC<{ initialStatus?: string; initialPeriod?: string
               <h1 className="text-xl font-bold tracking-tighter uppercase">
                 Order Management
               </h1>
-              <button className="hover:bg-white/20 p-2 rounded-xl transition-all relative">
-                <Bell size={24} />
-                <span className="absolute top-2 right-2 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-green-600 animate-pulse" />
-              </button>
+              <AdminNotificationBell />
             </div>
             {/* Tabs */}
             <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
@@ -449,10 +447,7 @@ const OrderManagement: React.FC<{ initialStatus?: string; initialPeriod?: string
               <h1 className="text-xl font-bold tracking-tighter uppercase">
                 Order Details
               </h1>
-              <button className="hover:bg-white/20 p-2 rounded-xl transition-all relative">
-                <Bell size={24} />
-                <span className="absolute top-2 right-2 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-green-600" />
-              </button>
+              <AdminNotificationBell />
             </div>
           </div>
 
@@ -634,7 +629,7 @@ const OrderManagement: React.FC<{ initialStatus?: string; initialPeriod?: string
               <h1 className="text-xl font-bold tracking-tighter uppercase">
                 Status Control
               </h1>
-              <Bell size={24} />
+              <AdminNotificationBell />
             </div>
           </div>
 

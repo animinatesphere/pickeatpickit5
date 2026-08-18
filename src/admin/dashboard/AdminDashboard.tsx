@@ -3,7 +3,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   BarChart3,
-  Bell,
   AlertTriangle,
   CheckSquare,
   ChevronRight,
@@ -33,6 +32,7 @@ import SystemManagement from "../page/SystemManagement";
 import AccountSettings, { type AdminProfile } from "../page/AccountSettings";
 import OperationsAttention from "../page/OperationsAttention";
 import SupportTickets from "../page/SupportTickets";
+import AdminNotificationBell from "../components/AdminNotificationBell";
 
 type Section =
   | "overview"
@@ -72,9 +72,6 @@ export default function AdminDashboard() {
   const navigate = useNavigate();
   const [section, setSection] = useState<Section>("overview");
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [pendingPayoutCount, setPendingPayoutCount] = useState(0);
-  const [notifications, setNotifications] = useState<any[]>([]);
-  const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [orderDrill, setOrderDrill] = useState<OrderDrill>({});
   const [user, setUser] = useState<AdminProfile>(() => {
     try { return JSON.parse(localStorage.getItem("userData") || "{}"); } catch { return {} as AdminProfile; }
@@ -98,36 +95,6 @@ export default function AdminDashboard() {
     setSection(value);
     setDrawerOpen(false);
     window.scrollTo({ top: 0, behavior: "smooth" });
-  };
-
-  useEffect(() => {
-    let active = true;
-    const refresh = async () => {
-      try {
-        const response = await api.get("/admin/payouts", { params: { status: "pending" } });
-        if (active) setPendingPayoutCount(Array.isArray(response.data) ? response.data.length : 0);
-        const notificationResponse = await api.get("/admin/notifications", { params: { limit: 6 } });
-        if (active) setNotifications(Array.isArray(notificationResponse.data) ? notificationResponse.data : []);
-      } catch {
-        // Header notification should not block admin navigation.
-      }
-    };
-    refresh();
-    const timer = window.setInterval(refresh, 30000);
-    return () => { active = false; window.clearInterval(timer); };
-  }, [section]);
-
-  const openNotification = async (notification: any) => {
-    try { if (!notification.is_read) await api.patch(`/admin/notifications/${notification.id}/read`); } catch { /* navigation still works */ }
-    const data = notification.data || {};
-    if (data.payout_id || notification.type === "payout") select("finance");
-    else if (data.order_id) { setOrderDrill({ search: data.order_id }); setSection("orders"); }
-    else if (data.vendor_id) select("vendors");
-    else if (data.rider_id) select("riders");
-    else if (data.ticket_id) select("support");
-    else select("attention");
-    setNotificationsOpen(false);
-    setNotifications((items) => items.map((item) => item.id === notification.id ? { ...item, is_read: true } : item));
   };
 
   const content = {
@@ -173,7 +140,7 @@ export default function AdminDashboard() {
       <div className="lg:pl-72">
         <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-slate-200/80 bg-white/90 px-4 backdrop-blur-xl sm:px-6 lg:px-8">
           <div className="flex items-center gap-3"><button onClick={() => setDrawerOpen(true)} className="rounded-xl bg-slate-100 p-2.5 text-slate-700 lg:hidden" aria-label="Open navigation"><Menu size={20} /></button><div><p className="text-[10px] font-black uppercase tracking-[0.18em] text-green-600">PEPI</p><h1 className="text-sm font-black capitalize text-slate-900 sm:text-base">{visibleNav.find((item) => item.id === section)?.label}</h1></div></div>
-          <div className="relative flex items-center gap-2"><button onClick={() => setNotificationsOpen((open) => !open)} className="relative rounded-xl border border-slate-200 p-2.5 text-slate-600 hover:border-amber-200 hover:bg-amber-50 hover:text-amber-700" aria-label="Admin notifications"><Bell size={17} />{(notifications.filter((item) => !item.is_read).length || pendingPayoutCount) > 0 && <span className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-red-500 px-1 text-[10px] font-black text-white">{notifications.filter((item) => !item.is_read).length || pendingPayoutCount}</span>}</button>{notificationsOpen && <div className="absolute right-20 top-12 w-[min(24rem,calc(100vw-2rem))] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl"><div className="border-b p-4"><p className="font-black">Notifications</p><p className="text-xs text-slate-400">Select alert to open concerned item.</p></div><div className="max-h-80 overflow-y-auto">{notifications.length ? notifications.map((item) => <button key={item.id} onClick={() => openNotification(item)} className={`block w-full border-b border-slate-100 p-4 text-left hover:bg-green-50 ${item.is_read ? "opacity-65" : "bg-amber-50/50"}`}><p className="text-sm font-black">{item.title}</p><p className="mt-1 line-clamp-2 text-xs text-slate-500">{item.message}</p></button>) : <p className="p-6 text-center text-sm text-slate-400">No notifications.</p>}</div><button onClick={async () => { const { data } = await api.get("/admin/notifications", { params: { limit: 100 } }); setNotifications(data); }} className="w-full bg-slate-50 p-3 text-xs font-black text-green-700">View all</button></div>}<button onClick={logout} className="flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-xs font-black text-slate-600 hover:border-red-200 hover:bg-red-50 hover:text-red-600"><LogOut size={15} /><span className="hidden sm:inline">Log out</span></button></div>
+          <div className="relative flex items-center gap-2"><AdminNotificationBell onNavigate={select} sections={{ finance: "finance", orders: "orders", vendors: "vendors", riders: "riders", support: "support", attention: "attention" }} /><button onClick={logout} className="flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-xs font-black text-slate-600 hover:border-red-200 hover:bg-red-50 hover:text-red-600"><LogOut size={15} /><span className="hidden sm:inline">Log out</span></button></div>
         </header>
         <main className="mx-auto w-full max-w-[1500px] p-4 sm:p-6 lg:p-8">{content}</main>
       </div>

@@ -3,8 +3,8 @@
 // All calls go to the FastAPI backend. No Supabase.
 import axios, { type AxiosError } from "axios";
 
-// const API_BASE_URL = "http://localhost:8000/api"; // For local development
-const API_BASE_URL = "https://pickeatpickitbe.onrender.com/api";
+const API_BASE_URL = "http://localhost:8000/api"; // For local development
+// const API_BASE_URL = "https://pickeatpickitbe.onrender.com/api";
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -386,6 +386,27 @@ export const verifyPayment = (reference: string) =>
   api.post(`/payments/verify/${reference}`);
 
 export const getMyPayments = () => api.get("/payments/my-payments");
+
+export const getAllAdminPayments = (params?: Record<string, unknown>) =>
+  api.get("/admin/payments", { params });
+
+export const getAdminPaymentDetail = (paymentId: string | number) =>
+  api.get(`/admin/payments/${paymentId}`);
+
+export const refundAdminPayment = (paymentId: string | number, payload: Record<string, unknown>) =>
+  api.post(`/admin/payments/${paymentId}/refund`, payload);
+
+export const getAdminTransactionDetail = (transactionId: string | number) =>
+  api.get(`/admin/transactions/${transactionId}`);
+
+export const reverseTransaction = (transactionId: string | number, payload: { reason: string }) =>
+  api.post(`/admin/transactions/${transactionId}/reverse`, payload);
+
+export const adjustCustomerWallet = (userId: string | number, payload: { amount: number; reason: string }) =>
+  api.post(`/admin/users/${userId}/wallet`, payload);
+
+export const addOrderCompensation = (orderId: string | number, payload: { amount: number; reason: string; idempotency_key?: string }) =>
+  api.post(`/admin/orders/${orderId}/compensation`, payload);
 
 // ─── Vendors ──────────────────────────────────────────────────────────────────
 

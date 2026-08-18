@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Menu, Bell, AlertCircle, ChevronDown } from "lucide-react";
+import { Menu, ChevronDown, AlertCircle } from "lucide-react";
+import AdminNotificationBell from "../components/AdminNotificationBell";
 
 const Help: React.FC = () => {
   const [email, setEmail] = useState("customersupport@loopay.com");
@@ -41,18 +42,15 @@ const Help: React.FC = () => {
         <div className="animate-fadeIn min-h-screen">
           {/* Header */}
           <div className="bg-green-600 text-white p-6 sticky top-0 z-40 shadow-lg">
-            <div className="flex justify-between items-center">
-              <button className="hover:bg-white/20 p-2 rounded-xl transition-all active:scale-95">
-                <Menu size={24} />
-              </button>
-              <h1 className="text-xl font-bold font-inter  tracking-tighter uppercase">
-                Help & Support
-              </h1>
-              <button className="hover:bg-white/20 p-2 rounded-xl transition-all relative active:scale-95">
-                <Bell size={24} />
-                <span className="absolute top-2 right-2 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-green-600 animate-pulse"></span>
-              </button>
-            </div>
+          <div className="flex justify-between items-center">
+            <button className="hover:bg-white/20 p-2 rounded-xl transition-all active:scale-95">
+              <Menu size={24} />
+            </button>
+            <h1 className="text-xl font-bold font-inter  tracking-tighter uppercase">
+              Help & Support
+            </h1>
+            <AdminNotificationBell />
+          </div>
           </div>
 
           {/* Content */}

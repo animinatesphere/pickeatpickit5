@@ -10,7 +10,6 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import {
-  Bell,
   Menu,
   TrendingUp,
   Users,
@@ -18,6 +17,7 @@ import {
   Clock,
   Loader2,
 } from "lucide-react";
+import AdminNotificationBell from "../components/AdminNotificationBell";
 import { 
   getRevenueAnalytics, 
   getTopUsers, 
@@ -125,10 +125,7 @@ const Analysis = () => {
             <h1 className="text-xl font-bold font-inter  tracking-tighter uppercase whitespace-nowrap">
               Reports & Analytics
             </h1>
-            <button className="p-2 hover:bg-white/20 rounded-xl transition-all relative active:scale-95 shadow-lg">
-              <Bell className="w-6 h-6" />
-              <span className="absolute top-2 right-2 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-green-600 animate-pulse"></span>
-            </button>
+            <AdminNotificationBell />
           </div>
 
           <div className="bg-white/10 backdrop-blur-xl rounded-3xl p-6 border border-white/20 shadow-2xl">

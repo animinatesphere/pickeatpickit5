@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import {
-  Bell,
   Menu,
   ChevronRight,
   Clock,
@@ -10,6 +9,7 @@ import {
   Upload,
   X,
 } from "lucide-react";
+import AdminNotificationBell from "../components/AdminNotificationBell";
 
 interface Game {
   id: number;
@@ -49,7 +49,6 @@ type Screen =
 const Content: React.FC = () => {
   const [screen, setScreen] = useState<Screen>("home");
   // const [selectedBanner, setSelectedBanner] = useState<Banner | null>(null);
-  const [notificationCount] = useState(3);
 
   const [formData, setFormData] = useState({
     kilometers: "",
@@ -212,20 +211,11 @@ const Content: React.FC = () => {
             <Plus size={24} />
           </button>
         )}
-        <button
-          onClick={() => setScreen("notifications")}
-          className="relative hover:bg-white/20 p-2 rounded-xl transition-all duration-200 active:scale-95"
-        >
-          <Bell size={24} />
-          {notificationCount > 0 && (
-            <span className="absolute top-1 right-1 bg-red-500 text-white text-[10px] w-5 h-5 flex items-center justify-center rounded-full font-bold animate-pulse border-2 border-green-600">
-              {notificationCount}
-            </span>
-          )}
-        </button>
+        <AdminNotificationBell />
       </div>
     </div>
   );
+};
 
   const renderHome = () => (
     <div className="p-4 space-y-6 animate-fadeIn w-full">
