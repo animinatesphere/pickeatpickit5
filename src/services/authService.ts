@@ -496,6 +496,32 @@ class AuthService {
     });
   }
 
+  async sendAdminPasswordResetOTP(email: string): Promise<{ message: string }> {
+    return safeAsync(async () => {
+      try {
+        const res = await api.post("/auth/admin/forgot-password", { email });
+        return { message: res.data?.message || "If an admin account exists, a reset code has been sent." };
+      } catch (error: unknown) {
+        throwApiError(error, "Failed to send admin reset code. Please try again.");
+      }
+    });
+  }
+
+  async resetAdminPassword(email: string, otpCode: string, newPassword: string): Promise<{ message: string }> {
+    return safeAsync(async () => {
+      try {
+        const res = await api.post("/auth/admin/reset-password", {
+          email,
+          otp_code: otpCode,
+          new_password: newPassword,
+        });
+        return { message: res.data?.message || "Admin password reset successfully." };
+      } catch (error: unknown) {
+        throwApiError(error, "Admin password reset failed. Please try again.");
+      }
+    });
+  }
+
   async verifyPasswordResetOTP(
     email: string,
     otp: string,

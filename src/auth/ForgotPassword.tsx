@@ -11,6 +11,7 @@ const THEMES: Record<string, { color: string; hex: string; gradient: string }> =
   user: { color: "green", hex: "#22c55e", gradient: "from-green-500/20" },
   rider: { color: "orange", hex: "#f97316", gradient: "from-orange-500/20" },
   vendor: { color: "blue", hex: "#3b82f6", gradient: "from-blue-500/20" },
+  admin: { color: "red", hex: "#ef4444", gradient: "from-red-500/20" },
 };
 
 const ForgotPassword = () => {
@@ -33,6 +34,7 @@ const ForgotPassword = () => {
     switch (userType) {
       case "rider": return "/rider-login";
       case "user": return "/login";
+      case "admin": return "/admin-login";
       default: return "/vendor-login";
     }
   };
@@ -41,6 +43,7 @@ const ForgotPassword = () => {
     switch (userType) {
       case "rider": return "Rider Recovery";
       case "user": return "Account Recovery";
+      case "admin": return "Admin Recovery";
       default: return "Partner Recovery";
     }
   };
@@ -50,7 +53,9 @@ const ForgotPassword = () => {
     if (!email || !/\S+@\S+\.\S+/.test(email)) return toast.error("Enter a valid email");
     setIsLoading(true);
     try {
-      const response = await authService.sendPasswordResetOTP(email);
+      const response = userType === "admin"
+        ? await authService.sendAdminPasswordResetOTP(email)
+        : await authService.sendPasswordResetOTP(email);
       toast.success(response.message);
       setStep("otp");
     } catch (error: unknown) {
@@ -63,7 +68,7 @@ const ForgotPassword = () => {
     if (!otp || otp.length !== 6) return toast.error("Enter 6-digit code");
     setIsLoading(true);
     try {
-      await authService.verifyPasswordResetOTP(email, otp);
+      if (userType !== "admin") await authService.verifyPasswordResetOTP(email, otp);
       setStep("password");
     } catch (error: unknown) { toast.error(error instanceof Error ? error.message : "Verification failed"); }
     finally { setIsLoading(false); }
@@ -74,7 +79,8 @@ const ForgotPassword = () => {
     if (password !== confirmPassword) return toast.error("Passwords mismatch");
     setIsLoading(true);
     try {
-      await authService.resetPasswordWithOTP(password);
+      if (userType === "admin") await authService.resetAdminPassword(email, otp, password);
+      else await authService.resetPasswordWithOTP(password);
       setStep("success");
       setTimeout(() => navigate(getLoginPath()), 3000);
     } catch (error: unknown) { toast.error(error instanceof Error ? error.message : "Reset failed"); }

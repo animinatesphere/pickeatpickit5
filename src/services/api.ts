@@ -3,8 +3,8 @@
 // All calls go to the FastAPI backend. No Supabase.
 import axios, { type AxiosError } from "axios";
 
-// const API_BASE_URL = "http://localhost:8000/api"; // For local development
-const API_BASE_URL = "https://pickeatpickitbe.onrender.com/api";
+const API_BASE_URL = "http://localhost:8000/api"; // For local development
+// const API_BASE_URL = "https://pickeatpickitbe.onrender.com/api";
 
 const api = axios.create({
   baseURL: API_BASE_URL,

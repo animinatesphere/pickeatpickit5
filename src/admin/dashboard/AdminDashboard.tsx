@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import {
   BarChart3,
   AlertTriangle,
@@ -177,6 +178,9 @@ function Overview({ onNavigate, onOrderDrill }: { onNavigate: (section: Section)
   const statusCards = [["Pending", "pending"], ["Accepted", "accepted"], ["Preparing", "preparing"], ["Picked up", "picked_up"], ["Delivered", "completed"], ["Cancelled", "cancelled"], ["Failed", "failed"]];
   const activity = [["Active customers", health.activity.customers, "customers"], ["Active vendors", health.activity.vendors, "vendors"], ["Active riders", health.activity.riders, "riders"], ["Riders online", health.activity.riders_online, "riders"], ["Riders available", health.activity.riders_available, "riders"], ["On delivery", health.activity.riders_on_delivery, "riders"]] as const;
   const performance = [["Avg delivery", `${health.performance.average_delivery_minutes} min`, "analytics", null], ["Avg preparation", `${health.performance.average_preparation_minutes} min`, "analytics", null], ["Cancellation rate", `${health.performance.cancellation_rate}%`, null, "cancelled"], ["Failed payments", health.performance.failed_payments, "attention", null], ["Refunds", health.finance.refunds, "attention", null], ["Disputes", health.finance.disputes, "attention", null]] as const;
+  const orderStatusData = statusCards.map(([name, key]) => ({ name, value: Number(health.orders.by_status[key] || 0) }));
+  const workforceData = activity.map(([name, value]) => ({ name, value: Number(value || 0) }));
+  const chartColors = ["#f59e0b", "#3b82f6", "#8b5cf6", "#06b6d4", "#22c55e", "#ef4444", "#64748b"];
 
   return (
     <section className="space-y-6">
@@ -185,6 +189,22 @@ function Overview({ onNavigate, onOrderDrill }: { onNavigate: (section: Section)
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">{periodCards.map(([label, value, period]) => <button key={String(period)} onClick={() => onOrderDrill({ period: String(period) })} className="rounded-3xl border border-slate-100 bg-white p-5 text-left shadow-sm"><p className="text-3xl font-black">{Number(value).toLocaleString()}</p><p className="mt-1 text-xs font-black uppercase text-slate-400">Orders {label}</p><p className="mt-3 text-xs font-bold text-green-700">View orders →</p></button>)}</div>
 
       <div><h2 className="mb-3 text-lg font-black">Orders by status</h2><div className="grid grid-cols-2 gap-3 sm:grid-cols-4 xl:grid-cols-7">{statusCards.map(([label, key]) => <button key={key} onClick={() => onOrderDrill({ status: key })} className="rounded-2xl bg-white p-4 text-left shadow-sm ring-1 ring-slate-100"><p className="text-2xl font-black">{Number(health.orders.by_status[key]).toLocaleString()}</p><p className="mt-1 text-[10px] font-black uppercase text-slate-500">{label}</p><p className="mt-2 text-[10px] font-bold text-green-700">Drill down →</p></button>)}</div></div>
+
+      <div className="grid gap-4 xl:grid-cols-2">
+        <article className="rounded-3xl bg-white p-5 shadow-sm">
+          <div><h2 className="font-black text-slate-900">Order distribution</h2><p className="text-xs text-slate-500">Current order lifecycle totals</p></div>
+          <div className="mt-4 h-72" aria-label="Order status distribution chart">
+            <ResponsiveContainer width="100%" height="100%"><PieChart><Pie data={orderStatusData} dataKey="value" nameKey="name" innerRadius={55} outerRadius={90} paddingAngle={2}>{orderStatusData.map((entry, index) => <Cell key={entry.name} fill={chartColors[index % chartColors.length]} />)}</Pie><Tooltip formatter={(value) => [Number(value).toLocaleString(), "Orders"]} /></PieChart></ResponsiveContainer>
+          </div>
+          <div className="flex flex-wrap gap-2">{orderStatusData.map((item, index) => <span key={item.name} className="flex items-center gap-1 text-[10px] font-bold text-slate-500"><i className="h-2 w-2 rounded-full" style={{ backgroundColor: chartColors[index % chartColors.length] }} />{item.name}</span>)}</div>
+        </article>
+        <article className="rounded-3xl bg-white p-5 shadow-sm">
+          <div><h2 className="font-black text-slate-900">Platform activity</h2><p className="text-xs text-slate-500">Active users and delivery workforce</p></div>
+          <div className="mt-4 h-72" aria-label="Platform activity chart">
+            <ResponsiveContainer width="100%" height="100%"><BarChart data={workforceData} margin={{ top: 10, right: 8, left: -20, bottom: 45 }}><CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" /><XAxis dataKey="name" interval={0} angle={-28} textAnchor="end" tick={{ fontSize: 9, fill: "#64748b" }} /><YAxis allowDecimals={false} tick={{ fontSize: 10, fill: "#64748b" }} /><Tooltip formatter={(value) => [Number(value).toLocaleString(), "Active"]} /><Bar dataKey="value" fill="#16a34a" radius={[7, 7, 0, 0]} /></BarChart></ResponsiveContainer>
+          </div>
+        </article>
+      </div>
 
       <div className="grid gap-4 lg:grid-cols-3"><button onClick={() => onNavigate("finance")} className="rounded-3xl bg-slate-950 p-5 text-left text-white"><p className="text-xs font-black uppercase text-green-400">Gross order value</p><p className="mt-2 text-3xl font-black">{money(health.finance.gmv)}</p><p className="mt-5 text-xs font-black uppercase text-slate-400">Revenue / commissions</p><p className="mt-1 text-2xl font-black">{money(health.finance.commission)}</p><span className="mt-5 inline-block rounded-xl bg-white/10 px-4 py-3 text-xs font-black">Open finance →</span></button><article className="rounded-3xl bg-white p-5 shadow-sm lg:col-span-2"><h2 className="font-black">Performance</h2><div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">{performance.map(([label, value, target, status]) => <button key={label} onClick={() => status ? onOrderDrill({ status }) : onNavigate(target as Section)} className="rounded-2xl bg-slate-50 p-3 text-left transition hover:bg-green-50"><p className="text-lg font-black">{value}</p><p className="text-[10px] font-bold uppercase text-slate-400">{label}</p><p className="mt-1 text-[10px] font-bold text-green-700">Open →</p></button>)}</div></article></div>
 

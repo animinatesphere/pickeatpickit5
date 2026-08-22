@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Lock, Mail, Eye, EyeOff, ShieldCheck } from "lucide-react";
 import logo from "../../assets/Logo SVG 1.png";
 import { useToast } from "../../context/ToastContext";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import api from "../../services/api";
 import { decodeJwtToken } from "../../services/backendAuthService";
 
@@ -139,6 +139,11 @@ export default function AdminLogin() {
                     placeholder="admin@example.com"
                     required
                   />
+                </div>
+                <div className="mt-3 text-right">
+                  <Link to="/forgot-password?type=admin" className="text-xs font-bold text-orange-600 hover:text-red-600">
+                    Forgot password?
+                  </Link>
                 </div>
               </div>}
 
