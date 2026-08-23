@@ -3,13 +3,21 @@
 // All calls go to the FastAPI backend. No Supabase.
 import axios, { type AxiosError } from "axios";
 
-const API_BASE_URL = "http://localhost:8000/api"; // For local development
-// const API_BASE_URL = "https://pickeatpickitbe.onrender.com/api";
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
+  || (import.meta.env.DEV ? "http://localhost:8000/api" : "https://pickeatpickitbe.onrender.com/api");
 
 const api = axios.create({
   baseURL: API_BASE_URL,
   headers: { "Content-Type": "application/json" },
 });
+
+export const getAdminWebSocketUrl = () => {
+  const url = new URL(API_BASE_URL, window.location.origin);
+  url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
+  url.pathname = `${url.pathname.replace(/\/$/, "")}/ws`;
+  url.search = "";
+  return url.toString();
+};
 
 type AdminRefreshResponse = {
   access_token: string;
@@ -219,6 +227,20 @@ export const getTopUsers = async (limit = 5) => {
 export const getPopularItems = async (limit = 3) => {
   const res = await api.get("/admin/analytics/popular-items", { params: { limit } });
   return { data: res.data, error: null };
+};
+
+export const sendAdminPasswordResetOTP = async (email: string) => {
+  const res = await api.post("/auth/admin/forgot-password", { email });
+  return res.data as { message: string };
+};
+
+export const resetAdminPassword = async (email: string, otpCode: string, newPassword: string) => {
+  const res = await api.post("/auth/admin/reset-password", {
+    email,
+    otp_code: otpCode,
+    new_password: newPassword,
+  });
+  return res.data as { message: string };
 };
 
 export const getAllTransactions = async () => {

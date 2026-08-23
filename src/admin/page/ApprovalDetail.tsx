@@ -31,6 +31,7 @@ import {
   uploadAdminVendorLogo,
 } from "../../services/api";
 import { useToast } from "../../context/ToastContext";
+import RiderLiveMap from "../components/RiderLiveMap";
 
 type Row = Record<string, any>;
 type Kind = "vendor" | "rider";
@@ -210,6 +211,8 @@ export default function ApprovalDetail({ kind, id, onBack, onChanged, backLabel 
         </div>
         {kind === "vendor" && <div className="mt-5 flex justify-end gap-2">{editingVendor ? <><button disabled={busy === "vendor-profile"} onClick={() => { setVendorForm(record); setEditingVendor(false); }} className="rounded-xl bg-white/10 px-4 py-2.5 text-xs font-black">Cancel</button><button disabled={busy === "vendor-profile"} onClick={saveVendor} className="flex items-center gap-2 rounded-xl bg-green-500 px-4 py-2.5 text-xs font-black text-slate-950 disabled:opacity-50">{busy === "vendor-profile" ? <Loader2 className="animate-spin" size={15}/> : <Save size={15}/>} Save all changes</button></> : <button onClick={() => setEditingVendor(true)} className="flex items-center gap-2 rounded-xl bg-white/10 px-4 py-2.5 text-xs font-black"><Edit3 size={15}/> Edit vendor details</button>}</div>}
       </div>
+
+      {kind === "rider" && <RiderLiveMap riderId={id} />}
 
       <div className="grid gap-5 xl:grid-cols-2">
         {sections.map(([heading, fields]) => <DetailSection key={heading} heading={heading} fields={fields} record={editingVendor && kind === "vendor" ? vendorForm : record} editing={editingVendor && kind === "vendor"} onChange={(key, value) => setVendorForm((current) => ({ ...current, [key]: value }))} />)}

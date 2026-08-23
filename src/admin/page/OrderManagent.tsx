@@ -1,8 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useEffect, useCallback } from "react";
-import { ChevronRight, ArrowLeft, Loader2, X } from "lucide-react";
+import { ChevronRight, ArrowLeft, Loader2, MapPin, X } from "lucide-react";
 import AdminNotificationBell from "../components/AdminNotificationBell";
 import api from "../../services/api";
+import RiderLiveMap from "../components/RiderLiveMap";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 type OrderStatus =
@@ -57,6 +58,7 @@ interface OrderDetail {
   customerEmail: string;
   riderName: string;
   riderPhone: string;
+  riderId?: string;
   supportTickets: any[];
 }
 
@@ -128,6 +130,7 @@ const OrderManagement: React.FC<{ initialStatus?: string; initialPeriod?: string
   const [riders, setRiders] = useState<any[]>([]);
   const [action, setAction] = useState<AdminAction | null>(null);
   const [actionError, setActionError] = useState("");
+  const [liveTrackingOrderId, setLiveTrackingOrderId] = useState<string | null>(null);
 
   // ── Fetch orders ────────────────────────────────────────────────────────────
   const fetchOrders = useCallback(async () => {
@@ -198,6 +201,7 @@ const OrderManagement: React.FC<{ initialStatus?: string; initialPeriod?: string
         customerEmail: d.user?.email || "",
         riderName: d.rider ? `${d.rider.firstname || ""} ${d.rider.lastname || ""}`.trim() : "Unassigned",
         riderPhone: d.rider?.phone || "",
+        riderId: d.rider?.id,
         supportTickets: command.support_tickets || [],
       };
 
@@ -439,6 +443,7 @@ const OrderManagement: React.FC<{ initialStatus?: string; initialPeriod?: string
                 onClick={() => {
                   setCurrentScreen("main");
                   setSelectedOrder(null);
+                  setLiveTrackingOrderId(null);
                 }}
                 className="hover:bg-white/20 p-2 rounded-xl transition-all active:scale-95"
               >
@@ -607,6 +612,7 @@ const OrderManagement: React.FC<{ initialStatus?: string; initialPeriod?: string
               <select value={action?.kind === "assign" ? action.value || "" : ""} onChange={event => event.target.value && setAction({ kind: "assign", value: event.target.value, reason: "" })} className="rounded-xl bg-slate-50 p-3 text-sm font-black"><option value="">Assign / reassign rider</option>{riders.filter(rider => ["online", "available", "assigned"].includes(rider.operational_status)).map(rider => <option key={rider.id} value={rider.id}>{rider.firstname} {rider.lastname} · {rider.operational_status}</option>)}</select>
               <select value={action?.kind === "status" ? action.value : selectedOrder.status.toLowerCase()} onChange={event => setAction({ kind: "status", value: event.target.value, reason: "" })} className="rounded-xl bg-slate-50 p-3 text-sm font-black">{["pending","accepted","preparing","ready","picked_up","completed","cancelled","failed"].map(value => <option key={value}>{value}</option>)}</select>
               <a href={`tel:${selectedOrder.customerPhone}`} className="rounded-xl bg-blue-50 p-3 text-center text-xs font-black text-blue-800">Contact customer</a><a href={`tel:${selectedOrder.vendorPhone}`} className="rounded-xl bg-violet-50 p-3 text-center text-xs font-black text-violet-800">Contact vendor</a><a href={`tel:${selectedOrder.riderPhone}`} className="rounded-xl bg-orange-50 p-3 text-center text-xs font-black text-orange-800">Contact rider</a>
+              {selectedOrder.status.toLowerCase() === "picked_up" && selectedOrder.riderId && <LiveRiderTracking orderId={selectedOrder.id} initialOpen={liveTrackingOrderId === selectedOrder.id} />}
               <button onClick={() => setAction({ kind: "refund", amount: "", reason: "" })} className="rounded-xl bg-red-50 p-3 text-xs font-black text-red-800">Issue refund</button><button onClick={() => setAction({ kind: "compensation", amount: "", reason: "" })} className="rounded-xl bg-green-50 p-3 text-xs font-black text-green-800">Add compensation</button><button onClick={() => setAction({ kind: "note", reason: "" })} className="rounded-xl bg-slate-100 p-3 text-xs font-black">Add internal note</button><button onClick={() => setAction({ kind: "dispute", reason: "" })} className="rounded-xl bg-amber-50 p-3 text-xs font-black text-amber-800">Open dispute</button>
             </div>{action && <div className="mt-4 rounded-2xl border border-green-100 bg-green-50 p-4"><div className="flex items-center justify-between"><p className="text-xs font-black uppercase text-green-800">{action.kind.replaceAll("_", " ")}</p><button onClick={() => { setAction(null); setActionError(""); }}><X size={17}/></button></div>{["refund", "compensation"].includes(action.kind) && <input type="number" min="0.01" step="0.01" value={action.amount || ""} onChange={event => setAction(current => current ? { ...current, amount: event.target.value } : current)} placeholder="Amount" className="mt-3 w-full rounded-xl bg-white p-3 text-sm outline-none focus:ring-2 focus:ring-green-500"/>}<textarea value={action.reason || ""} onChange={event => setAction(current => current ? { ...current, reason: event.target.value } : current)} placeholder={action.kind === "note" ? "Internal note" : action.kind === "assign" ? "Assignment reason" : "Required reason"} className="mt-2 min-h-20 w-full rounded-xl bg-white p-3 text-sm outline-none focus:ring-2 focus:ring-green-500"/>{actionError && <p className="mt-2 text-xs font-bold text-red-600">{actionError}</p>}<button disabled={Boolean(updatingStatus)} onClick={runAdminAction} className="mt-3 w-full rounded-xl bg-green-700 py-3 text-xs font-black text-white disabled:opacity-50">Confirm action</button></div>}<div className="mt-4 space-y-2">{selectedOrder.internalNotes.map((note: any) => <p key={note.id} className="rounded-xl bg-slate-50 p-3 text-xs">{note.note} · {new Date(note.created_at).toLocaleString()}</p>)}</div></div>
 
@@ -729,15 +735,15 @@ const OrderManagement: React.FC<{ initialStatus?: string; initialPeriod?: string
                           <button onClick={() => openOrderStatusAction(order, "picked_up")} disabled={updatingStatus === order.id} className="px-4 py-2 bg-orange-500 text-white text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-orange-600 transition-all shadow-lg active:scale-95 disabled:opacity-60">Mark Picked Up</button>
                         )}
                         {order.status === "Picked_up" && (
-                          <button
-                            onClick={() =>
-                              openOrderStatusAction(order, "completed")
-                            }
-                            disabled={updatingStatus === order.id}
-                            className="px-4 py-2 bg-green-600 text-white text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-green-700 transition-all shadow-lg active:scale-95 disabled:opacity-60"
-                          >
-                            Complete
-                          </button>
+                          <><button onClick={() => { setLiveTrackingOrderId(order.id); void handleCheckClick(order.id); }} disabled={detailLoading} className="flex items-center gap-1 px-4 py-2 bg-slate-950 text-white text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-slate-800 transition-all shadow-lg active:scale-95 disabled:opacity-60"><MapPin size={13}/> Track live</button><button
+                              onClick={() =>
+                                openOrderStatusAction(order, "completed")
+                              }
+                              disabled={updatingStatus === order.id}
+                              className="px-4 py-2 bg-green-600 text-white text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-green-700 transition-all shadow-lg active:scale-95 disabled:opacity-60"
+                            >
+                              Complete
+                            </button></>
                         )}
                         <button
                           onClick={() =>
@@ -760,5 +766,12 @@ const OrderManagement: React.FC<{ initialStatus?: string; initialPeriod?: string
     </div>
   );
 };
+
+function LiveRiderTracking({ orderId, initialOpen = false }: { orderId: string; initialOpen?: boolean }) {
+  const [open, setOpen] = useState(initialOpen);
+
+  if (!open) return <button onClick={() => setOpen(true)} className="col-span-full flex items-center justify-center gap-2 rounded-xl bg-slate-950 p-3 text-xs font-black text-white"><MapPin size={16} /> Track rider live</button>;
+  return <div className="col-span-full"><div className="mb-2 flex justify-end"><button onClick={() => setOpen(false)} className="rounded-lg bg-slate-200 p-2 text-slate-600"><X size={16} /></button></div><RiderLiveMap orderId={orderId} /></div>;
+}
 
 export default OrderManagement;

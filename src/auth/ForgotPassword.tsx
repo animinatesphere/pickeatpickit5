@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Mail, ArrowLeft, Lock, Eye, EyeOff, CheckCircle, Key } from "lucide-react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { authService } from "../services/authService";
+import { resetAdminPassword, sendAdminPasswordResetOTP } from "../services/api";
 import { useToast, ToastContainer } from "../component/Toast";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -54,7 +55,7 @@ const ForgotPassword = () => {
     setIsLoading(true);
     try {
       const response = userType === "admin"
-        ? await authService.sendAdminPasswordResetOTP(email)
+        ? await sendAdminPasswordResetOTP(email)
         : await authService.sendPasswordResetOTP(email);
       toast.success(response.message);
       setStep("otp");
@@ -79,7 +80,7 @@ const ForgotPassword = () => {
     if (password !== confirmPassword) return toast.error("Passwords mismatch");
     setIsLoading(true);
     try {
-      if (userType === "admin") await authService.resetAdminPassword(email, otp, password);
+      if (userType === "admin") await resetAdminPassword(email, otp, password);
       else await authService.resetPasswordWithOTP(password);
       setStep("success");
       setTimeout(() => navigate(getLoginPath()), 3000);

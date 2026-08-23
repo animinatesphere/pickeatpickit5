@@ -22,6 +22,7 @@ import {
   X,
 } from "lucide-react";
 import api from "../../services/api";
+import { loadGoogleMaps } from "../../services/googleMaps";
 import OrderManagement from "../page/OrderManagent";
 import UserManagement from "../page/UserManagement";
 import Transaction from "../page/Transaction";
@@ -245,24 +246,18 @@ function AdminOrderMap({ orders, onDrill }: { orders: any[]; onDrill: (filter: O
   const [unavailable, setUnavailable] = useState(false);
   useEffect(() => {
     if (!mapRef.current || !orders.length) return;
-    const key = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
-    if (!key) { setUnavailable(true); return; }
     let cancelled = false;
     const draw = () => {
       if (cancelled || !mapRef.current || !window.google?.maps) return;
       const bounds = new window.google.maps.LatLngBounds();
       const map = new window.google.maps.Map(mapRef.current, { zoom: 11, center: { lat: Number(orders[0].latitude), lng: Number(orders[0].longitude) }, mapTypeControl: false, streetViewControl: false });
-      orders.forEach(order => { const point = { lat: Number(order.latitude), lng: Number(order.longitude) }; bounds.extend(point); const marker = new window.google.maps.Marker({ map, position: point, title: `${order.restaurant_name} · ${order.status}` }); marker.addListener("click", () => onDrill({ search: order.id })); });
+      orders.forEach(order => { const hasFreshRiderLocation = order.rider_latitude != null && order.rider_longitude != null && order.rider_last_seen_at && Date.now() - new Date(order.rider_last_seen_at).getTime() <= 30000; const point = hasFreshRiderLocation ? { lat: Number(order.rider_latitude), lng: Number(order.rider_longitude) } : { lat: Number(order.latitude), lng: Number(order.longitude) }; bounds.extend(point); const marker = new window.google.maps.Marker({ map, position: point, title: hasFreshRiderLocation ? `${order.rider_name || "Rider"} · live · ${order.status}` : `${order.restaurant_name} · destination · ${order.status}` }); marker.addListener("click", () => onDrill({ search: order.id })); });
       if (orders.length > 1) map.fitBounds(bounds); else map.setCenter(bounds.getCenter());
     };
-    if (window.google?.maps) draw(); else {
-      const existing = document.querySelector<HTMLScriptElement>('script[data-admin-google-map]');
-      if (existing) existing.addEventListener("load", draw, { once: true });
-      else { const script = document.createElement("script"); script.dataset.adminGoogleMap = "true"; script.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(key)}`; script.async = true; script.onload = draw; script.onerror = () => setUnavailable(true); document.head.appendChild(script); }
-    }
+    void loadGoogleMaps().then(draw).catch(() => setUnavailable(true));
     return () => { cancelled = true; };
   }, [orders, onDrill]);
   if (!orders.length) return <div className="mt-4 grid min-h-72 place-items-center rounded-2xl bg-slate-800 text-sm text-slate-400">No geocoded active orders</div>;
-  if (unavailable) return <div className="mt-4 max-h-72 space-y-2 overflow-auto rounded-2xl bg-slate-800 p-3">{orders.map(order => <button key={order.id} onClick={() => onDrill({ search: order.id })} className="block w-full rounded-xl bg-white/10 p-3 text-left text-xs"><span className="font-black">{order.restaurant_name}</span><br/>{order.latitude}, {order.longitude} · {order.status}</button>)}</div>;
+  if (unavailable) return <div className="mt-4 max-h-72 space-y-2 overflow-auto rounded-2xl bg-slate-800 p-3">{orders.map(order => <button key={order.id} onClick={() => onDrill({ search: order.id })} className="block w-full rounded-xl bg-white/10 p-3 text-left text-xs"><span className="font-black">{order.rider_name || order.restaurant_name}</span><br/>{order.rider_latitude ?? order.latitude}, {order.rider_longitude ?? order.longitude} · {order.status}</button>)}</div>;
   return <div ref={mapRef} className="mt-4 min-h-72 overflow-hidden rounded-2xl bg-slate-800"/>;
 }
