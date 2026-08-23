@@ -215,7 +215,6 @@ const Content: React.FC = () => {
       </div>
     </div>
   );
-};
 
   const renderHome = () => (
     <div className="p-4 space-y-6 animate-fadeIn w-full">

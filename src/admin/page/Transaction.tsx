@@ -381,7 +381,7 @@ export default function Transaction() {
       });
       setCreditAmount('');
       setCreditReason('');
-      Alert.alert('Success', 'Customer balance credited successfully');
+      window.alert('Customer balance credited successfully');
       if (detailMode === 'payment') await loadPayments();
       else await loadTransactions();
     } catch (e: any) {

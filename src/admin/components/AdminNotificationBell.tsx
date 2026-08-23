@@ -6,7 +6,7 @@ import api from "../../services/api";
 export type AdminNotificationNavigate = (section: string, drill?: Record<string, string>) => void;
 
 type AdminNotificationBellProps = {
-  onNavigate: AdminNotificationNavigate;
+  onNavigate?: AdminNotificationNavigate;
   sections?: Record<string, string>;
 };
 
@@ -20,7 +20,7 @@ type NotificationItem = {
   created_at?: string;
 };
 
-const AdminNotificationBell = ({ onNavigate, sections = {} }: AdminNotificationBellProps) => {
+const AdminNotificationBell = ({ onNavigate = () => undefined, sections = {} }: AdminNotificationBellProps) => {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
