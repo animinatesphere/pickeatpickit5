@@ -3,7 +3,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import {
-  BarChart3,
   AlertTriangle,
   CheckSquare,
   ChevronRight,
@@ -12,6 +11,7 @@ import {
   LogOut,
   Menu,
   Settings2,
+  HeartPulse,
   Headphones,
   ShieldCheck,
   ShoppingBag,
@@ -30,6 +30,7 @@ import Approvals from "../page/Approvals";
 import Partners from "../page/Partners";
 import AdminAccounts from "../page/AdminAccounts";
 import SystemManagement from "../page/SystemManagement";
+import SystemHealth from "../page/SystemHealth";
 import AccountSettings, { type AdminProfile } from "../page/AccountSettings";
 import OperationsAttention from "../page/OperationsAttention";
 import SupportTickets from "../page/SupportTickets";
@@ -47,6 +48,7 @@ type Section =
   | "attention"
   | "support"
   | "system"
+  | "system-health"
   | "admins"
   | "account";
 
@@ -61,10 +63,10 @@ const navItems: NavItem[] = [
   { id: "vendors", label: "Vendors", icon: <Store size={19} />, permission: "vendors.manage" },
   { id: "riders", label: "Riders", icon: <Truck size={19} />, permission: "riders.manage" },
   { id: "finance", label: "Finance", icon: <CircleDollarSign size={19} />, permission: "finance.manage" },
-  { id: "analytics", label: "Analytics", icon: <BarChart3 size={19} />, permission: "analytics.view" },
   { id: "attention", label: "Issues & refunds", icon: <AlertTriangle size={19} />, permission: "system.manage" },
   { id: "support", label: "Support", icon: <Headphones size={19} />, permission: "system.manage" },
   { id: "system", label: "System", icon: <Settings2 size={19} />, permission: "system.manage" },
+  { id: "system-health", label: "System health", icon: <HeartPulse size={19} />, permission: "system.manage" },
   { id: "admins", label: "Admin accounts", icon: <ShieldCheck size={19} />, permission: "admins.manage" },
   { id: "account", label: "Account Settings", icon: <UserRoundCog size={19} /> },
 ];
@@ -110,6 +112,7 @@ export default function AdminDashboard() {
     attention: <OperationsAttention />,
     support: <SupportTickets />,
     system: <SystemManagement />,
+    "system-health": <SystemHealth />,
     admins: <AdminAccounts />,
     account: <AccountSettings onUserUpdated={setUser} />,
   }[section];
@@ -139,7 +142,7 @@ export default function AdminDashboard() {
       </aside>
 
       <div className="lg:pl-72">
-        <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-slate-200/80 bg-white/90 px-4 backdrop-blur-xl sm:px-6 lg:px-8">
+        <header className="sticky top-0 z-[70] flex h-16 items-center justify-between border-b border-slate-200/80 bg-white/90 px-4 backdrop-blur-xl sm:px-6 lg:px-8">
           <div className="flex items-center gap-3"><button onClick={() => setDrawerOpen(true)} className="rounded-xl bg-slate-100 p-2.5 text-slate-700 lg:hidden" aria-label="Open navigation"><Menu size={20} /></button><div><p className="text-[10px] font-black uppercase tracking-[0.18em] text-green-600">PEPI</p><h1 className="text-sm font-black capitalize text-slate-900 sm:text-base">{visibleNav.find((item) => item.id === section)?.label}</h1></div></div>
           <div className="relative flex items-center gap-2"><AdminNotificationBell onNavigate={select} sections={{ finance: "finance", orders: "orders", vendors: "vendors", riders: "riders", support: "support", attention: "attention" }} /><button onClick={logout} className="flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-xs font-black text-slate-600 hover:border-red-200 hover:bg-red-50 hover:text-red-600"><LogOut size={15} /><span className="hidden sm:inline">Log out</span></button></div>
         </header>
@@ -153,6 +156,7 @@ function Overview({ onNavigate, onOrderDrill }: { onNavigate: (section: Section)
   const [loading, setLoading] = useState(true);
   const [health, setHealth] = useState<any>(null);
   const [pending, setPending] = useState({ vendors: 0, riders: 0, payouts: 0 });
+  const [orderPeriod, setOrderPeriod] = useState<"today" | "week" | "month">("today");
 
   useEffect(() => {
     const load = async () => {
@@ -174,7 +178,12 @@ function Overview({ onNavigate, onOrderDrill }: { onNavigate: (section: Section)
 
   if (!health) return <div className="rounded-3xl bg-red-50 p-6 text-sm font-bold text-red-700">Platform health unavailable. Check API and migration status.</div>;
   const money = (value: number) => `₦${Number(value || 0).toLocaleString()}`;
-  const periodCards = [["Today", health.orders.today, "today"], ["This week", health.orders.week, "week"], ["This month", health.orders.month, "month"]];
+  const periods = {
+    today: { label: "Today", value: health.orders.today },
+    week: { label: "This week", value: health.orders.week },
+    month: { label: "This month", value: health.orders.month },
+  };
+  const selectedPeriod = periods[orderPeriod];
   const statusCards = [["Pending", "pending"], ["Accepted", "accepted"], ["Preparing", "preparing"], ["Picked up", "picked_up"], ["Delivered", "completed"], ["Cancelled", "cancelled"], ["Failed", "failed"]];
   const activity = [["Active customers", health.activity.customers, "customers"], ["Active vendors", health.activity.vendors, "vendors"], ["Active riders", health.activity.riders, "riders"], ["Riders online", health.activity.riders_online, "riders"], ["Riders available", health.activity.riders_available, "riders"], ["On delivery", health.activity.riders_on_delivery, "riders"]] as const;
   const performance = [["Avg delivery", `${health.performance.average_delivery_minutes} min`, "analytics", null], ["Avg preparation", `${health.performance.average_preparation_minutes} min`, "analytics", null], ["Cancellation rate", `${health.performance.cancellation_rate}%`, null, "cancelled"], ["Failed payments", health.performance.failed_payments, "attention", null], ["Refunds", health.finance.refunds, "attention", null], ["Disputes", health.finance.disputes, "attention", null]] as const;
@@ -186,7 +195,19 @@ function Overview({ onNavigate, onOrderDrill }: { onNavigate: (section: Section)
     <section className="space-y-6">
       <div><p className="text-xs font-black uppercase tracking-[0.2em] text-green-600">Live platform data</p><h1 className="mt-1 text-2xl font-black tracking-tight text-slate-900 sm:text-3xl">Operations overview</h1><p className="mt-1 text-sm text-slate-500">Accounts, orders, approvals, and platform finances.</p></div>
 
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">{periodCards.map(([label, value, period]) => <button key={String(period)} onClick={() => onOrderDrill({ period: String(period) })} className="rounded-3xl border border-slate-100 bg-white p-5 text-left shadow-sm"><p className="text-3xl font-black">{Number(value).toLocaleString()}</p><p className="mt-1 text-xs font-black uppercase text-slate-400">Orders {label}</p><p className="mt-3 text-xs font-bold text-green-700">View orders →</p></button>)}</div>
+      <article className="overflow-hidden rounded-3xl border border-slate-100 bg-white shadow-sm">
+        <div className="flex flex-col gap-3 border-b border-slate-100 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+          <div><h2 className="font-black text-slate-900">Orders over time</h2><p className="text-xs text-slate-500">Choose period to update order count.</p></div>
+          <label className="text-xs font-black uppercase text-slate-500">Period
+            <select value={orderPeriod} onChange={(event) => setOrderPeriod(event.target.value as typeof orderPeriod)} className="ml-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-bold normal-case text-slate-800 outline-none focus:border-green-500 focus:ring-2 focus:ring-green-100">
+              <option value="today">Today</option><option value="week">This week</option><option value="month">This month</option>
+            </select>
+          </label>
+        </div>
+        <button onClick={() => onOrderDrill({ period: orderPeriod })} className="block w-full p-5 text-left transition hover:bg-green-50">
+          <p className="text-4xl font-black text-slate-900">{Number(selectedPeriod.value).toLocaleString()}</p><p className="mt-1 text-xs font-black uppercase text-slate-400">{selectedPeriod.label}</p><p className="mt-3 text-xs font-bold text-green-700">View orders →</p>
+        </button>
+      </article>
 
       <div><h2 className="mb-3 text-lg font-black">Orders by status</h2><div className="grid grid-cols-2 gap-3 sm:grid-cols-4 xl:grid-cols-7">{statusCards.map(([label, key]) => <button key={key} onClick={() => onOrderDrill({ status: key })} className="rounded-2xl bg-white p-4 text-left shadow-sm ring-1 ring-slate-100"><p className="text-2xl font-black">{Number(health.orders.by_status[key]).toLocaleString()}</p><p className="mt-1 text-[10px] font-black uppercase text-slate-500">{label}</p><p className="mt-2 text-[10px] font-bold text-green-700">Drill down →</p></button>)}</div></div>
 
